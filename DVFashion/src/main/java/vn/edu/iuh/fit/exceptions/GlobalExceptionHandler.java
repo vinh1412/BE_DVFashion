@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 
 import java.util.List;
@@ -47,10 +46,17 @@ public class GlobalExceptionHandler  {
                 body(ApiResponse.validationError("Validation failed", errors));
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<ApiResponse<Object>> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
+    @ExceptionHandler(AlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAlreadyExists(AlreadyExistsException ex) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.CONFLICT.value(), "CONFLICT_ERROR"));
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNotFoundException(NotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND.value(), "NOT_FOUND"));
     }
 }
