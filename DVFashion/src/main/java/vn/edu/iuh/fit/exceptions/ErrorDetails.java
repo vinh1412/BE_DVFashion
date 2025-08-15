@@ -7,7 +7,7 @@
 package vn.edu.iuh.fit.exceptions;
 
 /*
- * @description:
+ * @description: Class representing error details for API responses
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
