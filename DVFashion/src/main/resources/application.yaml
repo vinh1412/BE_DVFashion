@@ -29,3 +29,13 @@ logging:
           descriptor:
             sql:
               BasicBinder: TRACE
+
+# Base path for the API
+web:
+  base-path: /api/v1
+
+# Security
+jwt:
+  signed-key: ${JWT_SIGNED_KEY}
+  expiration: ${JWT_EXPIRATION}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION}

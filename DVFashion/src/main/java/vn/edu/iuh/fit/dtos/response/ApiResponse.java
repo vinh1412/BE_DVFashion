@@ -17,7 +17,7 @@ import vn.edu.iuh.fit.exceptions.ValidationError;
 import java.util.List;
 
 /*
- * @description:
+ * @description: Generic API response DTO for standardizing API responses across the application
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
@@ -95,7 +95,6 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .success(false)
                 .statusCode(statusCode)
-                .message(message)
                 .error(ErrorDetails.builder()
                         .code("ERROR_" + statusCode)
                         .message(message)
@@ -107,7 +106,6 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .success(false)
                 .statusCode(statusCode)
-                .message(message)
                 .error(ErrorDetails.builder()
                         .code(errorCode)
                         .message(message)
@@ -120,11 +118,23 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .success(false)
                 .statusCode(400)
-                .message(message)
                 .error(ErrorDetails.builder()
                         .code("VALIDATION_ERROR")
                         .message(message)
                         .validationErrors(validationErrors)
+                        .build())
+                .build();
+    }
+
+    // UNAUTHORIZED ERROR
+    public static <T> ApiResponse<T> unauthorized(String message) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .statusCode(401)
+//                .message(message)
+                .error(ErrorDetails.builder()
+                        .code("UNAUTHORIZED")
+                        .message(message)
                         .build())
                 .build();
     }
@@ -134,9 +144,9 @@ public class ApiResponse<T> {
         return error(message, 400, "BAD_REQUEST");
     }
 
-    public static <T> ApiResponse<T> unauthorized(String message) {
-        return error(message, 401, "UNAUTHORIZED");
-    }
+//    public static <T> ApiResponse<T> unauthorized(String message) {
+//        return error(message, 401, "UNAUTHORIZED");
+//    }
 
     public static <T> ApiResponse<T> forbidden(String message) {
         return error(message, 403, "FORBIDDEN");

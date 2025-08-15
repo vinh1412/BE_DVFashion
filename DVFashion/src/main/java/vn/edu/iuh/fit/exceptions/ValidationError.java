@@ -12,7 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /*
- * @description:
+ * @description: Class representing a validation error in the system
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
