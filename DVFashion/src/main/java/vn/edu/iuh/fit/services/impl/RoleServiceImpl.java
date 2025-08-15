@@ -17,7 +17,7 @@ import vn.edu.iuh.fit.services.RoleService;
 import java.util.Optional;
 
 /*
- * @description:
+ * @description: Service implementation for managing user roles
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0

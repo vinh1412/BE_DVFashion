@@ -7,7 +7,7 @@
 package vn.edu.iuh.fit.exceptions;
 
 /*
- * @description:
+ * @description: Custom exception to indicate that an entity was not found in the system
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0

@@ -1,0 +1,50 @@
+/*
+ * @ {#} TokenService.java   1.0     16/08/2025
+ *
+ * Copyright (c) 2025 IUH. All rights reserved.
+ */
+
+package vn.edu.iuh.fit.services;
+
+import org.springframework.data.jpa.repository.Query;
+import vn.edu.iuh.fit.entities.Token;
+
+import java.util.List;
+
+/*
+ * @description: Service interface for managing tokens
+ * @author: Tran Hien Vinh
+ * @date:   16/08/2025
+ * @version:    1.0
+ */
+public interface TokenService {
+    /**
+     * Find all valid tokens for a user by their ID.
+     *
+     * @param id the ID of the user
+     * @return a list of valid tokens for the user
+     */
+    List<Token> findAllValidTokenByUser(Long id);
+
+    /**
+     * Find a token by its refresh token and check if it is not revoked.
+     *
+     * @param refreshToken the refresh token to search for
+     * @return an Optional containing the Token if found and not revoked, or empty if not found
+     */
+    @Query("SELECT t FROM Token t WHERE t.refreshToken = :refreshToken AND t.isRevoked = false")
+    Token findByRefreshTokenAndRevokedFalse(String refreshToken);
+
+    /**
+     * Revoke a token.
+     *
+     * @param token the token to be revoked
+     */
+    void revokeToken(Token token);
+
+    /**
+     * Clean up expired tokens from the database.
+     * This method should be scheduled to run periodically to ensure that expired tokens are removed.
+     */
+    void cleanExpiredTokens();
+}

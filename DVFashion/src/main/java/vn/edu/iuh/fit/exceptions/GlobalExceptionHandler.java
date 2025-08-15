@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /*
- * @description:
+ * @description: Global exception handler for the application
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
@@ -55,6 +55,13 @@ public class GlobalExceptionHandler  {
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleNotFoundException(NotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND.value(), "NOT_FOUND"));
+    }
+
+    @ExceptionHandler(TokenRefreshException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTokenRefreshException(TokenRefreshException ex) {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND.value(), "NOT_FOUND"));

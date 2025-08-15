@@ -11,7 +11,7 @@ import lombok.*;
 import vn.edu.iuh.fit.enums.UserRole;
 
 /*
- * @description:
+ * @description: Entity class representing user roles in the application
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0

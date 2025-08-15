@@ -14,7 +14,7 @@ import vn.edu.iuh.fit.enums.UserRole;
 import java.util.Optional;
 
 /*
- * @description:
+ * @description: Repository interface for managing roles in the system
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0

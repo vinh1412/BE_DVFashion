@@ -10,7 +10,7 @@ public enum TypeProviderAuth {
         this.value = value;
     }
 
-    public String getType() {
+    public String getValue() {
         return value;
     }
 }

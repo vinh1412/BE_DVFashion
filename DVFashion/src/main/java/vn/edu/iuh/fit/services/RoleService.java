@@ -9,10 +9,9 @@ package vn.edu.iuh.fit.services;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.enums.UserRole;
 
-import java.util.Optional;
 
 /*
- * @description:
+ * @description: Service interface for managing user roles
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0

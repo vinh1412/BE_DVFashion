@@ -15,6 +15,7 @@ import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.enums.TypeProviderAuth;
 import vn.edu.iuh.fit.enums.UserRole;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
+import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.repositories.UserRepository;
 import vn.edu.iuh.fit.services.RoleService;
 import vn.edu.iuh.fit.services.UserService;
@@ -23,7 +24,7 @@ import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 import java.util.Set;
 
 /*
- * @description:
+ * @description: Service implementation for managing user operations
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
@@ -32,7 +33,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+
     private final PasswordEncoder passwordEncoder;
+
     private final RoleService roleService;
 
     @Override
@@ -50,7 +53,8 @@ public class UserServiceImpl implements UserService {
         if (existsByEmail(signUpRequest.getEmail())) {
             throw new AlreadyExistsException("Email already exists");
         }
-        if (existsByPhone(signUpRequest.getPhone())) {
+
+        if (existsByPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.getPhone()))) {
             throw new AlreadyExistsException("Phone number already exists");
         }
 
@@ -65,5 +69,16 @@ public class UserServiceImpl implements UserService {
         user.setRoles(Set.of(role));
 
         return userRepository.save(user);
+    }
+
+    @Override
+    public User findById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
+    }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsername(username);
     }
 }

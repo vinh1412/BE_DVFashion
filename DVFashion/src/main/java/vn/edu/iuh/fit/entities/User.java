@@ -17,7 +17,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /*
- * @description:
+ * @description: Entity class representing a user in the application
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
@@ -40,7 +40,7 @@ public class User {
     @Column(name = "full_name")
     private String fullName;
 
-    @Column(name = "username", unique = true)
+    @Column(name = "phone", unique = true)
     private String phone;
 
     private String password;
@@ -50,6 +50,7 @@ public class User {
 
     private LocalDate dob;
 
+    @Column(name = "active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private boolean active= true;
 
     @Column(name = "created_at")

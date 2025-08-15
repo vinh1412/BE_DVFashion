@@ -10,7 +10,7 @@ import vn.edu.iuh.fit.dtos.request.SignUpRequest;
 import vn.edu.iuh.fit.entities.User;
 
 /*
- * @description:
+ * @description: Service interface for managing user operations
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
@@ -39,4 +39,20 @@ public interface UserService {
      * @return the created User entity
      */
     User createCustomer(SignUpRequest signUpRequest);
+
+    /**
+     * Find a user by their ID.
+     *
+     * @param id the ID of the user
+     * @return the User entity with the specified ID, or null if not found
+     */
+    User findById(Long id);
+
+    /**
+     * Check if a user exists by their username (email or phone).
+     *
+     * @param username the username to check
+     * @return true if a user with the specified username exists, false otherwise
+     */
+    boolean existsByUsername(String username);
 }

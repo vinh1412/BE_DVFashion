@@ -6,12 +6,6 @@
 
 package vn.edu.iuh.fit.enums;
 
-/*
- * @description:
- * @author: Tran Hien Vinh
- * @date:   14/08/2025
- * @version:    1.0
- */
 public enum Gender {
     MALE("MALE"), FEMALE("FEMALE"), OTHER("OTHER");
 

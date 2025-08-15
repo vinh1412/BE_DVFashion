@@ -10,16 +10,10 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import vn.edu.iuh.fit.enums.UserRole;
-
-import java.util.List;
 
 /*
- * @description:
+ * @description: Request DTO for user sign-up
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
