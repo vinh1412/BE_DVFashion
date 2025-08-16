@@ -58,4 +58,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
          FROM User u 
          WHERE (u.email = :username OR u.phone = :username) AND u.active = true""")
     boolean existsByUsername(String username);
+
+    /**
+     * Find a user by their email.
+     *
+     * @param email the email to search for
+     * @return an Optional containing the User if found, or empty if not found
+     */
+    Optional<User> findByEmail(String email);
 }

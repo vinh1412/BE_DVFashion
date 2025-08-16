@@ -11,7 +11,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.response.SignInResponse;
 import vn.edu.iuh.fit.dtos.request.SignInRequest;
@@ -30,7 +29,6 @@ import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -90,7 +88,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Save refresh token in the database
         User user = userService.findById(userPrincipal.getId());
-        saveRefreshToken(user, refreshToken);
+        tokenService.saveRefreshToken(user, refreshToken);
 
         return SignInResponse.builder()
                 .accessToken(accessToken)
@@ -125,7 +123,7 @@ public class AuthServiceImpl implements AuthService {
         String newRefreshToken = jwtUtils.generateRefreshToken(userDetails);
 
         // Save the new refresh token in the database
-        saveRefreshToken(user, newRefreshToken);
+        tokenService.saveRefreshToken(user, newRefreshToken);
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
@@ -148,27 +146,6 @@ public class AuthServiceImpl implements AuthService {
 
         // Revoke the token
         tokenService.revokeToken(token);
-    }
-
-    // Save the refresh token in the database
-    private void saveRefreshToken(User user, String refreshToken) {
-        // Revoke old tokens
-        List<Token> validUserTokens = tokenService.findAllValidTokenByUser(user.getId());
-        if (!validUserTokens.isEmpty()) {
-            validUserTokens.forEach(token -> token.setRevoked(true));
-            tokenRepository.saveAll(validUserTokens);
-        }
-
-        // Save new token
-        Instant expirationDate = Instant.now().plus(7, ChronoUnit.DAYS); // 7 days expiration
-        Token token = Token.builder()
-                .user(user)
-                .refreshToken(refreshToken)
-                .expirationDate(expirationDate)
-                .isRevoked(false)
-                .build();
-
-        tokenRepository.save(token);
     }
 
     // Check if the token is expired

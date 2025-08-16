@@ -61,7 +61,11 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type_provider_auth")
-    private TypeProviderAuth typeProviderAuth;
+    @Builder.Default
+    private TypeProviderAuth typeProviderAuth = TypeProviderAuth.LOCAL;
+
+    @Column(name = "provider_id")
+    private String providerId;
 
 //    @OneToMany(mappedBy = "user")
 //    private List<Address> addresses= new ArrayList<>();
