@@ -25,6 +25,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import vn.edu.iuh.fit.security.jwt.JwtAuthenticationFilter;
+import vn.edu.iuh.fit.security.oauth2.CustomOAuth2UserService;
+import vn.edu.iuh.fit.security.oauth2.OAuth2AuthenticationFailureHandler;
+import vn.edu.iuh.fit.security.oauth2.OAuth2AuthenticationSuccessHandler;
 
 /*
  * @description: Configuration class for Spring Security
@@ -46,6 +49,12 @@ public class WebSecurityConfig {
 //    @Autowired
     private final PasswordEncoder passwordEncoder;
 
+    private final CustomOAuth2UserService customOAuth2UserService;
+
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+
+    private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+
     @Value("${web.base-path}")
     private String basePath;
 
@@ -60,7 +69,12 @@ public class WebSecurityConfig {
         PUBLIC_ENDPOINTS = new String[]{
                 path("/auth/sign-up"),
                 path("/auth/sign-in"),
-                path("/auth/refresh-token")
+                path("/auth/refresh-token"),
+                path("/auth/**"),
+                path("/oauth2/**"),
+                "/oauth2/**",
+                "/login/oauth2/**",
+                "/oauth2/authorization/**"
         };
     }
 
@@ -92,6 +106,16 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+//                        .authorizationEndpoint(authorization -> authorization
+//                                .baseUri("/oauth2/authorize"))
+//                        .redirectionEndpoint(redirection -> redirection
+//                                .baseUri("/oauth2/callback/*"))
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService))
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler)
                 );
 
         // Use custom authentication provider

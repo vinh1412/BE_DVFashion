@@ -72,4 +72,25 @@ public class TokenServiceImpl implements TokenService {
         Instant threshold = now.minus(30, ChronoUnit.DAYS);
         tokenRepository.deleteAllRevokedOlderThan(threshold);
     }
+
+    @Override
+    public void saveRefreshToken(User user, String refreshToken) {
+        // Revoke old tokens
+        List<Token> validUserTokens = findAllValidTokenByUser(user.getId());
+        if (!validUserTokens.isEmpty()) {
+            validUserTokens.forEach(token -> token.setRevoked(true));
+            tokenRepository.saveAll(validUserTokens);
+        }
+
+        // Save new token
+        Instant expirationDate = Instant.now().plus(7, ChronoUnit.DAYS); // 7 days expiration
+        Token token = Token.builder()
+                .user(user)
+                .refreshToken(refreshToken)
+                .expirationDate(expirationDate)
+                .isRevoked(false)
+                .build();
+
+        tokenRepository.save(token);
+    }
 }

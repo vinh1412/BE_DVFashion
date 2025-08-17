@@ -66,4 +66,11 @@ public class GlobalExceptionHandler  {
                 .status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND.value(), "NOT_FOUND"));
     }
+
+    @ExceptionHandler(OAuth2AuthenticationProcessingException.class)
+    public ResponseEntity<ApiResponse<Object>> handleOAuth2AuthenticationProcessingException(OAuth2AuthenticationProcessingException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.UNAUTHORIZED.value(), "UNAUTHORIZED"));
+    }
 }

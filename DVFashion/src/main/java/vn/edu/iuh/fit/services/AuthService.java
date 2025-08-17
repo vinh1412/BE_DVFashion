@@ -6,6 +6,8 @@
 
 package vn.edu.iuh.fit.services;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import vn.edu.iuh.fit.dtos.response.SignInResponse;
 import vn.edu.iuh.fit.dtos.request.SignInRequest;
 import vn.edu.iuh.fit.dtos.request.RefreshTokenRequest;
@@ -30,22 +32,25 @@ public interface AuthService {
      * Handles user sign-in.
      *
      * @param signInRequest the sign-in request containing user credentials
-     * @return a JwtResponse containing JWT tokens and user details
+     * @param response the HTTP response to set cookies for JWT tokens
+     * @return a SignInResponse containing JWT tokens and user details
      */
-    SignInResponse signIn(SignInRequest signInRequest);
+    SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response);
 
     /**
      * Refreshes the JWT token.
      *
-     * @param request the request containing the refresh token
+     * @param request the HTTP request containing the refresh token
+     * @param response the HTTP response to set cookies for new JWT tokens
      * @return a JwtResponse containing the new JWT tokens
      */
-    SignInResponse refreshToken(RefreshTokenRequest request);
+    SignInResponse refreshToken(HttpServletRequest request, HttpServletResponse response);
 
     /**
      * Logs out the user by invalidating the refresh token.
      *
-     * @param refreshToken the refresh token to be invalidated
+     * @param request the refresh token to be invalidated
+     * @param response the HTTP response to clear cookies
      */
-    void logout(String refreshToken);
+    void logout(HttpServletRequest request, HttpServletResponse response);
 }
