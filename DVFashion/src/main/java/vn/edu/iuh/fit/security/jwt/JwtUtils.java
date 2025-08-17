@@ -115,4 +115,10 @@ public class JwtUtils {
         }
         return false;
     }
+
+    // Calculates the maximum age of the access token
+    public int getTokenMaxAge(String token) {
+        Date expirationDate = getExpirationDateFromToken(token);
+        return (int) ((expirationDate.getTime() - System.currentTimeMillis()) / 1000);
+    }
 }

@@ -60,8 +60,11 @@ public class User {
     private LocalDateTime updateAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type_provider_auth")
-    private TypeProviderAuth typeProviderAuth;
+    @ElementCollection(fetch = FetchType.EAGER)
+    private Set<TypeProviderAuth> typeProviderAuths = new HashSet<>();
+
+    @Column(name = "provider_id")
+    private String providerId;
 
 //    @OneToMany(mappedBy = "user")
 //    private List<Address> addresses= new ArrayList<>();

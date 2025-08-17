@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.services;
 
 import org.springframework.data.jpa.repository.Query;
 import vn.edu.iuh.fit.entities.Token;
+import vn.edu.iuh.fit.entities.User;
 
 import java.util.List;
 
@@ -47,4 +48,12 @@ public interface TokenService {
      * This method should be scheduled to run periodically to ensure that expired tokens are removed.
      */
     void cleanExpiredTokens();
+
+    /**
+     * Save a refresh token for a user.
+     *
+     * @param user the user for whom the refresh token is being saved
+     * @param refreshToken the refresh token to be saved
+     */
+    void saveRefreshToken(User user, String refreshToken);
 }
