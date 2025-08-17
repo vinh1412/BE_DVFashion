@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.security.jwt;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import vn.edu.iuh.fit.security.UserDetailsServiceImpl;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /*
  * @description: Filter to handle JWT authentication for incoming requests
@@ -39,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             // Extract the JWT from the request and validate it
-            String jwt = parseJwt(request);
+            String jwt = getJwtFromCookies(request);
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 // If the JWT is valid, get the username from it
                 String email = jwtUtils.getUsernameFromJwtToken(jwt);
@@ -70,6 +72,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return headerAuth.substring(7);
         }
 
+        return null;
+    }
+
+    // Retrieves the JWT from cookies
+    private String getJwtFromCookies(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            return Arrays.stream(request.getCookies())
+                    .filter(cookie -> "accessToken".equals(cookie.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("JWT is missing in cookies"));
+        }
         return null;
     }
 }

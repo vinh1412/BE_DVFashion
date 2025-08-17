@@ -65,7 +65,7 @@ public class UserServiceImpl implements UserService {
         user.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.getPhone()));
         user.setFullName(signUpRequest.getFullName());
         user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
-        user.setTypeProviderAuth(TypeProviderAuth.LOCAL);
+//        user.setTypeProviderAuth(TypeProviderAuth.LOCAL);
         user.setRoles(Set.of(role));
 
         return userRepository.save(user);
