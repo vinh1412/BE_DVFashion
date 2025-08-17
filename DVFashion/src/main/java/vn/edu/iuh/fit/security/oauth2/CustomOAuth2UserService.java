@@ -23,6 +23,7 @@ import vn.edu.iuh.fit.exceptions.OAuth2AuthenticationProcessingException;
 import vn.edu.iuh.fit.repositories.UserRepository;
 import vn.edu.iuh.fit.services.RoleService;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -64,27 +65,33 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         Optional<User> userOptional = userRepository.findByEmail(oAuth2UserInfo.getEmail());
         User user;
 
+        TypeProviderAuth currentProvider = TypeProviderAuth.valueOf(
+                oAuth2UserRequest.getClientRegistration().getRegistrationId().toUpperCase()
+        );
+
+        // Check if the user already exists in the database
         if (userOptional.isPresent()) {
             user = userOptional.get();
-            if (!user.getTypeProviderAuth().equals(TypeProviderAuth.valueOf(
-                    oAuth2UserRequest.getClientRegistration().getRegistrationId().toUpperCase()))) {
-                throw new OAuth2AuthenticationProcessingException(
-                        "Looks like you're signed up with " + user.getTypeProviderAuth() +
-                                " account. Please use your " + user.getTypeProviderAuth() + " account to login."
-                );
+            // If the user is already registered with the current provider, update their information
+            if (!user.getTypeProviderAuths().contains(currentProvider)) {
+                user.getTypeProviderAuths().add(currentProvider);
             }
-            user = updateExistingUser(user, oAuth2UserInfo);
+
+            // Update user information with the new OAuth2 user info
+            user = updateExistingUser(user, oAuth2UserInfo, currentProvider);
         } else {
-            user = registerNewUser(oAuth2UserRequest, oAuth2UserInfo);
+            // If the user does not exist, register a new user
+            user = registerNewUser(oAuth2UserRequest, oAuth2UserInfo, currentProvider);
         }
 
         return UserPrincipal.create(user, oAuth2User.getAttributes());
     }
 
-    private User registerNewUser(OAuth2UserRequest oAuth2UserRequest, OAuth2UserInfo oAuth2UserInfo) {
+    // Registers a new user with the OAuth2 provider information
+    private User registerNewUser(OAuth2UserRequest oAuth2UserRequest, OAuth2UserInfo oAuth2UserInfo,  TypeProviderAuth currentProvider) {
         User user = new User();
 
-        user.setTypeProviderAuth(TypeProviderAuth.valueOf(oAuth2UserRequest.getClientRegistration().getRegistrationId().toUpperCase()));
+        user.setTypeProviderAuths(new HashSet<>(Set.of(currentProvider)));
         user.setProviderId(oAuth2UserInfo.getId());
         user.setFullName(oAuth2UserInfo.getName());
         user.setEmail(oAuth2UserInfo.getEmail());
@@ -96,8 +103,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return userRepository.save(user);
     }
 
-    private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {;
-        existingUser.setTypeProviderAuth(TypeProviderAuth.GOOGLE);
+    // Updates an existing user with the new OAuth2 user information
+    private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo, TypeProviderAuth currentProvider) {;
         existingUser.setProviderId(oAuth2UserInfo.getId());
 
         return userRepository.save(existingUser);

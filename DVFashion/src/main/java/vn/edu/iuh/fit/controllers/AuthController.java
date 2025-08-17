@@ -6,6 +6,8 @@
 
 package vn.edu.iuh.fit.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -49,9 +51,9 @@ public class AuthController {
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity<ApiResponse<?>> signIn(@Valid @RequestBody SignInRequest signInRequest) {
+    public ResponseEntity<ApiResponse<?>> signIn(@Valid @RequestBody SignInRequest signInRequest, HttpServletResponse response) {
         try {
-            SignInResponse signInResponse = authService.signIn(signInRequest);
+            SignInResponse signInResponse = authService.signIn(signInRequest, response);
             return ResponseEntity.ok(ApiResponse.success(signInResponse, "Sign in successful."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Error: " + e.getMessage(), 400));
@@ -59,9 +61,10 @@ public class AuthController {
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<ApiResponse<?>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<ApiResponse<?>> refreshToken(HttpServletRequest request,
+                                                       HttpServletResponse response) {
         try {
-            SignInResponse signInResponse = authService.refreshToken(request);
+            SignInResponse signInResponse = authService.refreshToken(request, response);
             return ResponseEntity.ok(ApiResponse.success(signInResponse, "Token refreshed successfully."));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -71,9 +74,10 @@ public class AuthController {
 
     @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<?>> logout(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request,
+                                                 HttpServletResponse response) {
         try {
-            authService.logout(request.getRefreshToken());
+            authService.logout(request, response);
             return ResponseEntity.ok(ApiResponse.noContent("Logout successful."));
         } catch (Exception e) {
             return ResponseEntity.badRequest()

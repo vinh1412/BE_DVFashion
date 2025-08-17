@@ -20,6 +20,7 @@ import vn.edu.iuh.fit.security.UserDetailsImpl;
 import vn.edu.iuh.fit.security.jwt.JwtUtils;
 import vn.edu.iuh.fit.services.TokenService;
 import vn.edu.iuh.fit.services.UserService;
+import vn.edu.iuh.fit.utils.CookieUtils;
 
 import java.io.IOException;
 
@@ -77,9 +78,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // Save the refresh token in the database
         tokenService.saveRefreshToken(user, refreshToken);
 
+        // Add tokens to cookies
+        CookieUtils.addCookie(response, "accessToken", accessToken, jwtUtils.getTokenMaxAge(accessToken), true); // 30 minutes
+        CookieUtils.addCookie(response, "refreshToken", refreshToken, jwtUtils.getTokenMaxAge(refreshToken), true); // 7 days
+
         return UriComponentsBuilder.fromUriString(redirectUri)
-                .queryParam("accessToken", accessToken)
-                .queryParam("refreshToken", refreshToken)
                 .build().toUriString();
     }
 }

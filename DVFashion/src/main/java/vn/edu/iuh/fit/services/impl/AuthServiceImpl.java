@@ -6,6 +6,9 @@
 
 package vn.edu.iuh.fit.services.impl;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,18 +21,23 @@ import vn.edu.iuh.fit.dtos.request.RefreshTokenRequest;
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
 import vn.edu.iuh.fit.entities.Token;
 import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.enums.TypeProviderAuth;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.exceptions.TokenRefreshException;
 import vn.edu.iuh.fit.repositories.TokenRepository;
+import vn.edu.iuh.fit.repositories.UserRepository;
 import vn.edu.iuh.fit.security.jwt.JwtUtils;
 import vn.edu.iuh.fit.security.UserDetailsImpl;
 import vn.edu.iuh.fit.services.AuthService;
 import vn.edu.iuh.fit.services.TokenService;
 import vn.edu.iuh.fit.services.UserService;
+import vn.edu.iuh.fit.utils.CookieUtils;
 import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /*
@@ -42,6 +50,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final UserService userService;
+
+    private final UserRepository userRepository;
 
     private final AuthenticationManager authenticationManager;
 
@@ -61,7 +71,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public SignInResponse signIn(SignInRequest signInRequest) {
+    public SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response) {
         // Check if username exists
         String username = FormatPhoneNumber.normalizePhone(signInRequest.getUsername());
         boolean existsByUsername = userService.existsByUsername(username);
@@ -86,13 +96,20 @@ public class AuthServiceImpl implements AuthService {
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
 
-        // Save refresh token in the database
         User user = userService.findById(userPrincipal.getId());
+
+        // Update user type provider auths
+        user.getTypeProviderAuths().add(TypeProviderAuth.LOCAL);
+        userRepository.save(user);
+
+        // Save refresh token in the database
         tokenService.saveRefreshToken(user, refreshToken);
 
+        // Set cookie
+        CookieUtils.addCookie(response, "accessToken", accessToken, jwtUtils.getTokenMaxAge(accessToken), true); // 30 minutes
+        CookieUtils.addCookie(response, "refreshToken", refreshToken, jwtUtils.getTokenMaxAge(refreshToken), true); // 7 days
+
         return SignInResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .id(userPrincipal.getId())
                 .email(userPrincipal.getEmail())
                 .phone(userPrincipal.getPhone())
@@ -101,8 +118,20 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public SignInResponse refreshToken(RefreshTokenRequest request) {
-        String requestRefreshToken = request.getRefreshToken();
+    public SignInResponse refreshToken(HttpServletRequest request, HttpServletResponse response){
+        Cookie[] cookies = request.getCookies();
+
+        // Check if cookies are present
+        if (cookies == null) {
+            throw new TokenRefreshException("Cookies are missing");
+        }
+
+        // Extract refresh token from cookies
+        String requestRefreshToken = Arrays.stream(request.getCookies())
+                .filter(c -> "refreshToken".equals(c.getName()))
+                .findFirst()
+                .map(Cookie::getValue)
+                .orElseThrow(() -> new TokenRefreshException("Refresh token is missing"));
 
         // Validate refresh token
         Token token = tokenService.findByRefreshTokenAndRevokedFalse(requestRefreshToken);
@@ -125,13 +154,14 @@ public class AuthServiceImpl implements AuthService {
         // Save the new refresh token in the database
         tokenService.saveRefreshToken(user, newRefreshToken);
 
+        CookieUtils.addCookie(response, "accessToken", newAccessToken, jwtUtils.getTokenMaxAge(newAccessToken), true); // 30 minutes
+        CookieUtils.addCookie(response, "refreshToken", newRefreshToken, jwtUtils.getTokenMaxAge(newRefreshToken), true); // 7 days
+
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
 
         return SignInResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
                 .id(user.getId())
                 .email(user.getEmail())
                 .phone(user.getPhone())
@@ -140,12 +170,30 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(String refreshToken) {
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        Cookie[] cookies = request.getCookies();
+
+        // Check if cookies are present
+        if (cookies == null) {
+            throw new TokenRefreshException("Cookies are missing");
+        }
+
+        // Extract refresh token from cookies
+        String refreshToken = Arrays.stream(request.getCookies())
+                .filter(c -> "refreshToken".equals(c.getName()))
+                .findFirst()
+                .map(Cookie::getValue)
+                .orElseThrow(() -> new TokenRefreshException("Refresh token is missing"));
+
         // Find the token in the database
         Token token = tokenService.findByRefreshTokenAndRevokedFalse(refreshToken);
 
         // Revoke the token
         tokenService.revokeToken(token);
+
+        // Delete cookies
+        CookieUtils.deleteCookie(response, "accessToken");
+        CookieUtils.deleteCookie(response, "refreshToken");
     }
 
     // Check if the token is expired

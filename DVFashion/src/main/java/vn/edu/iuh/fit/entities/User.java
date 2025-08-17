@@ -60,9 +60,8 @@ public class User {
     private LocalDateTime updateAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type_provider_auth")
-    @Builder.Default
-    private TypeProviderAuth typeProviderAuth = TypeProviderAuth.LOCAL;
+    @ElementCollection(fetch = FetchType.EAGER)
+    private Set<TypeProviderAuth> typeProviderAuths = new HashSet<>();
 
     @Column(name = "provider_id")
     private String providerId;

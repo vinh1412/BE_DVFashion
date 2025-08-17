@@ -24,8 +24,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SignInResponse {
-    private String accessToken;
-    private String refreshToken;
     private Long id;
     private String email;
     private String phone;
