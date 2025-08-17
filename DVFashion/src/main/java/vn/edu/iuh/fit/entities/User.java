@@ -13,7 +13,9 @@ import vn.edu.iuh.fit.enums.TypeProviderAuth;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /*
@@ -46,12 +48,13 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Gender gender;
 
     private LocalDate dob;
 
     @Column(name = "active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
-    private boolean active= true;
+    private boolean active = true;
 
     @Column(name = "created_at")
     private LocalDateTime createAt;
@@ -66,34 +69,35 @@ public class User {
     @Column(name = "provider_id")
     private String providerId;
 
-//    @OneToMany(mappedBy = "user")
-//    private List<Address> addresses= new ArrayList<>();
-//
-//    @OneToMany(mappedBy = "user")
-//    private List<Order> orders= new ArrayList<>();
-//
-//    @OneToOne(mappedBy = "user")
-//    private ShoppingCart cart;
-//
-//    @OneToMany(mappedBy = "user")
-//    private List<Review> reviews= new ArrayList<>();
-//
-//    @OneToMany(mappedBy = "user")
-//    private List<WishlistItem> wishlist= new ArrayList<>();
+    @OneToMany(mappedBy = "user")
+    private List<Address> addresses = new ArrayList<>();
 
-//    @OneToMany(mappedBy = "user")
-//    private List<Token> tokens = new ArrayList<>();
+    @OneToMany(mappedBy = "customer")
+    private List<Order> orders = new ArrayList<>();
+
+    @OneToOne(mappedBy = "user")
+    private ShoppingCart cart;
+
+    @OneToMany(mappedBy = "user")
+    private List<Review> reviews = new ArrayList<>();
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private Wishlist wishlist;
+
+    @OneToMany(mappedBy = "user")
+    private List<Token> tokens = new ArrayList<>();
 
     @ManyToMany
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles= new HashSet<>();
+    private Set<Role> roles = new HashSet<>();
 
     @PrePersist
     public void prePersist() {
         this.createAt = LocalDateTime.now();
         this.updateAt = LocalDateTime.now();
+        if (gender == null) this.gender = Gender.OTHER;
     }
 
     @PreUpdate
