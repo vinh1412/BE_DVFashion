@@ -7,20 +7,25 @@
 package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
+import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.enums.TypeProviderAuth;
 import vn.edu.iuh.fit.enums.UserRole;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.exceptions.UnauthorizedException;
 import vn.edu.iuh.fit.repositories.UserRepository;
 import vn.edu.iuh.fit.services.RoleService;
 import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /*
@@ -80,5 +85,37 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
+    }
+
+    @Override
+    public UserResponse getCurrentUser() {
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+        System.out.println("Current username: " + username);
+        if (username == null || username.isEmpty() || username.equals("anonymousUser")) {
+            throw new UnauthorizedException("User is not authenticated");
+        }
+
+        Optional<User> userOptional = userRepository.findByUsernameAndActiveTrue(username);
+        if (userOptional.isEmpty()) {
+            throw new NotFoundException("User not found");
+        }
+
+        User user = userOptional.get();
+
+        UserResponse userResponse = UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .phone(user.getPhone())
+                .dob(user.getDob() != null ? user.getDob() : null)
+                .gender(user.getGender() != null ? user.getGender() : null)
+                .roles(user.getRoles().stream()
+                        .map(role -> "ROLE_" +role.getName().name())
+                        .toList())
+                .build();
+
+        return userResponse;
     }
 }

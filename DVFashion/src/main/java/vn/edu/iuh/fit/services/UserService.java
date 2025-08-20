@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.services;
 
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
+import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.User;
 
 /*
@@ -55,4 +56,6 @@ public interface UserService {
      * @return true if a user with the specified username exists, false otherwise
      */
     boolean existsByUsername(String username);
+
+    UserResponse getCurrentUser();
 }
