@@ -10,19 +10,19 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.response.SignInResponse;
 import vn.edu.iuh.fit.dtos.request.SignInRequest;
 import vn.edu.iuh.fit.dtos.request.RefreshTokenRequest;
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
+import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.services.AuthService;
+import vn.edu.iuh.fit.services.UserService;
 
 /*
  * @description: Controller for handling authentication requests
@@ -35,6 +35,8 @@ import vn.edu.iuh.fit.services.AuthService;
 @RequestMapping("${web.base-path}/auth")
 public class AuthController {
     private final AuthService authService;
+
+    private final UserService userService;
 
     @PostMapping("/sign-up")
     public ResponseEntity<ApiResponse<?>> signUpForCustomer(@Valid @RequestBody SignUpRequest signUpRequest){
@@ -83,5 +85,16 @@ public class AuthController {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.notFound("Error: " + e.getMessage()));
         }
+    }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<?>> getCurrentUser(){
+//        try {
+            UserResponse user = userService.getCurrentUser();
+            return ResponseEntity.ok(ApiResponse.success(user, "User retrieved successfully."));
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("Error: " + e.getMessage(), 401));
+//        }
     }
 }

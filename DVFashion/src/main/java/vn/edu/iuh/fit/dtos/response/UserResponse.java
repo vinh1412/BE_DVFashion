@@ -1,0 +1,37 @@
+/*
+ * @ {#} UserResponse.java   1.0     17/08/2025
+ *
+ * Copyright (c) 2025 IUH. All rights reserved.
+ */
+
+package vn.edu.iuh.fit.dtos.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import vn.edu.iuh.fit.enums.Gender;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
+
+/*
+ * @description:
+ * @author: Tran Hien Vinh
+ * @date:   17/08/2025
+ * @version:    1.0
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserResponse {
+    private Long id;
+    private String email;
+    private String fullName;
+    private String phone;
+    private LocalDate dob;
+    private Gender gender;
+    private List<String> roles;
+}
