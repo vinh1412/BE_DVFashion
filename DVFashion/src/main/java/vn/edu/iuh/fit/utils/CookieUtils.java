@@ -21,6 +21,7 @@ public class CookieUtils {
         cookie.setPath("/");
         cookie.setHttpOnly(httpOnly);
         cookie.setSecure(false); // if using HTTPS, set this to true
+        cookie.setAttribute("SameSite", "Strict");
         cookie.setMaxAge(maxAge);
         response.addCookie(cookie);
     }
@@ -30,6 +31,7 @@ public class CookieUtils {
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         cookie.setSecure(false);
+        cookie.setAttribute("SameSite", "Strict");
         cookie.setMaxAge(0);
         response.addCookie(cookie);
     }

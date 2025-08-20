@@ -108,6 +108,8 @@ public class AuthServiceImpl implements AuthService {
         // Set cookie
         CookieUtils.addCookie(response, "accessToken", accessToken, jwtUtils.getTokenMaxAge(accessToken), true); // 30 minutes
         CookieUtils.addCookie(response, "refreshToken", refreshToken, jwtUtils.getTokenMaxAge(refreshToken), true); // 7 days
+        // Return sign-in response
+        CookieUtils.addCookie(response, "isAuthenticated", "true",  jwtUtils.getTokenMaxAge(refreshToken), false);
 
         return SignInResponse.builder()
                 .id(userPrincipal.getId())

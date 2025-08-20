@@ -73,4 +73,11 @@ public class GlobalExceptionHandler  {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.UNAUTHORIZED.value(), "UNAUTHORIZED"));
     }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnauthorizedException(UnauthorizedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.unauthorized(ex.getMessage()));
+    }
 }
