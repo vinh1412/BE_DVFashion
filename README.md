@@ -1,144 +1,144 @@
-# 👗 DVFashion Shop - Hệ thống quản lý cửa hàng quần áo thông minh
+# 👗 DVFashion Shop - Intelligent Clothing Store Management System
 
-## 📖 Giới thiệu
+## 🤝 Development Team  
 
-DVFashion Shop là một hệ thống quản lý cửa hàng quần áo trực tuyến tích hợp các tính năng thông minh như **gợi ý sản phẩm** và **dự báo doanh thu**. Dự án được phát triển nhằm cung cấp trải nghiệm mua sắm tối ưu cho khách hàng và công cụ quản lý hiệu quả cho chủ shop.
+- **Developer 1**: Tran Hien Vinh  
+- **Developer 2**: Nguyen Tan Thai Duong 
 
-## 🎯 Mục tiêu dự án
+## 📖 Introduction  
 
-- **Cải thiện trải nghiệm khách hàng**: Giao diện thân thiện, tìm kiếm thông minh, gợi ý sản phẩm cá nhân hóa
-- **Tối ưu hóa quản lý**: Dự báo doanh thu, quản lý kho hàng, thống kê chi tiết
-- **Thanh toán linh hoạt**: Tích hợp PayPal cho thanh toán trực tuyến
-- **Đa ngôn ngữ**: Hỗ trợ chuyển đổi Anh - Việt
+DVFashion Shop is an online clothing store management system that integrates intelligent features such as **product recommendation** and **revenue forecasting**. The project aims to provide customers with an optimized shopping experience and store owners with an efficient management tool.  
 
-## ✨ Tính năng chính
+## 🎯 Project Objectives  
 
-### 🛍️ Dành cho Khách hàng
+- **Enhance customer experience**: Friendly interface, smart search, personalized product recommendations  
+- **Optimize management**: Revenue forecasting, inventory management, detailed statistics  
+- **Flexible payment**: PayPal integration for online transactions  
+- **Multilingual**: English - Vietnamese support  
 
-- **Đăng ký/Đăng nhập**: Hỗ trợ đăng ký bằng email hoặc số điện thoại
-- **Tìm kiếm & Lọc**: Tìm kiếm thông minh với bộ lọc đa tiêu chí (kích cỡ, màu sắc, giá, giới tính)
-- **Gợi ý thông minh**: Đề xuất sản phẩm dựa trên hành vi và sở thích cá nhân
-- **Quản lý giỏ hàng**: Thêm, xóa, cập nhật sản phẩm dễ dàng
-- **Thanh toán**: Tích hợp PayPal cho thanh toán an toàn
-- **Theo dõi đơn hàng**: Kiểm tra trạng thái đơn hàng realtime
-- **Đánh giá sản phẩm**: Đánh giá sao và viết nhận xét
-- **Chuyển đổi ngôn ngữ**: Hỗ trợ Anh - Việt
+## ✨ Key Features  
 
-### 👨‍💼 Dành cho Quản trị viên
+### 🛍️ For Customers  
 
-- **Quản lý sản phẩm**: CRUD sản phẩm với đầy đủ thông tin
-- **Quản lý kho hàng**: Nhập/xuất kho, kiểm soát tồn kho
-- **Dự báo doanh thu**: Sử dụng AI để dự đoán doanh thu tương lai
-- **Thống kê & Báo cáo**: Dashboard trực quan, xuất PDF/Excel
-- **Quản lý người dùng**: Quản lý tài khoản khách hàng và nhân viên
-- **Quản lý khuyến mãi**: Tạo và quản lý các chương trình giảm giá
+- **Sign Up / Login**: Support registration via email or phone number  
+- **Search & Filter**: Smart search with multi-criteria filters (size, color, price, gender)  
+- **Smart Recommendation**: Personalized suggestions based on user behavior and preferences  
+- **Shopping Cart Management**: Add, remove, update items easily  
+- **Checkout**: Secure PayPal integration for payments  
+- **Order Tracking**: Real-time order status updates  
+- **Product Reviews**: Rate and write reviews  
+- **Language Switch**: English - Vietnamese support  
 
-### 👥 Dành cho Nhân viên
+### 👨‍💼 For Admin  
 
-- **Xử lý đơn hàng**: Cập nhật trạng thái, xác nhận đơn hàng
-- **Hỗ trợ khách hàng**: Trả lời câu hỏi và tư vấn
+- **Product Management**: Full CRUD operations with detailed product info  
+- **Inventory Management**: Stock in/out, real-time stock control  
+- **Revenue Forecasting**: AI-powered future sales predictions  
+- **Reports & Analytics**: Interactive dashboard, export to PDF/Excel  
+- **User Management**: Manage customer and staff accounts  
+- **Promotion Management**: Create and control discount campaigns  
 
-## 🏗️ Kiến trúc hệ thống
+### 👥 For Staff  
 
-### Frontend
+- **Order Processing**: Update status, confirm orders  
+- **Customer Support**: Handle inquiries and provide assistance  
 
-- **Framework**: ReactJS
-- **UI/UX**: Giao diện responsive, thân thiện người dùng
-- **Đa ngôn ngữ**: i18n cho Anh - Việt
+## 🏗️ System Architecture  
 
-### Backend
+### Frontend  
 
-- **Framework**: Java Spring Boot
-- **Authentication**: JWT Token
-- **API**: RESTful API design
+- **Framework**: ReactJS  
+- **UI/UX**: Responsive, user-friendly design  
+- **Multilingual**: i18n for English - Vietnamese  
 
-### Database
+### Backend  
 
-- **DBMS**: PostgreSQL
-- **Schema**: Tối ưu cho hiệu suất và mở rộng
+- **Framework**: Java Spring Boot  
+- **Authentication**: JWT Token  
+- **API**: RESTful API design  
 
-### AI & Machine Learning
+### Database  
 
-- **Engine**: Weka
-- **Algorithms**:
-  - Collaborative Filtering (gợi ý sản phẩm)
-  - Content-based Filtering
-  - Time Series Forecasting (dự báo doanh thu)
+- **DBMS**: PostgreSQL  
+- **Schema**: Optimized for performance and scalability  
 
-### Cloud Services
+### AI & Machine Learning  
 
-- **Image Management**: Cloudinary
-- **Payment**: PayPal Integration
+- **Engine**: Weka  
+- **Algorithms**:  
+  - Collaborative Filtering (product recommendations)  
+  - Content-based Filtering  
+  - Time Series Forecasting (revenue prediction)  
 
-## 📊 Sơ đồ Use Case
+### Cloud Services  
 
-Hệ thống được thiết kế với 3 actor chính:
+- **Image Management**: Cloudinary  
+- **Payment**: PayPal Integration  
 
-- **Khách hàng**: Mua sắm, đánh giá, theo dõi đơn hàng
-- **Quản trị viên**: Quản lý toàn bộ hệ thống
-- **Nhân viên**: Xử lý đơn hàng, hỗ trợ khách hàng
-- **PayPal System**: Xử lý thanh toán
+## 📊 Use Case Diagram  
 
-<img width="2019" height="1879" alt="usecase" src="https://github.com/user-attachments/assets/ac62f08a-5cdd-421e-8899-a7135c32f987" />
+The system is designed with 3 main actors:  
 
-## 🚀 Cài đặt và Chạy dự án
+- **Customer**: Shopping, reviewing, tracking orders  
+- **Admin**: Full system management  
+- **Staff**: Order processing, customer support  
+- **PayPal System**: Payment processing  
 
-### Yêu cầu hệ thống
+<img width="2019" height="1879" alt="usecase" src="https://github.com/user-attachments/assets/ac62f08a-5cdd-421e-8899-a7135c32f987" />  
 
-- Java 17
-- Node.js 22+
-- PostgreSQL 17
+## 🚀 Installation & Setup  
 
-## 📈 Tính năng AI
+### System Requirements  
 
-### 1. Hệ thống Gợi ý Sản phẩm
+- Java 17  
+- Node.js 22+  
+- PostgreSQL 17  
 
-- **Collaborative Filtering**: Dựa trên hành vi người dùng tương tự
-- **Content-based**: Dựa trên đặc điểm sản phẩm
-- **Hybrid Approach**: Kết hợp cả hai phương pháp
+## 📈 AI Features  
 
-### 2. Dự báo Doanh thu
+### 1. Product Recommendation System  
 
-- **Input**: Dữ liệu lịch sử bán hàng, mùa vụ, khuyến mãi
-- **Output**: Dự báo theo tuần/tháng/quý
-- **Accuracy**: Liên tục cải thiện qua feedback
+- **Collaborative Filtering**: Based on similar users’ behavior  
+- **Content-based**: Based on product attributes  
+- **Hybrid Approach**: Combination of both methods  
 
-## 🔒 Bảo mật
+### 2. Revenue Forecasting  
 
-- **Authentication**: JWT với refresh token
-- **Authorization**: Role-based access control
-- **Data Protection**: Mã hóa thông tin nhạy cảm
-- **API Security**: Rate limiting, input validation
+- **Input**: Historical sales data, seasonal trends, promotions  
+- **Output**: Weekly / monthly / quarterly revenue forecast  
+- **Accuracy**: Continuously improved via feedback  
 
-## 📱 Responsive Design
+## 🔒 Security  
 
-- **Mobile First**: Tối ưu cho thiết bị di động
-- **Cross Browser**: Tương thích đa trình duyệt
-- **Performance**: Tối ưu tốc độ tải trang
+- **Authentication**: JWT with refresh token  
+- **Authorization**: Role-based access control  
+- **Data Protection**: Encryption of sensitive data  
+- **API Security**: Rate limiting, input validation  
 
-## 🤝 Đội ngũ phát triển
+## 📱 Responsive Design  
 
-- **Developer 1**: Trần Hiển Vinh
-- **Developer 2**: Nguyễn Tấn Thái Dương
+- **Mobile First**: Optimized for mobile devices  
+- **Cross Browser**: Works across different browsers  
+- **Performance**: Fast page load optimization   
 
-## 📄 Giấy phép
+## 📄 License  
 
-Dự án này được phát triển cho mục đích học tập và nghiên cứu.
+This project is developed for educational and research purposes.  
 
-## 🐛 Báo cáo lỗi
+## 🐛 Bug Reporting  
 
-Nếu bạn phát hiện lỗi, vui lòng tạo issue trong repository hoặc liên hệ trực tiếp với đội ngũ phát triển.
+If you find a bug, please create an issue in the repository or contact the development team directly.  
 
-## 🔄 Kế hoạch phát triển
+## 🔄 Development Roadmap  
 
-### Version 1.1 (Current)
+### Version 1.1 (Current)  
 
-- [ ] Gợi ý sản phẩm AI
-- [ ] Dự báo doanh thu
-- [ ] Thanh toán PayPal
-- [ ] Đa ngôn ngữ
-- [ ] Quản lý kho hàng
+- [ ] AI-based product recommendation  
+- [ ] Revenue forecasting  
+- [ ] PayPal integration  
+- [ ] Multilingual support  
+- [ ] Inventory management  
 
----
+---  
 
-⭐ **Nếu dự án hữu ích, đừng quên cho chúng tôi một star!** ⭐
+⭐ **If you find this project useful, don’t forget to give us a star!** ⭐  
