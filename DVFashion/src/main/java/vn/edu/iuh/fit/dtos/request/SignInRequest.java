@@ -19,6 +19,7 @@ import lombok.Data;
 public class SignInRequest {
     @NotBlank(message = "Email or phone is required")
     private String username;
+
     @NotBlank(message = "Password is required")
     private String password;
 }

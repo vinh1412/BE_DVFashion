@@ -25,7 +25,10 @@ import java.util.List;
 @AllArgsConstructor
 public class SignInResponse {
     private Long id;
+
     private String email;
+
     private String phone;
+
     private List<String> roles;
 }

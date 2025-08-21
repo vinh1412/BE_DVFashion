@@ -57,5 +57,10 @@ public interface UserService {
      */
     boolean existsByUsername(String username);
 
+    /**
+     * Get the current logged-in user.
+     *
+     * @return the UserResponse representing the current user
+     */
     UserResponse getCurrentUser();
 }
