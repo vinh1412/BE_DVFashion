@@ -10,20 +10,20 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.response.SignInResponse;
 import vn.edu.iuh.fit.dtos.request.SignInRequest;
-import vn.edu.iuh.fit.dtos.request.RefreshTokenRequest;
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
+import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Token;
 import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.enums.TypeProviderAuth;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.exceptions.TokenRefreshException;
+import vn.edu.iuh.fit.exceptions.UnauthorizedException;
 import vn.edu.iuh.fit.repositories.TokenRepository;
 import vn.edu.iuh.fit.repositories.UserRepository;
 import vn.edu.iuh.fit.security.jwt.JwtUtils;
@@ -37,7 +37,6 @@ import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /*
@@ -63,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean signUpForCustomer(SignUpRequest signUpRequest) {
-        User user = userService.createCustomer(signUpRequest);
+        UserResponse user = userService.createCustomer(signUpRequest);
         if (user == null) {
             return false;
         }
@@ -72,55 +71,67 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response) {
-        // Check if username exists
-        String username = FormatPhoneNumber.normalizePhone(signInRequest.getUsername());
-        boolean existsByUsername = userService.existsByUsername(username);
-        if (!existsByUsername) {
-            throw new NotFoundException("Email or phone number not already exists. Please sign up first.");
+        try {
+            // Check if username exists
+            String username = signInRequest.username();
+            boolean existsByUsername = userService.existsByEmail(username)
+                    || userService.existsByPhone(FormatPhoneNumber.normalizePhone(username));
+
+            if (!existsByUsername) {
+                throw new NotFoundException("Email or phone number does not exist. Please sign up first.");
+            }
+
+
+            // Authenticate user
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(signInRequest.username(), signInRequest.password()));
+
+            // Set authentication in the security context
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Create user principal and generate tokens
+            UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+            String accessToken = jwtUtils.generateAccessToken(userPrincipal);
+            String refreshToken = jwtUtils.generateRefreshToken(userPrincipal);
+
+            // Get user roles
+            List<String> roles = userPrincipal.getAuthorities().stream()
+                    .map(item -> item.getAuthority())
+                    .collect(Collectors.toList());
+
+            User user = userService.findById(userPrincipal.getId());
+
+            // Update user type provider auths
+            user.getTypeProviderAuths().add(TypeProviderAuth.LOCAL);
+            userRepository.save(user);
+
+            // Save refresh token in the database
+            tokenService.saveRefreshToken(user, refreshToken);
+
+            // Set cookie
+            CookieUtils.addCookie(response, "accessToken", accessToken, jwtUtils.getTokenMaxAge(accessToken), true); // 30 minutes
+            CookieUtils.addCookie(response, "refreshToken", refreshToken, jwtUtils.getTokenMaxAge(refreshToken), true); // 7 days
+            // Return sign-in response
+            CookieUtils.addCookie(response, "isAuthenticated", "true", jwtUtils.getTokenMaxAge(refreshToken), false);
+
+            return SignInResponse.builder()
+                    .id(userPrincipal.getId())
+                    .email(userPrincipal.getEmail())
+                    .phone(userPrincipal.getPhone())
+                    .roles(roles)
+                    .build();
+
+        } catch (BadCredentialsException ex) {
+            throw new UnauthorizedException("Password not match. Please try again.");
+        } catch (DisabledException ex) {
+            throw new UnauthorizedException("Account is disabled. Please contact support.");
+        } catch (LockedException ex) {
+            throw new UnauthorizedException("Account is locked. Please contact support.");
         }
-
-        // Authenticate user
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(signInRequest.getUsername(), signInRequest.getPassword()));
-
-        // Set authentication in the security context
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        // Create user principal and generate tokens
-        UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
-        String accessToken = jwtUtils.generateAccessToken(userPrincipal);
-        String refreshToken = jwtUtils.generateRefreshToken(userPrincipal);
-
-        // Get user roles
-        List<String> roles = userPrincipal.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
-
-        User user = userService.findById(userPrincipal.getId());
-
-        // Update user type provider auths
-        user.getTypeProviderAuths().add(TypeProviderAuth.LOCAL);
-        userRepository.save(user);
-
-        // Save refresh token in the database
-        tokenService.saveRefreshToken(user, refreshToken);
-
-        // Set cookie
-        CookieUtils.addCookie(response, "accessToken", accessToken, jwtUtils.getTokenMaxAge(accessToken), true); // 30 minutes
-        CookieUtils.addCookie(response, "refreshToken", refreshToken, jwtUtils.getTokenMaxAge(refreshToken), true); // 7 days
-        // Return sign-in response
-        CookieUtils.addCookie(response, "isAuthenticated", "true",  jwtUtils.getTokenMaxAge(refreshToken), false);
-
-        return SignInResponse.builder()
-                .id(userPrincipal.getId())
-                .email(userPrincipal.getEmail())
-                .phone(userPrincipal.getPhone())
-                .roles(roles)
-                .build();
     }
 
     @Override
-    public SignInResponse refreshToken(HttpServletRequest request, HttpServletResponse response){
+    public SignInResponse refreshToken(HttpServletRequest request, HttpServletResponse response) {
         Cookie[] cookies = request.getCookies();
 
         // Check if cookies are present
@@ -149,7 +160,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Generate new access token and new refresh token
         User user = token.getUser();
-        UserDetailsImpl userDetails = UserDetailsImpl.build(user);
+        UserDetailsImpl userDetails = UserDetailsImpl.build(user, user.getEmail() != null ? user.getEmail() : user.getPhone());
         String newAccessToken = jwtUtils.generateAccessToken(userDetails);
         String newRefreshToken = jwtUtils.generateRefreshToken(userDetails);
 

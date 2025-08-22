@@ -32,10 +32,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // Normalize the phone number if the username is a phone number
         String value = FormatPhoneNumber.normalizePhone(username);
-        User user = userRepository.findByUsernameAndActiveTrue(value)
-                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + value));
 
-        return UserDetailsImpl.build(user);
+        // Check if the username is an email or a phone number
+        User user = userRepository.findByEmail(username)
+                .orElseGet(() -> userRepository.findByPhone(value)
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username)));
+
+        // Return a UserDetailsImpl object built from the User entity
+        return UserDetailsImpl.build(user, username);
     }
 }

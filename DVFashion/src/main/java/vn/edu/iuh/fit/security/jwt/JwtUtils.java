@@ -9,9 +9,11 @@ package vn.edu.iuh.fit.security.jwt;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import vn.edu.iuh.fit.utils.AESUtils;
 
 import java.security.Key;
 import java.util.Date;
@@ -36,6 +38,16 @@ public class JwtUtils {
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenDurationMs;
 
+    @Value("${jwt.secret-key}")   // Key riêng cho AES
+    private String aesSecret;
+
+    private AESUtils aesUtils;
+
+    @PostConstruct
+    public void init() {
+        this.aesUtils = new AESUtils(aesSecret);
+    }
+
     // Creates a key from the JWT secret for signing and verifying tokens
     private Key key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
@@ -55,13 +67,16 @@ public class JwtUtils {
 
     // Generates a token with additional claims, subject, and expiration time
     private String generateToken(Map<String, Object> extraClaims, String subject, long expiration) {
-        return Jwts.builder()
+        String jwt = Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(key(), SignatureAlgorithm.HS256)
                 .compact();
+
+        // Encrypt JWT token using AES
+        return aesUtils.encrypt(jwt);
     }
 
     // Extracts the username from the JWT token
@@ -82,10 +97,11 @@ public class JwtUtils {
 
     // Extracts all claims from the JWT token
     private Claims extractAllClaims(String token) {
+        String decryptedToken = aesUtils.decrypt(token);
         return Jwts.parserBuilder()
                 .setSigningKey(key())
                 .build()
-                .parseClaimsJws(token)
+                .parseClaimsJws(decryptedToken)
                 .getBody();
     }
 
@@ -100,9 +116,10 @@ public class JwtUtils {
     }
 
     // Validates the JWT token and handles exceptions
-    public boolean validateJwtToken(String authToken) {
+    public boolean validateJwtToken(String encryptedToken) {
         try {
-            Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
+            String decryptedToken = aesUtils.decrypt(encryptedToken);
+            Jwts.parserBuilder().setSigningKey(key()).build().parse(decryptedToken);
             return true;
         } catch (MalformedJwtException e) {
             System.err.println("Invalid JWT token: " + e.getMessage());

@@ -52,18 +52,18 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     // Factory method to create UserDetailsImpl from User entity
-    public static UserDetailsImpl build(User user) {
+    public static UserDetailsImpl build(User user, String username) {
+        // Generate authorities from user roles
         Set<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
                 .collect(Collectors.toSet());
 
-        // Use email or phone as the login username
-        String loginUsername = user.getEmail() != null ? user.getEmail() : user.getPhone();
+        //  Return a new instance of UserDetailsImpl
         return new UserDetailsImpl(
                 user.getId(),
                 user.getEmail(),
                 user.getPhone(),
-                loginUsername,
+                username,
                 user.getPassword(),
                 user.isActive(),
                 authorities);
