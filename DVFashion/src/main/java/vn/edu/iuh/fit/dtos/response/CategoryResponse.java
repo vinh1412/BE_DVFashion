@@ -13,23 +13,15 @@ package vn.edu.iuh.fit.dtos.response;
  * @version:    1.0
  */
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+public record CategoryResponse(
+        Long id,
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CategoryResponse {
-    private Long id;
+        String name,
 
-    private String name;
+        String description,
 
-    private String description;
+        String imageUrl,
 
-    private String imageUrl;
+        boolean active
+) {}
 
-    private boolean active;
-}

@@ -14,16 +14,20 @@ package vn.edu.iuh.fit.dtos.request;
  */
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import vn.edu.iuh.fit.markers.Create;
 
-@Data
-public class CategoryRequest {
-    @NotBlank(message = "Name is required")
-    private String name;
+public record CategoryRequest(
+        @NotBlank(message = "Name is required", groups = Create.class)
+        String name,
 
-    private String description;
+        String description,
 
-    private String imageUrl;
+        String imageUrl,
 
-    private boolean active= true;
+        Boolean active
+) {
+    public CategoryRequest {
+        if (description == null) description = "No description";
+        if (active == null) active = true; // default true
+    }
 }
