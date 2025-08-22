@@ -28,10 +28,16 @@ import java.util.Set;
 @AllArgsConstructor
 public class UserResponse {
     private Long id;
+
     private String email;
+
     private String fullName;
+
     private String phone;
+
     private LocalDate dob;
+
     private Gender gender;
+
     private List<String> roles;
 }

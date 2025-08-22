@@ -51,6 +51,8 @@ logging:
           descriptor:
             sql:
               BasicBinder: TRACE
+      springframework:
+        security: DEBUG
 
 # Base path for the API
 web:
@@ -61,3 +63,10 @@ jwt:
   signed-key: ${JWT_SIGNED_KEY}
   expiration: ${JWT_EXPIRATION}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+  secret-key: ${JWT_SECRET_KEY}
+
+# Cloudinary configuration
+cloudinary:
+  cloud-name: ${CLOUDINARY_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}

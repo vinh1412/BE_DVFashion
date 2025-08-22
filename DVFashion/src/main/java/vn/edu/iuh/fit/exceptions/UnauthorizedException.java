@@ -7,7 +7,7 @@
 package vn.edu.iuh.fit.exceptions;
 
 /*
- * @description:
+ * @description: Custom exception to handle unauthorized access errors
  * @author: Tran Hien Vinh
  * @date:   20/08/2025
  * @version:    1.0

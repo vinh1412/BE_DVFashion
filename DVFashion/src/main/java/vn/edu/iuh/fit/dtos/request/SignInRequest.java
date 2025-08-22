@@ -15,10 +15,11 @@ import lombok.Data;
  * @date:   15/08/2025
  * @version:    1.0
  */
-@Data
-public class SignInRequest {
+
+public record SignInRequest (
     @NotBlank(message = "Email or phone is required")
-    private String username;
+     String username,
+
     @NotBlank(message = "Password is required")
-    private String password;
-}
+    String password
+){}

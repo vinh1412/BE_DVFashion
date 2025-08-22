@@ -14,17 +14,16 @@ import vn.edu.iuh.fit.dtos.request.SignUpRequest;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
-import vn.edu.iuh.fit.enums.TypeProviderAuth;
 import vn.edu.iuh.fit.enums.UserRole;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.exceptions.UnauthorizedException;
+import vn.edu.iuh.fit.mappers.UserMapper;
 import vn.edu.iuh.fit.repositories.UserRepository;
 import vn.edu.iuh.fit.services.RoleService;
 import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -43,6 +42,8 @@ public class UserServiceImpl implements UserService {
 
     private final RoleService roleService;
 
+    private final UserMapper userMapper;
+
     @Override
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
@@ -54,26 +55,34 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User createCustomer(SignUpRequest signUpRequest) {
-        if (existsByEmail(signUpRequest.getEmail())) {
+    public UserResponse createCustomer(SignUpRequest signUpRequest) {
+        // Check if email already exists
+        if (existsByEmail(signUpRequest.email())) {
             throw new AlreadyExistsException("Email already exists");
         }
 
-        if (existsByPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.getPhone()))) {
+        // Check if phone number already exists
+        if (existsByPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.phone()))) {
             throw new AlreadyExistsException("Phone number already exists");
         }
 
+        // Retrieve the role for the customer
         Role role = roleService.findByName(UserRole.CUSTOMER);
 
+        // Create a new User entity
         User user = new User();
-        user.setEmail(signUpRequest.getEmail());
-        user.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.getPhone()));
-        user.setFullName(signUpRequest.getFullName());
-        user.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+        user.setEmail(signUpRequest.email());
+        user.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.phone()));
+        user.setFullName(signUpRequest.fullName());
+        user.setPassword(passwordEncoder.encode(signUpRequest.password()));
 //        user.setTypeProviderAuth(TypeProviderAuth.LOCAL);
         user.setRoles(Set.of(role));
 
-        return userRepository.save(user);
+        // Save the user to the repository
+        User savedUser = userRepository.save(user);
+
+        // Convert the saved User entity to UserResponse DTO
+        return userMapper.toDto(savedUser);
     }
 
     @Override
@@ -89,33 +98,25 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getCurrentUser() {
+        // Get the current authenticated user's username
         String username = SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getName();
         System.out.println("Current username: " + username);
-        if (username == null || username.isEmpty() || username.equals("anonymousUser")) {
+
+        // Check if the username is null, empty, or represents an anonymous user
+        if (username == null || username.isEmpty() || "anonymousUser".equals(username)) {
             throw new UnauthorizedException("User is not authenticated");
         }
 
-        Optional<User> userOptional = userRepository.findByUsernameAndActiveTrue(username);
-        if (userOptional.isEmpty()) {
-            throw new NotFoundException("User not found");
-        }
+        // Normalize the phone number if the username is a phone number
+        username = FormatPhoneNumber.normalizePhone(username);
 
-        User user = userOptional.get();
+        // Find the user by username and check if they are active
+        User user = userRepository.findByUsernameAndActiveTrue(username)
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
-        UserResponse userResponse = UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .phone(user.getPhone())
-                .dob(user.getDob() != null ? user.getDob() : null)
-                .gender(user.getGender() != null ? user.getGender() : null)
-                .roles(user.getRoles().stream()
-                        .map(role -> "ROLE_" +role.getName().name())
-                        .toList())
-                .build();
-
-        return userResponse;
+        // Convert the User entity to UserResponse DTO
+        return userMapper.toDto(user);
     }
 }
