@@ -31,6 +31,12 @@ public class ImageUtils {
             return IMAGE_DEFAULT_URL;
         }
 
+        // Validate file size (limit 3MB)
+        long maxSize = 3 * 1024 * 1024; // 3MB
+        if (imageFile.getSize() > maxSize) {
+            throw new IllegalArgumentException("File size exceeds the maximum allowed limit of 5MB");
+        }
+
         // Validate the content type of the image file
         String contentType = imageFile.getContentType();
         if (contentType == null || (!contentType.startsWith("image/") && !contentType.equals("application/octet-stream"))) {

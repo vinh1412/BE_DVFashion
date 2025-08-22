@@ -8,7 +8,6 @@ package vn.edu.iuh.fit.services.impl;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,6 +15,7 @@ import vn.edu.iuh.fit.services.CloudinaryService;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 /*
  * @description: Service implementation for handling Cloudinary image uploads
@@ -31,10 +31,16 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     @Override
     public String uploadImage(MultipartFile file) {
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/") && !contentType.equals("application/octet-stream")) {
+
+        // Check if the file is null or empty, or if the content type is not an image
+        if (!(contentType != null ||
+                contentType.startsWith("image/") &&
+                        Objects.equals(contentType, "application/octet-stream"))) {
             throw new IllegalArgumentException("File is not an image");
         }
+
         try {
+            // Upload the image to Cloudinary and return the secure URL
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap("resource_type", "auto"));
             return uploadResult.get("secure_url").toString();
