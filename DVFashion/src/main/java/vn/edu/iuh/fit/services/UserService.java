@@ -37,9 +37,9 @@ public interface UserService {
      * Create a new customer.
      *
      * @param signUpRequest the request containing user details for sign up
-     * @return the created User entity
+     * @return the UserResponse containing the created user's details
      */
-    User createCustomer(SignUpRequest signUpRequest);
+    UserResponse createCustomer(SignUpRequest signUpRequest);
 
     /**
      * Find a user by their ID.
