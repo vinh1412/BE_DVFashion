@@ -63,4 +63,12 @@ public interface UserService {
      * @return the UserResponse representing the current user
      */
     UserResponse getCurrentUser();
+
+    /**
+     * Find a user by their email.
+     *
+     * @param email the email of the user
+     * @return the User entity with the specified email, or null if not found
+     */
+    User findByEmail(String email);
 }

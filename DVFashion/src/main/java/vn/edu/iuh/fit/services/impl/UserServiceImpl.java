@@ -119,4 +119,11 @@ public class UserServiceImpl implements UserService {
         // Convert the User entity to UserResponse DTO
         return userMapper.toDto(user);
     }
+
+    @Override
+    public User findByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+        return user;
+    }
 }

@@ -14,12 +14,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
+import vn.edu.iuh.fit.dtos.request.ForgotPasswordRequest;
+import vn.edu.iuh.fit.dtos.request.ResetPasswordRequest;
 import vn.edu.iuh.fit.dtos.response.SignInResponse;
 import vn.edu.iuh.fit.dtos.request.SignInRequest;
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
+import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.services.AuthService;
+import vn.edu.iuh.fit.services.EmailService;
 import vn.edu.iuh.fit.services.UserService;
 
 /*
@@ -36,6 +40,7 @@ public class AuthController {
 
     private final UserService userService;
 
+    private final EmailService emailService;
     /**
      * API for customer sign up
      *
@@ -218,4 +223,91 @@ public class AuthController {
         UserResponse user = userService.getCurrentUser();
         return ResponseEntity.ok(ApiResponse.success(user, "User retrieved successfully."));
     }
+
+    /**
+     * API for forgot password
+     *
+     * HOW TO TEST WITH POSTMAN:
+     * 1. METHOD: POST
+     * 2. URL: http://localhost:8080/api/v1/auth/forgot-password
+     *
+     * 3. BODY (select raw - JSON):
+     *   {
+     *      "email" : "test@gmail.com"
+     *   }
+     *
+     * 4. SUCCESS RESPONSE (200):
+     *   {
+         *   "success": true,
+         *   "statusCode": 204,
+         *   "message": "Password reset email has been sent!"
+     *   }
+     *
+     *  COMMON ERRORS:
+     *  - 400: Bad Request - Invalid input data or validation failed
+     *  - 404: Not Found - Email does not exist
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        emailService.sendPasswordResetEmail(request);
+        return ResponseEntity.ok(ApiResponse.noContent("Password reset email has been sent!"));
+    }
+
+    /**
+     * API to validate password reset token
+     *
+     * HOW TO TEST WITH POSTMAN:
+     * 1. METHOD: GET
+     * 2. URL: http://localhost:8080/api/v1/auth/password/{token}
+     *    (Replace {token} with the actual token received in the email)
+     *
+     * 3. SUCCESS RESPONSE (200):
+     *   {
+     *     "success": true,
+     *     "statusCode": 200,
+     *     "message": "Token is valid.",
+     *     "data": 1
+     *   }
+     *
+     * COMMON ERRORS:
+     * - 400: Bad Request - Invalid or expired token
+     * - 404: Not Found - Token does not exist
+     */
+    @GetMapping("/password/{token}")
+    public ResponseEntity<ApiResponse<?>> validateToken(@PathVariable("token") String token) {
+        User user = emailService.validatePasswordResetToken(token);
+        return ResponseEntity.ok(ApiResponse.success(user.getId(), "Token is valid."));
+    }
+
+    /**
+     * API to reset password
+     *
+     * HOW TO TEST WITH POSTMAN:
+     * 1. METHOD: POST
+     * 2. URL: http://localhost:8080/api/v1/auth/reset-password
+     *
+     * 3. BODY (select raw - JSON):
+     *   {
+     *      "token": "your-reset-token",
+     *      "newPassword": "NewPassword123"
+     *   }
+     *
+     * 4. SUCCESS RESPONSE (200):
+     *   {
+     *     "success": true,
+     *     "statusCode": 204,
+     *     "message": "Password has been reset successfully."
+     *   }
+     *
+     * COMMON ERRORS:
+     * - 400: Bad Request - Invalid input data or validation failed
+     * - 400: Bad Request - Token has expired or already used
+     * - 404: Not Found - Token does not exist
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        emailService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.noContent("Password has been reset successfully."));
+    }
+
 }
