@@ -7,7 +7,7 @@
 package vn.edu.iuh.fit.services;
 
 import vn.edu.iuh.fit.dtos.request.ForgotPasswordRequest;
-import vn.edu.iuh.fit.dtos.request.ResetPasswordRequest;
+import vn.edu.iuh.fit.dtos.request.ResetPasswordMailRequest;
 import vn.edu.iuh.fit.entities.User;
 
 /*
@@ -37,5 +37,5 @@ public interface EmailService {
      *
      * @param request the ResetPasswordRequest containing the new password and token
      */
-    void resetPassword(ResetPasswordRequest request);
+    void resetPassword(ResetPasswordMailRequest request);
 }

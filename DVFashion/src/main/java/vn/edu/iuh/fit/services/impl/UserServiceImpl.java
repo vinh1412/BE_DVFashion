@@ -126,4 +126,14 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
         return user;
     }
+
+    @Override
+    public void updatePassword(String phone, String newPassword) {
+        User user = userRepository.findByPhone(phone)
+                .orElseThrow(() -> new NotFoundException("User not found with phone: " + phone));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        userRepository.save(user);
+    }
 }

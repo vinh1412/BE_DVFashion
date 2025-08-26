@@ -71,4 +71,12 @@ public interface UserService {
      * @return the User entity with the specified email, or null if not found
      */
     User findByEmail(String email);
+
+    /**
+     * Update the password for a user identified by their phone number.
+     *
+     * @param phone
+     * @param newPassword
+     */
+    void updatePassword(String phone, String newPassword);
 }

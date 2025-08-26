@@ -13,9 +13,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.ForgotPasswordRequest;
-import vn.edu.iuh.fit.dtos.request.ResetPasswordRequest;
+import vn.edu.iuh.fit.dtos.request.ResetPasswordMailRequest;
 import vn.edu.iuh.fit.entities.PasswordResetToken;
 import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -41,6 +42,8 @@ public class EmailServiceImpl implements EmailService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     private final JavaMailSender mailSender;
+
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${app.reset-password-url}")
     private String resetPasswordUrl;
@@ -156,7 +159,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void resetPassword(ResetPasswordRequest request) {
+    public void resetPassword(ResetPasswordMailRequest request) {
         // Find token
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.token())
                 .orElseThrow(() -> new TokenRefreshException("Token is not valid"));
@@ -168,7 +171,7 @@ public class EmailServiceImpl implements EmailService {
 
         // Get user and update password
         User user = resetToken.getUser();
-        user.setPassword(new BCryptPasswordEncoder().encode(request.newPassword()));
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
 
         // Mark token as used

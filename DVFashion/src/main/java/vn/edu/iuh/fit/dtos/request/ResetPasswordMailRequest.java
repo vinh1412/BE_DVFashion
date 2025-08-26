@@ -15,10 +15,11 @@ import jakarta.validation.constraints.Pattern;
  * @date:   27/08/2025
  * @version:    1.0
  */
-public record ResetPasswordRequest(
+public record ResetPasswordMailRequest(
         @NotBlank(message = "Token is required")
         String token,
 
+        @NotBlank(message = "New password is required")
         @Pattern(
                 regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$",
                 message = "Password must contain at least one letter and one number, and be at least 8 characters"

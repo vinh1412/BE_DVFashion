@@ -6,6 +6,8 @@
 
 package vn.edu.iuh.fit.controllers;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -14,17 +16,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
-import vn.edu.iuh.fit.dtos.request.ForgotPasswordRequest;
-import vn.edu.iuh.fit.dtos.request.ResetPasswordRequest;
+import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.SignInResponse;
-import vn.edu.iuh.fit.dtos.request.SignInRequest;
-import vn.edu.iuh.fit.dtos.request.SignUpRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
+import vn.edu.iuh.fit.exceptions.MissingTokenException;
 import vn.edu.iuh.fit.services.AuthService;
 import vn.edu.iuh.fit.services.EmailService;
+import vn.edu.iuh.fit.services.OtpAuthService;
 import vn.edu.iuh.fit.services.UserService;
+
+import java.util.Map;
 
 /*
  * @description: Controller for handling authentication requests
@@ -41,6 +45,8 @@ public class AuthController {
     private final UserService userService;
 
     private final EmailService emailService;
+
+    private final OtpAuthService otpAuthService;
     /**
      * API for customer sign up
      *
@@ -304,9 +310,69 @@ public class AuthController {
      * - 400: Bad Request - Token has expired or already used
      * - 404: Not Found - Token does not exist
      */
-    @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    @PostMapping("/reset-password-mail")
+    public ResponseEntity<ApiResponse<?>> resetPasswordMail(@Valid @RequestBody ResetPasswordMailRequest request) {
         emailService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.noContent("Password has been reset successfully."));
+    }
+
+    /**
+     * API to verify OTP and phone number
+     *
+     * HOW TO TEST WITH POSTMAN:
+     * 1. METHOD: POST
+     * 2. URL: http://localhost:8080/api/v1/auth/verify-otp
+     *
+     * 3. BODY (select raw - JSON):
+     *   {
+     *      "idToken": "your-firebase-id-token"
+     *   }
+     *
+     * 4. SUCCESS RESPONSE (200):
+     *   {
+     *     "success": true,
+     *     "statusCode": 200,
+     *     "message": "Phone number +84123456789 verification successful!"
+     *   }
+     *
+     * COMMON ERRORS:
+     * - 400: Bad Request - Invalid input data or validation failed
+     * - 400: Bad Request - Phone number does not exist
+     * - 400: Bad Request - Error verifying ID token
+     */
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse<?>> verifyOTP(@Valid @RequestBody VerifyOtpRequest request) {
+        String phoneNumber = otpAuthService.verifyOtp(request);
+        return ResponseEntity.ok(ApiResponse.success("Phone number "+phoneNumber+" verification successful!"));
+    }
+
+    /**
+     * API to reset password using OTP verified phone number
+     *
+     * HOW TO TEST WITH POSTMAN:
+     * 1. METHOD: POST
+     * 2. URL: http://localhost:8080/api/v1/auth/reset-password-otp
+     *
+     * 3. BODY (select raw - JSON):
+     *   {
+     *      "phone": "0123456789",
+     *      "newPassword": "NewPassword123"
+     *   }
+     *
+     * 4. SUCCESS RESPONSE (200):
+     *   {
+     *     "success": true,
+     *     "statusCode": 204,
+     *     "message": "Password has been reset successfully."
+     *   }
+     *
+     * COMMON ERRORS:
+     * - 400: Bad Request - Invalid input data or validation failed
+     * - 400: Bad Request - Phone number does not exist
+     */
+    @PostMapping("/reset-password-otp")
+    public ResponseEntity<ApiResponse<?>> resetPasswordOTP(@Valid @RequestBody ResetPasswordOtpRequest request) {
+        otpAuthService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.noContent("Password has been reset successfully."));
     }
 
