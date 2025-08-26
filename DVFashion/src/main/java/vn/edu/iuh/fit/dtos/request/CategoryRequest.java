@@ -26,8 +26,4 @@ public record CategoryRequest(
 
         Boolean active
 ) {
-    public CategoryRequest {
-        if (description == null) description = "No description";
-        if (active == null) active = true; // default true
-    }
 }

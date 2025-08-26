@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.CategoryRequest;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
+import vn.edu.iuh.fit.enums.Language;
 
 
 /*
@@ -24,35 +25,30 @@ public interface CategoryService {
      * Creates a new category with the provided request and image file.
      *
      * @param request the request containing category details
-     * @param imageFile       the image file for the category
+     * @param imageFile the image file for the category
+     * @param inputLang the language of the input data
      * @return the created CategoryResponse
      */
-    CategoryResponse createCategory(CategoryRequest request, MultipartFile imageFile);
-
-    /**
-     * Checks if a category with the given name exists, ignoring case.
-     *
-     * @param name the name of the category to check
-     * @return true if a category with the given name exists, false otherwise
-     */
-    boolean existsByNameIgnoreCase(String name);
+    CategoryResponse createCategory(CategoryRequest request, MultipartFile imageFile, Language inputLang);
 
     /**
      * Retrieves a category by its ID.
      *
      * @param id the ID of the category to retrieve
+     * @param language the language for the category data
      * @return the CategoryResponse if found, not found exception if not found
      */
-     CategoryResponse getCategoryById(Long id);
+     CategoryResponse getCategoryById(Long id, Language language);
 
     /**
      * Updates an existing category with the provided request and image file.
      * @param categoryRequest the request containing updated category details
      * @param id the ID of the category to update
      * @param imageFile the image file for the category, can be null if no image is provided
+     * @param language the language of the input data
      * @return the updated CategoryResponse
      */
-     CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id, MultipartFile imageFile);
+     CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id, MultipartFile imageFile, Language language);
 
     /**
      * Deactivates a category by its ID.
@@ -65,7 +61,8 @@ public interface CategoryService {
      * Retrieves a paginated list of categories.
      *
      * @param pageable the pagination information
+     * @param language the language for the category data
      * @return a PageResponse containing the paginated list of CategoryResponse
      */
-    PageResponse<CategoryResponse> getCategoriesPaging(Pageable pageable);
+    PageResponse<CategoryResponse> getCategoriesPaging(Pageable pageable, Language language);
 }

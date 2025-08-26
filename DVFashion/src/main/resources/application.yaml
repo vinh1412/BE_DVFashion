@@ -4,13 +4,13 @@ server:
 spring:
   application:
     name: DVFashion
-# Database
+  # Database
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-# Hibernate
+  # Hibernate
   jpa:
     hibernate:
       ddl-auto: update
@@ -19,29 +19,41 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         show_sql: true
         format_sql: true
-
+  # OAuth2 Client Configuration
   security:
     oauth2:
-        client:
-          registration:
-            google:
-              client-id: ${GOOGLE_CLIENT_ID}
-              client-secret: ${GOOGLE_CLIENT_SECRET}
-              scope:
-                - profile
-                - email
-              redirect-uri: ${BACKEND_URL}/login/oauth2/code/{registrationId}
-          provider:
-            google:
-              authorization-uri: https://accounts.google.com/o/oauth2/auth
-              token-uri: https://oauth2.googleapis.com/token
-              user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-              user-name-attribute: sub
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - profile
+              - email
+            redirect-uri: ${BACKEND_URL}/login/oauth2/code/{registrationId}
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+  # OpenAI Configuration
+  ai:
+    openai:
+      api-key: ${GEMINI_KEY}
+      chat:
+        base-url: https://generativelanguage.googleapis.com
+        completions-path: /v1beta/openai/chat/completions
+        options:
+          model: gemini-2.0-flash
+
+# Frontend URL for OAuth2 redirection
 oauth2:
   redirect-uris:
     success: ${FRONTEND_URL:http://localhost:5173}/oauth2/redirect
     failure: ${FRONTEND_URL:http://localhost:5173}/oauth2/redirect?error=true
 
+# Logging configuration
 logging:
   level:
     org:

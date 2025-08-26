@@ -15,13 +15,17 @@ import vn.edu.iuh.fit.dtos.request.CategoryRequest;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.entities.Category;
+import vn.edu.iuh.fit.entities.CategoryTranslation;
+import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
-import vn.edu.iuh.fit.mappers.CategoryMapper;
 import vn.edu.iuh.fit.repositories.CategoryRepository;
+import vn.edu.iuh.fit.repositories.CategoryTranslationRepository;
 import vn.edu.iuh.fit.services.CategoryService;
 import vn.edu.iuh.fit.services.CloudinaryService;
+import vn.edu.iuh.fit.services.TranslationService;
 import vn.edu.iuh.fit.utils.ImageUtils;
+import vn.edu.iuh.fit.utils.TextUtils;
 
 /*
  * @description: Service implementation for managing categories
@@ -36,55 +40,112 @@ public class CategoryServiceImpl implements CategoryService {
 
     private  final CloudinaryService cloudinaryService;
 
-    private final CategoryMapper categoryMapper;
+    private final CategoryTranslationRepository translationRepository;
+
+    private final TranslationService translationService;
 
     @Override
-    public CategoryResponse createCategory(CategoryRequest categoryRequest, MultipartFile imageFile) {
+    public CategoryResponse createCategory(CategoryRequest categoryRequest, MultipartFile imageFile, Language inputLang) {
         // Check if the category with the same name already exists
-        if(existsByNameIgnoreCase(categoryRequest.name().toLowerCase())) {
+        if(translationRepository.existsByNameIgnoreCaseAndLanguage(categoryRequest.name().toLowerCase(), inputLang)) {
             throw new AlreadyExistsException("Category with name '" + categoryRequest.name() + "' already exists.");
         }
 
         // Create the image URL using the Cloudinary service
         String imageUrl = ImageUtils.getImageUrl(imageFile, cloudinaryService);
 
-        // Map the request DTO to the entity
-        Category category = categoryMapper.toEntity(categoryRequest);
-        category.setImage(imageUrl);
+        // Save the category entity
+        Category category = Category.builder()
+                .image(imageUrl)
+                .active(categoryRequest.active() != null ? categoryRequest.active() : true) // default true
+                .build();
+        categoryRepository.save(category);
 
-        Category savedCategory = categoryRepository.save(category);
+        // Description for input language
+        String descInput = categoryRequest.description() != null
+                ? categoryRequest.description()
+                : (inputLang == Language.VI ? "Không có mô tả" : "No description");
+
+
+        // Save the input language translation
+        CategoryTranslation inputTranslation  = CategoryTranslation.builder()
+                .category(category)
+                .language(inputLang)
+                .name(categoryRequest.name())
+                .description(descInput)
+                .build();
+        translationRepository.save(inputTranslation);
+
+        // Determine the target language for translation
+        Language targetLang = (inputLang == Language.VI) ? Language.EN : Language.VI;
+
+        // Description for target language
+        String descTarget = categoryRequest.description() != null
+                ? translationService.translate(categoryRequest.description(), targetLang.name())
+                : (targetLang == Language.VI ? "Không có mô tả" : "No description");
+
+        // Translate and save the target language translation
+        CategoryTranslation translatedTranslation  = CategoryTranslation.builder()
+                .category(category)
+                .language(targetLang)
+                .name(translationService.translate(categoryRequest.name(), targetLang.name()))
+                .description(descTarget)
+                .build();
+        translationRepository.save(translatedTranslation );
 
         // Map the saved entity back to the response DTO
-        return categoryMapper.toDto(savedCategory);
+        return toResponse(category, inputLang);
+    }
+
+    private CategoryResponse toResponse(Category category, Language lang) {
+        CategoryTranslation translation = translationRepository
+                // Find translation by requested language
+                .findByCategoryIdAndLanguage(category.getId(), lang)
+                // If not found, fallback to Vietnamese
+                .orElseGet(() -> translationRepository
+                        .findByCategoryIdAndLanguage(category.getId(), Language.VI)
+                        .orElseThrow(() -> new NotFoundException("No translation found"))
+                );
+
+        // Map Category + Translation to DTO
+        return new CategoryResponse(
+                category.getId(),
+                TextUtils.removeTrailingDot(translation.getName()),
+                translation.getDescription(),
+                category.getImage(),
+                category.isActive()
+        );
     }
 
     @Override
-    public boolean existsByNameIgnoreCase(String name) {
-        return categoryRepository.existsByNameIgnoreCase(name);
-    }
-
-    @Override
-    public CategoryResponse getCategoryById(Long id) {
-        return categoryRepository.findById(id)
-                .map(categoryMapper::toDto)
+    public CategoryResponse getCategoryById(Long id, Language language) {
+        // Retrieve the category by ID
+        Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Category not found with id: " + id));
+
+        // Map the entity to the response DTO
+        return toResponse(category, language);
     }
 
     @Override
-    public CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id, MultipartFile imageFile) {
-        // Retrieve the existing category by ID
+    public CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id, MultipartFile imageFile, Language language) {
+        // Find the existing category by ID
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Category not found with id: " + id));
 
         // Check if the category with the same name already exists, excluding the current category
-        if (categoryRequest.name() != null
-                && !categoryRequest.name().equalsIgnoreCase(category.getName())
-                && existsByNameIgnoreCase(categoryRequest.name().toLowerCase())) {
-            throw new AlreadyExistsException("Category with name '" + categoryRequest.name() + "' already exists.");
-        }
+        if (categoryRequest.name() != null) {
+            // Check if name exists in current language
+            boolean exists = translationRepository.existsByNameIgnoreCaseAndLanguage(categoryRequest.name().toLowerCase(), language);
+            boolean isSame = category.getTranslations().stream()
+                    // Check if the existing translation matches the new name and language
+                    .anyMatch(t -> t.getLanguage() == language  && t.getName().equalsIgnoreCase(categoryRequest.name()));
 
-        // Update the category fields
-        categoryMapper.updateEntityFromDto(categoryRequest, category);
+            // If a different category with the same name exists, throw an exception
+            if (exists && !isSame) {
+                throw new AlreadyExistsException("Category with name '" + categoryRequest.name() + "' already exists.");
+            }
+        }
 
         // If an image file is provided, update the image URL
         if (imageFile != null && !imageFile.isEmpty()) {
@@ -92,11 +153,55 @@ public class CategoryServiceImpl implements CategoryService {
             category.setImage(imageUrl);
         }
 
+        // Update translations for input language
+        updateOrCreateTranslation(category, language, categoryRequest.name(), categoryRequest.description());
+
+        // Determine the other language
+        Language otherLang = (language == Language.EN) ? Language.VI : Language.EN;
+
+        String otherName = categoryRequest.name() != null
+                ? translationService.translate(categoryRequest.name(), otherLang.name())
+                : null; // null means no update, the updateOrCreateTranslation function will remain the same
+
+        String otherDesc = categoryRequest.description() != null
+                ? translationService.translate(categoryRequest.description(), otherLang.name())
+                : null; // null means no update, the updateOrCreateTranslation function will remain the same
+
+        // Update translations for the other language
+        updateOrCreateTranslation(category, otherLang,
+                otherName,
+                otherDesc);
+
         // Save the updated category
-        Category updatedCategory = categoryRepository.save(category);
+        categoryRepository.save(category);
 
         // Map the updated entity back to the response DTO
-        return categoryMapper.toDto(updatedCategory);
+        return toResponse(category, language);
+    }
+
+
+    // Helper method to update or create a translation
+    private void updateOrCreateTranslation(Category category, Language lang, String name, String description) {
+        // Find existing translation or create a new one
+        CategoryTranslation translation = category.getTranslations().stream()
+                .filter(t -> t.getLanguage() == lang)
+                .findFirst()
+                .orElseGet(() -> {
+                    CategoryTranslation t = CategoryTranslation.builder()
+                            .language(lang)
+                            .category(category)
+                            .build();
+                    category.getTranslations().add(t);
+                    return t;
+                });
+
+        // Update fields if new values are provided
+        if (name != null) {
+            translation.setName(name);
+        }
+        if (description != null) {
+            translation.setDescription(description);
+        }
     }
 
     @Override
@@ -113,12 +218,36 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public PageResponse<CategoryResponse> getCategoriesPaging(Pageable pageable) {
+    public PageResponse<CategoryResponse> getCategoriesPaging(Pageable pageable, Language language) {
         // Retrieve all categories with pagination
         Page<Category> categories = categoryRepository.findAll(pageable);
 
-        // Map the Page<Category> to Page<CategoryResponse> using the categoryMapper
-        Page<CategoryResponse> dtoPage = categories.map(categoryMapper::toDto);
+        // Map each Category entity to CategoryResponse DTO
+        Page<CategoryResponse> dtoPage = categories.map(category -> {
+            // Find the translation for the requested language
+            CategoryTranslation translation = category.getTranslations().stream()
+                    .filter(t -> t.getLanguage() == language)
+                    .findFirst()
+                    // If not found, fallback to Vietnamese, if still not found, take any available translation
+                    .orElseGet(() -> category.getTranslations().stream()
+                            .filter(t -> t.getLanguage() == Language.VI)
+                            .findFirst()
+                            .orElse(category.getTranslations().stream().findFirst()
+                                    .orElseThrow(() -> new NotFoundException(
+                                            "No translation found for category " + category.getId()
+                                    ))
+                            )
+                    );
+
+            // Map Category + Translation sang DTO
+            return new CategoryResponse(
+                    category.getId(),
+                    TextUtils.removeTrailingDot(translation.getName()),
+                    translation.getDescription(),
+                    category.getImage(),
+                    category.isActive()
+            );
+        });
 
         // Convert the Page<CategoryResponse> to PageResponse<CategoryResponse>
         return PageResponse.from(dtoPage);
