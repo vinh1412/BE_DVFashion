@@ -153,6 +153,11 @@ public class CategoryServiceImpl implements CategoryService {
             category.setImage(imageUrl);
         }
 
+        // Update the active status if provided
+        if (categoryRequest.active() != null) {
+            category.setActive(categoryRequest.active());
+        }
+
         // Update translations for input language
         updateOrCreateTranslation(category, language, categoryRequest.name(), categoryRequest.description());
 
@@ -239,7 +244,7 @@ public class CategoryServiceImpl implements CategoryService {
                             )
                     );
 
-            // Map Category + Translation sang DTO
+            // Map Category + Translation to DTO
             return new CategoryResponse(
                     category.getId(),
                     TextUtils.removeTrailingDot(translation.getName()),
