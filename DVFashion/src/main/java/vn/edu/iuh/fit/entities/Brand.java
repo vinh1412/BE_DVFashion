@@ -30,12 +30,6 @@ public class Brand {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-
-    private String code;
-
-    private String description;
-
     private String logo;
 
     @Column(name = "active", columnDefinition = "boolean default true")
@@ -43,5 +37,8 @@ public class Brand {
 
     @OneToMany(mappedBy = "brand", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Product> products = new ArrayList<>();
+
+    @OneToMany(mappedBy = "brand", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<BrandTranslation> translations = new ArrayList<>();
 }
 

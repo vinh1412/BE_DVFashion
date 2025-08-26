@@ -80,4 +80,25 @@ public class GlobalExceptionHandler  {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.unauthorized(ex.getMessage()));
     }
+
+    @ExceptionHandler(TokenForgetPasswordException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTokenForgetPasswordException(TokenForgetPasswordException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(MissingTokenException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMissingTokenException(MissingTokenException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(FirebaseAuthCustomsException.class)
+    public ResponseEntity<ApiResponse<Object>> handleFirebaseAuthException(FirebaseAuthCustomsException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
 }

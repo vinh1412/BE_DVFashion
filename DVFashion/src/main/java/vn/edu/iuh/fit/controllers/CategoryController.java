@@ -62,6 +62,7 @@ public class CategoryController {
      * 5. SUCCESS RESPONSE (200):
      *    {
      *      "success": true,
+     *      "code": 201,
      *      "message": "Category created successfully.",
      *      "data": {
      *        "id": 1,
@@ -166,7 +167,7 @@ public class CategoryController {
      */
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<ApiResponse<?>> deactivateCategory(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<?>> deactivateCategory(@PathVariable("id") Long id) {
         categoryService.deactivateCategory(id);
         return ResponseEntity.ok(ApiResponse.noContent("Category deactivated successfully."));
     }
@@ -250,7 +251,7 @@ public class CategoryController {
     * 5. SUCCESS RESPONSE (200):
     * {
     *   "success": true,
-    *   "statusCode": 200,
+    *   "statusCode": 201,
     *   "message": "Category retrieved successfully.",
     *   "data": {
     *      "id": 1,
@@ -267,7 +268,7 @@ public class CategoryController {
     *
     */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<?>> getCategoryById(@PathVariable Long id,
+    public ResponseEntity<ApiResponse<?>> getCategoryById(@PathVariable("id") Long id,
                                                           @RequestParam(value = "lang", defaultValue = "VI") Language language) {
         CategoryResponse categoryResponse = categoryService.getCategoryById(id, language);
         return ResponseEntity.ok(ApiResponse.success(categoryResponse, "Category retrieved successfully."));
