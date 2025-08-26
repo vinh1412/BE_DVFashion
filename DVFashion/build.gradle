@@ -34,6 +34,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
     testImplementation 'org.springframework.security:spring-security-test'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -51,6 +52,8 @@ dependencies {
     // https://mvnrepository.com/artifact/org.mapstruct/mapstruct
     implementation("org.mapstruct:mapstruct:1.5.5.Final")
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    // https://mvnrepository.com/artifact/com.google.firebase/firebase-admin
+    implementation 'com.google.firebase:firebase-admin:9.4.3'
 }
 
 dependencyManagement {
