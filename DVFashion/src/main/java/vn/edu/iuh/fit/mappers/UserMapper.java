@@ -17,11 +17,12 @@ import org.mapstruct.Mapping;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 
 import java.util.List;
 import java.util.Set;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", imports = FormatPhoneNumber.class)
 public interface UserMapper {
     /**
      * Maps a User entity to a UserResponse DTO.
@@ -30,6 +31,7 @@ public interface UserMapper {
      * @return the mapped UserResponse DTO
      */
     @Mapping(target = "roles", source = "roles") // map roles to a list of strings
+    @Mapping(target = "phone", expression = "java(FormatPhoneNumber.formatPhoneNumberToLocal(user.getPhone()))")
     UserResponse toDto(User user);
 
     /**
