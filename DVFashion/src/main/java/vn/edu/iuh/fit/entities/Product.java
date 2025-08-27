@@ -35,23 +35,29 @@ public class Product {
 
     private String name;
 
-    private String code;
-
     private String description;
 
     private BigDecimal price;
 
+    private String material;
+
     @Column(name = "sale_price")
     private BigDecimal salePrice;
 
-    @Column(name = "on_sale", nullable = false, columnDefinition = "boolean default true")
+    @Column(name = "on_sale", nullable = false, columnDefinition = "boolean default false")
     private boolean onSale;
 
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
-    @Column(name = "review_count", columnDefinition = "int default 0")
+    @Column(name = "view_count", columnDefinition = "default 0")
+    private int viewCount;
+
+    @Column(name = "review_count", columnDefinition = "default 0")
     private int reviewCount;
+
+    @Column(name = "rating", columnDefinition = "default 0.0")
+    private double rating;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -67,11 +73,15 @@ public class Product {
     @JoinColumn(name = "brand_id", nullable = false)
     private Brand brand;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<ProductImage> images = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "promotion_id")
+    private Promotion promotion;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductVariant> variants = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductTranslation> translations = new ArrayList<>();
 
 
     @PrePersist
