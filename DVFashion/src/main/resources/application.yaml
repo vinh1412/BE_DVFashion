@@ -58,6 +58,11 @@ spring:
           auth: true
           starttls:
             enable: true
+# File upload configuration
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
 # Frontend URL for OAuth2 redirection
 oauth2:
   redirect-uris:

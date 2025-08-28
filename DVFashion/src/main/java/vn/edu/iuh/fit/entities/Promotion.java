@@ -63,6 +63,6 @@ public class Promotion {
     private boolean active;
 
     @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<ProductVariant> applicableProducts= new ArrayList<>();
+    private List<Product> applicableProducts= new ArrayList<>();
 }
 

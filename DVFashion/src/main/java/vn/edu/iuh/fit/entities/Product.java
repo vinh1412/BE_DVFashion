@@ -21,37 +21,37 @@ import java.util.List;
  * @date:   8/17/2025
  * @version:    1.0
  */
-@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
 @Table(name = "products")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-
-    private String code;
-
-    private String description;
-
     private BigDecimal price;
 
     @Column(name = "sale_price")
     private BigDecimal salePrice;
 
-    @Column(name = "on_sale", nullable = false, columnDefinition = "boolean default true")
+    @Column(name = "on_sale", nullable = false)
     private boolean onSale;
 
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
-    @Column(name = "review_count", columnDefinition = "int default 0")
+    @Column(name = "view_count")
+    private int viewCount;
+
+    @Column(name = "review_count")
     private int reviewCount;
+
+    @Column(name = "rating")
+    private double rating;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -67,11 +67,18 @@ public class Product {
     @JoinColumn(name = "brand_id", nullable = false)
     private Brand brand;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<ProductImage> images = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "promotion_id")
+    private Promotion promotion;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductVariant> variants = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductTranslation> translations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<UserBehavior> userBehaviors = new ArrayList<>();
 
 
     @PrePersist
