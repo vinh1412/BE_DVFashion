@@ -21,42 +21,36 @@ import java.util.List;
  * @date:   8/17/2025
  * @version:    1.0
  */
-@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
 @Table(name = "products")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-
-    private String description;
-
     private BigDecimal price;
-
-    private String material;
 
     @Column(name = "sale_price")
     private BigDecimal salePrice;
 
-    @Column(name = "on_sale", nullable = false, columnDefinition = "boolean default false")
+    @Column(name = "on_sale", nullable = false)
     private boolean onSale;
 
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
-    @Column(name = "view_count", columnDefinition = "default 0")
+    @Column(name = "view_count")
     private int viewCount;
 
-    @Column(name = "review_count", columnDefinition = "default 0")
+    @Column(name = "review_count")
     private int reviewCount;
 
-    @Column(name = "rating", columnDefinition = "default 0.0")
+    @Column(name = "rating")
     private double rating;
 
     @Column(name = "created_at")
@@ -82,6 +76,9 @@ public class Product {
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductTranslation> translations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<UserBehavior> userBehaviors = new ArrayList<>();
 
 
     @PrePersist

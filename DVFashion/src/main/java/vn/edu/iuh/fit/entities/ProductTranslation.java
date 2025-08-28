@@ -26,6 +26,7 @@ import vn.edu.iuh.fit.enums.Language;
 @Table(name = "product_translations")
 public class ProductTranslation {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
