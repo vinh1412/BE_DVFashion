@@ -21,17 +21,14 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "product_images")
-public class ProductImage {
+@Table(name = "product_variant_images")
+public class ProductVariantImage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "image_url", nullable = false)
     private String imageUrl;
-
-    @Column(name = "alt_text")
-    private String altText;
 
     @Column(name = "is_primary", columnDefinition = "boolean default true")
     private boolean isPrimary;
@@ -40,7 +37,7 @@ public class ProductImage {
     private int sortOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @JoinColumn(name = "product_variant_id", nullable = false)
+    private ProductVariant productVariant;
 }
 

@@ -57,15 +57,17 @@ public class CategoryServiceImpl implements CategoryService {
         // Save the category entity
         Category category = Category.builder()
                 .image(imageUrl)
-                .active(categoryRequest.active() != null ? categoryRequest.active() : true) // default true
+                .active(categoryRequest.active() == null || categoryRequest.active()) // default true
                 .build();
         categoryRepository.save(category);
 
         // Description for input language
-        String descInput = categoryRequest.description() != null
-                ? categoryRequest.description()
-                : (inputLang == Language.VI ? "Không có mô tả" : "No description");
-
+        String descInput;
+        if (categoryRequest.description() != null) {
+            descInput = categoryRequest.description();
+        } else {
+            descInput = (inputLang == Language.VI) ? "Không có mô tả" : "No description";
+        }
 
         // Save the input language translation
         CategoryTranslation inputTranslation  = CategoryTranslation.builder()
@@ -80,9 +82,12 @@ public class CategoryServiceImpl implements CategoryService {
         Language targetLang = (inputLang == Language.VI) ? Language.EN : Language.VI;
 
         // Description for target language
-        String descTarget = categoryRequest.description() != null
-                ? translationService.translate(categoryRequest.description(), targetLang.name())
-                : (targetLang == Language.VI ? "Không có mô tả" : "No description");
+        String descTarget;
+        if (categoryRequest.description() != null) {
+            descTarget = translationService.translate(categoryRequest.description(), targetLang.name());
+        } else {
+            descTarget = (targetLang == Language.VI) ? "Không có mô tả" : "No description";
+        }
 
         // Translate and save the target language translation
         CategoryTranslation translatedTranslation  = CategoryTranslation.builder()

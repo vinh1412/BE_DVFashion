@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import vn.edu.iuh.fit.enums.ProductVariantStatus;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -31,23 +32,17 @@ public class ProductVariant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String size;
-
     private String color;
-
-    private String material;
-
-    @Column(name = "stock_quantity")
-    private int stockQuantity;
 
     @Column(name = "additional_price")
     private BigDecimal addtionalPrice;
 
-    private String sku;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
+
+    @Enumerated(EnumType.STRING)
+    private ProductVariantStatus status;
 
     @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<CartItem> cartItems = new ArrayList<>();
@@ -55,12 +50,14 @@ public class ProductVariant {
     @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "promotion_id")
-    private Promotion promotion;
-
     @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Review> reviews = new ArrayList<>();
+
+    @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductVariantImage> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Size> sizes = new ArrayList<>();
 
     @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<WishlistItem> wishlistItems = new ArrayList<>();

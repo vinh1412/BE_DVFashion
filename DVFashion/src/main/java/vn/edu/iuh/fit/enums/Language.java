@@ -7,7 +7,9 @@
 package vn.edu.iuh.fit.enums;
 
 public enum Language {
-    VI("Vietnamese"), EN("English");
+    VI("Vietnamese"),
+
+    EN("English");
 
     private final String value;
 
