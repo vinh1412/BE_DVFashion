@@ -57,15 +57,18 @@ public class BrandServiceImpl implements BrandService {
         // Create and save the brand entity
         Brand brand = Brand.builder()
                 .logo(logo)
-                .active(request.active() != null ? request.active() : true)
+                .active(request.active() == null || request.active())
                 .build();
 
         brandRepository.save(brand);
 
         // Create and save the brand translation for the input language
-        String descInput = request.description() != null
-                ? request.description()
-                : (inputLang == Language.VI ? "Không có mô tả" : "No description");
+        String descInput;
+        if (request.description() != null) {
+            descInput = request.description();
+        } else {
+            descInput = (inputLang == Language.VI) ? "Không có mô tả" : "No description";
+        }
 
         BrandTranslation brandTranslation = BrandTranslation.builder()
                 .name(request.name())
@@ -78,9 +81,12 @@ public class BrandServiceImpl implements BrandService {
         // Create and save the brand translation for the target language
         Language targetLang = (inputLang == Language.VI) ? Language.EN : Language.VI;
 
-        String descTarget = request.description() != null
-                ? translationService.translate(request.description(), targetLang.name())
-                : (targetLang == Language.VI ? "Không có mô tả" : "No description");
+        String descTarget;
+        if (request.description() != null) {
+            descTarget = translationService.translate(request.description(), targetLang.name());
+        } else {
+            descTarget = (targetLang == Language.VI) ? "Không có mô tả" : "No description";
+        }
 
         BrandTranslation brandTranslationTarget = BrandTranslation.builder()
                 .name(translationService.translate(request.name(), targetLang.name()))

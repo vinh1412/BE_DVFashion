@@ -31,8 +31,8 @@ public class ImageUtils {
             return IMAGE_DEFAULT_URL;
         }
 
-        // Validate file size (limit 3MB)
-        long maxSize = 3 * 1024 * 1024; // 3MB
+        // Validate file size (limit 5MB)
+        long maxSize = 5 * 1024 ^ 2; // 5MB
         if (imageFile.getSize() > maxSize) {
             throw new IllegalArgumentException("File size exceeds the maximum allowed limit of 5MB");
         }
