@@ -113,6 +113,85 @@ public class ProductServiceImpl implements ProductService {
         return toResponse(product, inputLang);
     }
 
+    @Transactional
+    @Override
+    public ProductResponse updateProduct(Long productId, ProductRequest request, Language inputLang, List<MultipartFile> variantImages) {
+        // Find existing product
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new NotFoundException("Product not found with id: " + productId));
+
+        // Check if Category exists
+        if (request.categoryId() != null) {
+            Category category = categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new NotFoundException("Category not found"));
+            product.setCategory(category);
+        }
+
+        // Check if Brand exists
+        if (request.brandId() != null) {
+            Brand brand = brandRepository.findById(request.brandId())
+                    .orElseThrow(() -> new NotFoundException("Brand not found"));
+            product.setBrand(brand);
+        }
+
+        // Check if Promotion exists (if provided)
+        if (request.promotionId() != null) {
+            Promotion promotion = promotionRepository.findById(request.promotionId())
+                    .orElseThrow(() -> new NotFoundException("Promotion not found"));
+            product.setPromotion(promotion);
+        }
+
+        // Update product basic properties
+        if (request.price() != null) {
+            product.setPrice(request.price());
+        }
+
+        if (request.salePrice() != null) {
+            product.setSalePrice(request.salePrice());
+        }
+
+        product.setOnSale(request.onSale());
+
+
+        if (request.status() != null) {
+            product.setStatus(ProductStatus.valueOf(request.status()));
+        }
+
+        productRepository.save(product);
+
+        // Update ProductTranslation
+        productTranslationService.updateProductTranslations(product, request, inputLang);
+
+//        // Update variants - remove existing and add new ones
+//        if (request.variants() != null && !request.variants().isEmpty()) {
+//
+//            // Add new variants
+//            int imageIndex = 0;
+//            for (ProductVariantRequest v : request.variants()) {
+//                int imgCount = (v.images() != null) ? v.images().size() : 0;
+//                List<MultipartFile> variantImageFiles =
+//                        (variantImages != null && imageIndex + imgCount <= variantImages.size())
+//                                ? variantImages.subList(imageIndex, imageIndex + imgCount)
+//                                : List.of();
+//
+//                productVariantService.createProductVariant(product.getId(), v, variantImageFiles);
+//                imageIndex += imgCount;
+//            }
+//        }
+
+        return toResponse(product, inputLang);
+    }
+
+    @Override
+    public ProductResponse getProductById(Long productId, Language language) {
+        // Find existing product
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new NotFoundException("Product not found with id: " + productId));
+
+        // Map to ProductResponse
+        return toResponse(product, language);
+    }
+
     private ProductResponse toResponse(Product product, Language inputLang) {
         // Find translation in requested language, if not found, fallback to Vietnamese
         ProductTranslation translation = productTranslationRepository.findByProductIdAndLanguage(product.getId(), inputLang)

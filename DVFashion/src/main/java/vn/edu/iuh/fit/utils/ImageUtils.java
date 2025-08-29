@@ -32,7 +32,7 @@ public class ImageUtils {
         }
 
         // Validate file size (limit 5MB)
-        long maxSize = 5 * 1024 ^ 2; // 5MB
+        long maxSize = 5 * 1024 * 1024; // 5MB
         if (imageFile.getSize() > maxSize) {
             throw new IllegalArgumentException("File size exceeds the maximum allowed limit of 5MB");
         }

@@ -43,7 +43,7 @@ public class ProductTranslationServiceImpl implements ProductTranslationService 
                 .orElseThrow(() -> new NotFoundException("Product not found with id: " + product.getId()));
 
         // Check if ProductTranslation with the same name and language already exists
-        boolean exists = productTranslationRepository.existsByNameAndLanguage(request.name(), inputLang);
+        boolean exists = productTranslationRepository.existsByNameIgnoreCaseAndLanguage(request.name().toLowerCase(), inputLang);
         if (exists) {
             throw new AlreadyExistsException("Product already exists with name: " + request.name());
         }
@@ -86,5 +86,74 @@ public class ProductTranslationServiceImpl implements ProductTranslationService 
                 .build();
 
         productTranslationRepository.save(translatedTranslation);
+    }
+
+    @Transactional
+    @Override
+    public void updateProductTranslations(Product product, ProductRequest request, Language inputLang) {
+        // Check if Product exists
+        Product existingProduct = productRepository.findById(product.getId())
+                .orElseThrow(() -> new NotFoundException("Product not found with id: " + product.getId()));
+
+        // Find existing ProductTranslation for input language
+        ProductTranslation productTranslation = productTranslationRepository.findByProductIdAndLanguage(existingProduct.getId(), inputLang)
+                .orElse(ProductTranslation.builder()
+                        .product(existingProduct)
+                        .language(inputLang)
+                        .build());
+
+        // Check for name uniqueness if name is being updated
+        if (request.name() != null) {
+            // Check if another ProductTranslation with the same name and language exists
+            boolean exists = productTranslationRepository.existsByNameIgnoreCaseAndLanguage(request.name().toLowerCase(), inputLang);
+
+            boolean isSameName = product.getTranslations().stream()
+                    .anyMatch(t -> t.getLanguage() == inputLang && t.getName().equalsIgnoreCase(request.name()));
+
+            // If exists and it's not the same translation, throw exception
+            if (exists && !isSameName) {
+                throw new AlreadyExistsException("Product already exists with name: " + request.name());
+            }
+
+            productTranslation.setName(request.name());
+        }
+
+        if (request.description() != null){
+            productTranslation.setDescription(request.description());
+        }
+
+        if (request.material() != null){
+            productTranslation.setMaterial(request.material());
+        }
+
+        productTranslationRepository.save(productTranslation);
+
+        // Determine target language for translation
+        Language targetLang = (inputLang == Language.VI) ? Language.EN : Language.VI;
+
+        // Update or create ProductTranslation for target language
+        ProductTranslation translatedTranslation = productTranslationRepository
+                .findByProductIdAndLanguage(existingProduct.getId(), targetLang)
+                .orElse(ProductTranslation.builder()
+                        .product(existingProduct)
+                        .language(targetLang)
+                        .build());
+
+        // Update fields if they are provided in the request
+        if (translatedTranslation != null) {
+            if (request.name() != null) {
+                translatedTranslation.setName(translationService.translate(request.name(), targetLang.getValue()));
+            }
+
+            if (request.description() != null) {
+                translatedTranslation.setDescription(translationService.translate(request.description(), targetLang.getValue()));
+            }
+
+            if (request.material() != null) {
+                translatedTranslation.setMaterial(translationService.translate(request.material(), targetLang.getValue()));
+            }
+
+            productTranslationRepository.save(translatedTranslation);
+        }
     }
 }

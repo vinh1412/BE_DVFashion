@@ -29,4 +29,24 @@ public interface ProductService {
      * @return The created product response.
      */
     ProductResponse createProduct(ProductRequest request, Language inputLang, List<MultipartFile> variantImages);
+
+    /**
+     * Updates an existing product identified by productId with the given request data, input language, and variant images.
+     *
+     * @param productId     The ID of the product to update.
+     * @param request       The updated product request data.
+     * @param inputLang     The language of the input data.
+     * @param variantImages A list of images for the product variants.
+     * @return The updated product response.
+     */
+    ProductResponse updateProduct(Long productId, ProductRequest request, Language inputLang, List<MultipartFile> variantImages);
+
+    /**
+     * Retrieves a product by its ID and returns its details in the specified language.
+     *
+     * @param productId The ID of the product to retrieve.
+     * @param language  The language for the product details.
+     * @return The product response containing the product details.
+     */
+    ProductResponse getProductById(Long productId, Language language);
 }
