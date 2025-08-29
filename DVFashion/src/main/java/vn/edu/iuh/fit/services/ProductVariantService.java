@@ -28,4 +28,8 @@ public interface ProductVariantService {
      * @return The created product variant response.
      */
     ProductVariantResponse createProductVariant(Long productId, ProductVariantRequest request, List<MultipartFile> variantImages);
+
+    ProductVariantResponse updateProductVariant(Long variantId, ProductVariantRequest request);
+
+    ProductVariantResponse getProductVariantById(Long variantId);
 }

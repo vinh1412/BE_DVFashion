@@ -18,4 +18,12 @@ import vn.edu.iuh.fit.entities.ProductVariant;
  */
 @Repository
 public interface ProductVariantRepository extends JpaRepository<ProductVariant, Long> {
+    /**
+     * Checks if a product variant with the specified product ID and color (case-insensitive) exists.
+     *
+     * @param productId The ID of the product.
+     * @param color     The color of the product variant.
+     * @return true if a matching product variant exists, false otherwise.
+     */
+    boolean existsByProductIdAndColorIgnoreCase(Long productId, String color);
 }
