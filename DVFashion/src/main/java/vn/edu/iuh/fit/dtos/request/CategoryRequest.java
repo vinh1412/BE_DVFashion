@@ -14,10 +14,10 @@ package vn.edu.iuh.fit.dtos.request;
  */
 
 import jakarta.validation.constraints.NotBlank;
-import vn.edu.iuh.fit.markers.Create;
+import vn.edu.iuh.fit.validators.ValidationGroups;
 
 public record CategoryRequest(
-        @NotBlank(message = "Name is required", groups = Create.class)
+        @NotBlank(message = "Name is required", groups = ValidationGroups.Create.class)
         String name,
 
         String description,
