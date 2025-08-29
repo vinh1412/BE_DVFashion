@@ -22,9 +22,8 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.BrandResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.enums.Language;
-import vn.edu.iuh.fit.markers.Create;
-import vn.edu.iuh.fit.markers.Update;
 import vn.edu.iuh.fit.services.BrandService;
+import vn.edu.iuh.fit.validators.ValidationGroups;
 
 /*
  * @description:
@@ -82,7 +81,7 @@ public class BrandController {
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> createCategory(
-            @Validated(Create.class) @RequestPart("brand") BrandRequest request,
+            @Validated(ValidationGroups.Create.class) @RequestPart("brand") BrandRequest request,
             @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
         BrandResponse brandResponse = brandService.createBrand(request, logoFile, language);
@@ -177,7 +176,7 @@ public class BrandController {
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> updateBrand(@PathVariable("id") Long id,
-                                                         @Validated(Update.class) @RequestPart("brand") BrandRequest request,
+                                                         @Validated(ValidationGroups.Update.class) @RequestPart("brand") BrandRequest request,
                                                          @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
                                                          @RequestParam(value = "lang", defaultValue = "VI") Language language) {
         BrandResponse brandResponse = brandService.updateBrand(request, id, logoFile, language);

@@ -11,6 +11,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import vn.edu.iuh.fit.validators.ValidationGroups;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -22,34 +23,36 @@ import java.util.List;
  * @version:    1.0
  */
 public record ProductRequest(
-        @NotBlank(message = "Product name is required")
+        @NotBlank(message = "Product name is required", groups = {ValidationGroups.Create.class})
         String name,
 
         String description,
 
-        @NotNull(message = "Price is required")
-        @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
+        @NotNull(message = "Price is required", groups = ValidationGroups.Create.class)
+        @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0",
+                groups = {ValidationGroups.Create.class, ValidationGroups.Update.class})
         BigDecimal price,
 
         @NotBlank(message = "Material is required")
         String material,
 
-        @DecimalMin(value = "0.0", inclusive = false, message = "Sale price must be greater than 0")
+        @DecimalMin(value = "0.0", inclusive = false, message = "Sale price must be greater than 0",
+                groups = {ValidationGroups.Create.class, ValidationGroups.Update.class})
         BigDecimal salePrice,
 
         boolean onSale,
 
-        @NotBlank(message = "Status is required")
+        @NotBlank(message = "Status is required", groups = ValidationGroups.Create.class)
         String status,
 
-        @NotNull(message = "Category ID is required")
+        @NotNull(message = "Category ID is required", groups = ValidationGroups.Create.class)
         Long categoryId,
 
-        @NotNull(message = "Brand ID is required")
+        @NotNull(message = "Brand ID is required", groups = ValidationGroups.Create.class)
         Long brandId,
 
         Long promotionId,
 
-        @NotEmpty(message = "Product must have at least one variant")
+        @NotEmpty(message = "Product must have at least one variant", groups = ValidationGroups.Create.class)
         List<@Valid ProductVariantRequest> variants
 ) {}

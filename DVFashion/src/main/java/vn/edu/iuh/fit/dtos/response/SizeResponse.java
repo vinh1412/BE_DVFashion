@@ -17,5 +17,7 @@ public record SizeResponse(
 
         String sizeName,
 
-        int stockQuantity
+        int stockQuantity,
+
+        Long productVariantId
 ) {}

@@ -22,9 +22,8 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.enums.Language;
-import vn.edu.iuh.fit.markers.Create;
-import vn.edu.iuh.fit.markers.Update;
 import vn.edu.iuh.fit.services.CategoryService;
+import vn.edu.iuh.fit.validators.ValidationGroups;
 
 /*
  * @description: Controller for managing categories
@@ -82,7 +81,7 @@ public class CategoryController {
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> createCategory(
-            @Validated(Create.class) @RequestPart("category") CategoryRequest request,
+            @Validated(ValidationGroups.Create.class) @RequestPart("category") CategoryRequest request,
             @RequestPart(value = "imageFile", required = false) MultipartFile imageFile,
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
         CategoryResponse categoryResponse = categoryService.createCategory(request, imageFile, language);
@@ -134,7 +133,7 @@ public class CategoryController {
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> updateCategory(@PathVariable("id") Long id,
-                                                         @Validated(Update.class) @RequestPart("category") CategoryRequest request,
+                                                         @Validated(ValidationGroups.Update.class) @RequestPart("category") CategoryRequest request,
                                                          @RequestPart(value = "imageFile", required = false) MultipartFile imageFile,
                                                          @RequestParam(value = "lang", defaultValue = "VI") Language language) {
         CategoryResponse categoryResponse = categoryService.updateCategory(request, id, imageFile, language);

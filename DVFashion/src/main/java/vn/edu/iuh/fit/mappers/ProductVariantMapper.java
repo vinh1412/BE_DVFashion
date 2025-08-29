@@ -30,13 +30,14 @@ public class ProductVariantMapper {
     public ProductVariantResponse toResponse(ProductVariant variant) {
         List<SizeResponse> sizeResponses = new ArrayList<>();
         for (Size size : variant.getSizes()) {
-            SizeResponse sizeResponse = new SizeResponse(size.getId(), size.getSizeName(), size.getStockQuantity());
+            SizeResponse sizeResponse = new SizeResponse(size.getId(), size.getSizeName(), size.getStockQuantity(), variant.getId());
             sizeResponses.add(sizeResponse);
         }
 
         List<ProductVariantImageResponse> productVariantImageResponse = new ArrayList<>();
         for (ProductVariantImage image : variant.getImages()) {
-            ProductVariantImageResponse imageResponse = new ProductVariantImageResponse(image.getId(), image.getImageUrl(), image.isPrimary(), image.getSortOrder());
+            ProductVariantImageResponse imageResponse = new ProductVariantImageResponse(image.getId(),
+                    image.getImageUrl(), image.isPrimary(), image.getSortOrder(), image.getProductVariant().getId());
             productVariantImageResponse.add(imageResponse);
         }
 
