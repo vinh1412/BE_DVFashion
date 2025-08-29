@@ -15,7 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.ProductVariantImageRequest;
 import vn.edu.iuh.fit.dtos.request.ProductVariantRequest;
 import vn.edu.iuh.fit.dtos.request.SizeRequest;
+import vn.edu.iuh.fit.dtos.response.ProductVariantImageResponse;
 import vn.edu.iuh.fit.dtos.response.ProductVariantResponse;
+import vn.edu.iuh.fit.dtos.response.SizeResponse;
 import vn.edu.iuh.fit.entities.Product;
 import vn.edu.iuh.fit.entities.ProductVariant;
 import vn.edu.iuh.fit.entities.ProductVariantImage;
@@ -24,8 +26,11 @@ import vn.edu.iuh.fit.enums.ProductVariantStatus;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.mappers.ProductVariantMapper;
+import vn.edu.iuh.fit.mappers.SizeMapper;
 import vn.edu.iuh.fit.repositories.ProductRepository;
+import vn.edu.iuh.fit.repositories.ProductVariantImageRepository;
 import vn.edu.iuh.fit.repositories.ProductVariantRepository;
+import vn.edu.iuh.fit.repositories.SizeRepository;
 import vn.edu.iuh.fit.services.ProductVariantImageService;
 import vn.edu.iuh.fit.services.ProductVariantService;
 import vn.edu.iuh.fit.services.SizeService;
@@ -50,6 +55,11 @@ public class ProductVariantServiceImpl implements ProductVariantService {
     private final ProductRepository productRepository;
 
     private final ProductVariantMapper productVariantMapper;
+
+    private final SizeRepository sizeRepository;
+
+    private final ProductVariantImageRepository productVariantImageRepository;
+
 
     @Transactional
     @Override
@@ -80,7 +90,10 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
         // Save Sizes
         for (SizeRequest s : request.sizes()) {
-            Size size = sizeService.createSize(productVariant.getId(), s);
+            SizeResponse sizeResponse=sizeService.createSize(productVariant.getId(), s);
+
+            Size size = sizeRepository.findById(sizeResponse.id())
+                    .orElseThrow(() -> new NotFoundException("Size not found with id: " + sizeResponse.id()));
             productVariant.getSizes().add(size);
         }
 
@@ -91,11 +104,19 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
         // Save Images
         for (int i = 0; i < request.images().size(); i++) {
+            // Get corresponding image file if available
             ProductVariantImageRequest imgReq = request.images().get(i);
+
+            // Get the corresponding MultipartFile if available
             MultipartFile imageFile = (variantImages != null && i < variantImages.size())
                     ? variantImages.get(i)
                     : null;
-            ProductVariantImage image = productVariantImageService.addImageToVariant(productVariant.getId(), imgReq, imageFile);
+
+            ProductVariantImageResponse productVariantImageResponse = productVariantImageService.addImageToVariant(productVariant.getId(), imgReq, imageFile);
+
+            ProductVariantImage image = productVariantImageRepository.findById(productVariantImageResponse.id())
+                    .orElseThrow(() -> new NotFoundException("Product variant image not found with id: " + productVariantImageResponse.id()));
+
             productVariant.getImages().add(image);
         }
         product.getVariants().add(productVariant);
@@ -135,36 +156,6 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         if (request.status() != null) {
             productVariant.setStatus(ProductVariantStatus.valueOf(request.status()));
         }
-
-        // Update sizes - remove existing and add new ones
-//        if (request.sizes() != null) {
-//            // Remove existing sizes
-//            productVariant.getSizes().forEach(size -> sizeService.deleteSize(size.getId()));
-//            productVariant.getSizes().clear();
-//
-//            // Add new sizes
-//            for (SizeRequest s : request.sizes()) {
-//                Size size = sizeService.createSize(productVariant.getId(), s);
-//                productVariant.getSizes().add(size);
-//            }
-//        }
-
-        // Update images - remove existing and add new ones
-//        if (request.images() != null) {
-//            // Remove existing images
-//            productVariant.getImages().forEach(image -> productVariantImageService.deleteVariantImage(image.getId()));
-//            productVariant.getImages().clear();
-//
-//            // Add new images
-//            for (int i = 0; i < request.images().size(); i++) {
-//                ProductVariantImageRequest imgReq = request.images().get(i);
-//                MultipartFile imageFile = (variantImages != null && i < variantImages.size())
-//                        ? variantImages.get(i)
-//                        : null;
-//                ProductVariantImage image = productVariantImageService.addImageToVariant(productVariant.getId(), imgReq, imageFile);
-//                productVariant.getImages().add(image);
-//            }
-//        }
 
         productVariantRepository.save(productVariant);
         return productVariantMapper.toResponse(productVariant);
