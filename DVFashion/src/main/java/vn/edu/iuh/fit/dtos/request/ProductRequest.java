@@ -29,13 +29,15 @@ public record ProductRequest(
         String description,
 
         @NotNull(message = "Price is required", groups = ValidationGroups.Create.class)
-        @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
+        @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0",
+                groups = {ValidationGroups.Create.class, ValidationGroups.Update.class})
         BigDecimal price,
 
         @NotBlank(message = "Material is required")
         String material,
 
-        @DecimalMin(value = "0.0", inclusive = false, message = "Sale price must be greater than 0")
+        @DecimalMin(value = "0.0", inclusive = false, message = "Sale price must be greater than 0",
+                groups = {ValidationGroups.Create.class, ValidationGroups.Update.class})
         BigDecimal salePrice,
 
         boolean onSale,

@@ -115,7 +115,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Transactional
     @Override
-    public ProductResponse updateProduct(Long productId, ProductRequest request, Language inputLang, List<MultipartFile> variantImages) {
+    public ProductResponse updateProduct(Long productId, ProductRequest request, Language inputLang) {
         // Find existing product
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product not found with id: " + productId));
@@ -161,23 +161,6 @@ public class ProductServiceImpl implements ProductService {
 
         // Update ProductTranslation
         productTranslationService.updateProductTranslations(product, request, inputLang);
-
-//        // Update variants - remove existing and add new ones
-//        if (request.variants() != null && !request.variants().isEmpty()) {
-//
-//            // Add new variants
-//            int imageIndex = 0;
-//            for (ProductVariantRequest v : request.variants()) {
-//                int imgCount = (v.images() != null) ? v.images().size() : 0;
-//                List<MultipartFile> variantImageFiles =
-//                        (variantImages != null && imageIndex + imgCount <= variantImages.size())
-//                                ? variantImages.subList(imageIndex, imageIndex + imgCount)
-//                                : List.of();
-//
-//                productVariantService.createProductVariant(product.getId(), v, variantImageFiles);
-//                imageIndex += imgCount;
-//            }
-//        }
 
         return toResponse(product, inputLang);
     }

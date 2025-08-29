@@ -44,14 +44,13 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.created(response, "Product created successfully"));
     }
 
-    @PutMapping(value = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{productId}")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
-            @Validated(ValidationGroups.Update.class)
             @PathVariable("productId") Long productId,
-            @RequestPart("product") ProductRequest request,
-            @RequestParam(value = "lang", defaultValue = "VI") Language language,
-            @RequestPart(value = "variantImages", required = false) List<MultipartFile> variantImages) {
-        ProductResponse response = productService.updateProduct(productId, request, language, variantImages);
+            @Validated(ValidationGroups.Update.class)
+            @RequestBody ProductRequest request,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        ProductResponse response = productService.updateProduct(productId, request, language);
         return ResponseEntity.ok(ApiResponse.success(response, "Product updated successfully"));
     }
 

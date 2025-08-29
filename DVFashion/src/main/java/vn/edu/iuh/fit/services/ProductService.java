@@ -36,10 +36,9 @@ public interface ProductService {
      * @param productId     The ID of the product to update.
      * @param request       The updated product request data.
      * @param inputLang     The language of the input data.
-     * @param variantImages A list of images for the product variants.
      * @return The updated product response.
      */
-    ProductResponse updateProduct(Long productId, ProductRequest request, Language inputLang, List<MultipartFile> variantImages);
+    ProductResponse updateProduct(Long productId, ProductRequest request, Language inputLang);
 
     /**
      * Retrieves a product by its ID and returns its details in the specified language.

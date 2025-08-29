@@ -104,13 +104,16 @@ public class ProductTranslationServiceImpl implements ProductTranslationService 
 
         // Check for name uniqueness if name is being updated
         if (request.name() != null) {
-            // Check if another ProductTranslation with the same name and language exists
+            // Check if name already exists in the same language
             boolean exists = productTranslationRepository.existsByNameIgnoreCaseAndLanguage(request.name().toLowerCase(), inputLang);
 
+            // Check if the new name matches the current name of this translation
             boolean isSameName = product.getTranslations().stream()
                     .anyMatch(t -> t.getLanguage() == inputLang && t.getName().equalsIgnoreCase(request.name()));
 
-            // If exists and it's not the same translation, throw exception
+            System.out.println("Exists: " + exists + ", isSameName: " + isSameName);
+
+            // If name already exists and is not the name of the current translation itself, throw an exception
             if (exists && !isSameName) {
                 throw new AlreadyExistsException("Product already exists with name: " + request.name());
             }
