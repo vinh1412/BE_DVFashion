@@ -37,5 +37,5 @@ public interface ProductTranslationRepository extends JpaRepository<ProductTrans
      * @param language the language of the translation
      * @return true if a ProductTranslation with the given name and language exists, false otherwise
      */
-    boolean existsByNameAndLanguage(String name, Language language);
+    boolean existsByNameIgnoreCaseAndLanguage(String name, Language language);
 }

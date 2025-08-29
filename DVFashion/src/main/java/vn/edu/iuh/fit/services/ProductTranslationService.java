@@ -25,4 +25,13 @@ public interface ProductTranslationService {
      * @param inputLang The language of the input data.
      */
     void createProductTranslations(Product product, ProductRequest request, Language inputLang);
+
+    /**
+     * Updates translations for the given product based on the provided request data and input language.
+     *
+     * @param product   The product entity to update translations for.
+     * @param request   The product request data containing updated translation information.
+     * @param inputLang The language of the input data.
+     */
+    void updateProductTranslations(Product product, ProductRequest request, Language inputLang);
 }
