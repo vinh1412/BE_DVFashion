@@ -19,5 +19,7 @@ public record ProductVariantImageResponse(
 
         boolean isPrimary,
 
-        int sortOrder
+        int sortOrder,
+
+        Long productVariantId
 ) {}

@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.ProductVariantImage;
 
+import java.util.List;
+
 /*
  * @description: Repository interface for managing ProductVariantImage entities
  * @author: Tran Hien Vinh
@@ -18,4 +20,11 @@ import vn.edu.iuh.fit.entities.ProductVariantImage;
  */
 @Repository
 public interface ProductVariantImageRepository extends JpaRepository<ProductVariantImage, Long> {
+    /**
+     * Finds all ProductVariantImage entities associated with a specific ProductVariant ID.
+     *
+     * @param variantId The ID of the ProductVariant.
+     * @return A list of ProductVariantImage entities.
+     */
+    List<ProductVariantImage> findByProductVariantId(Long variantId);
 }
