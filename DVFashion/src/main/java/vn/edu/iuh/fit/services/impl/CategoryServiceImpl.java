@@ -27,6 +27,8 @@ import vn.edu.iuh.fit.services.TranslationService;
 import vn.edu.iuh.fit.utils.ImageUtils;
 import vn.edu.iuh.fit.utils.TextUtils;
 
+import java.util.List;
+
 /*
  * @description: Service implementation for managing categories
  * @author: Tran Hien Vinh
@@ -261,5 +263,14 @@ public class CategoryServiceImpl implements CategoryService {
 
         // Convert the Page<CategoryResponse> to PageResponse<CategoryResponse>
         return PageResponse.from(dtoPage);
+    }
+
+    @Override
+    public List<CategoryResponse> getAllCategories(Language language) {
+        List<Category> categories = categoryRepository.findAll();
+
+        return categories.stream()
+                .map(category -> toResponse(category, language))
+                .toList();
     }
 }

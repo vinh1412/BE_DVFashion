@@ -272,4 +272,40 @@ public class CategoryController {
         CategoryResponse categoryResponse = categoryService.getCategoryById(id, language);
         return ResponseEntity.ok(ApiResponse.success(categoryResponse, "Category retrieved successfully."));
     }
+
+    /**
+     * API for retrieving all categories without pagination
+     *
+     * HOW TO TEST WITH POSTMAN:
+     * 1. METHOD: GET
+     * 2. URL: http://localhost:8080/api/categories/all
+     *
+     * 3. QUERY PARAMETERS:
+     * - lang: Language for category data, either VI or EN (default is VI)
+     *
+     * 4. SUCCESS RESPONSE (200):
+     * {
+     *   "success": true,
+     *   "statusCode": 200,
+     *   "message": "Categories retrieved successfully.",
+     *   "data": [
+     *      {
+     *        "id": 1,
+     *        "name": "Quần jean nam",
+     *        "description": "Không có mô tả",
+     *        "imageUrl": "https://res.cloudinary.com/diilgkg1a/image/upload/v1755791598/no-image.png",
+     *        "active": true
+     *       }
+     *    ]
+     * }
+     *
+     * COMMON ERRORS:
+     * - 401: Unauthorized - Not logged in or token expired
+     * - 400: Bad Request - Action not allowed for current user role
+     */
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<?>> getAllCategoriesNoPaging(@RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        return ResponseEntity.ok(ApiResponse.success(categoryService.getAllCategories(language),
+                "Categories retrieved successfully."));
+    }
 }
