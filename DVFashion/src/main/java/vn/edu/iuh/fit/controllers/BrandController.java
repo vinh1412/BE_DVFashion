@@ -266,4 +266,42 @@ public class BrandController {
         PageResponse<BrandResponse> brands = brandService.getBrandsPaging(pageable, language);
         return ResponseEntity.ok(ApiResponse.success(brands, "Brands retrieved successfully."));
     }
+
+    /**
+     * API for retrieving all brands without pagination
+     *
+     * HOW TO TEST WITH POSTMAN:
+     *
+     * 1. METHOD: GET
+     * 2. URL: http://localhost:8080/api/v1/brands/all
+     *
+     * 3. QUERY PARAMETERS:
+     *    - lang: VI (default) or EN
+     *
+     * 4. SUCCESS RESPONSE (200):
+     *    {
+     *      "success": true,
+     *      "status": 200,
+     *      "message": "Brands retrieved successfully.",
+     *      "data": [
+     *        {
+     *          "id": 1,
+     *          "name": "Gucci",
+     *          "description": "Thương hiệu cao cấp",
+     *          "logo": "http://domain.com/images/brand/abc.jpg",
+     *          "active": true
+     *        },
+     *        ...
+     *      ]
+     *    }
+     *
+     * COMMON ERRORS:
+     * - 401: Unauthorized - Not logged in or token expired
+     * - 400: Bad Request - Action not allowed for current user role
+     */
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<?>> getAllBrandsNoPaging(
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        return ResponseEntity.ok(ApiResponse.success(brandService.getBrands(language), "Brands retrieved successfully."));
+    }
 }

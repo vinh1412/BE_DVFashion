@@ -27,6 +27,8 @@ import vn.edu.iuh.fit.services.TranslationService;
 import vn.edu.iuh.fit.utils.ImageUtils;
 import vn.edu.iuh.fit.utils.TextUtils;
 
+import java.util.List;
+
 /*
  * @description: Service implementation for managing brands
  * @author: Tran Hien Vinh
@@ -214,6 +216,15 @@ public class BrandServiceImpl implements BrandService {
 
         // Convert the Page<BrandResponse> to PageResponse<BrandResponse>
         return PageResponse.from(dtoPage);
+    }
+
+    @Override
+    public List<BrandResponse> getBrands(Language language) {
+        List<Brand> brands = brandRepository.findAll();
+
+        return brands.stream()
+                .map(brand -> toResponse(brand, language))
+                .toList();
     }
 
     // Helper method to update or create a translation
