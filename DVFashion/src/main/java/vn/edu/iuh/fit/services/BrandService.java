@@ -13,6 +13,8 @@ import vn.edu.iuh.fit.dtos.response.BrandResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.enums.Language;
 
+import java.util.List;
+
 /*
  * @description: Service interface for managing brands
  * @author: Tran Hien Vinh
@@ -64,4 +66,12 @@ public interface BrandService {
      * @return a PageResponse containing the paginated list of BrandResponse
      */
     PageResponse<BrandResponse> getBrandsPaging(Pageable pageable, Language language);
+
+    /**
+     * Retrieves a list of all brands.
+     *
+     * @param language the language for the brand data
+     * @return a list of BrandResponse
+     */
+    List<BrandResponse> getBrands(Language language);
 }

@@ -11,9 +11,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
+import vn.edu.iuh.fit.dtos.request.UserRequest;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.enums.Gender;
 import vn.edu.iuh.fit.enums.UserRole;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -24,7 +26,8 @@ import vn.edu.iuh.fit.services.RoleService;
 import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 
-import java.util.Optional;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Set;
 
 /*
@@ -135,5 +138,49 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
 
         userRepository.save(user);
+    }
+
+    @Override
+    public UserResponse getUserById(Long id) {
+        User user = findById(id);
+        return userMapper.toDto(user);
+    }
+
+    @Override
+    public UserResponse updateUser(Long id, UserRequest userRequest) {
+        User user = findById(id);
+
+        // Update user fields if they are provided in the request
+        if (userRequest.fullName() != null) {
+            user.setFullName(userRequest.fullName());
+        }
+
+        if (userRequest.email() != null) {
+            if (!userRequest.email().equals(user.getEmail()) && existsByEmail(userRequest.email())) {
+                throw new AlreadyExistsException("Email already exists");
+            }
+            user.setEmail(userRequest.email());
+        }
+
+        if (userRequest.phone() != null) {
+            String formattedPhone = FormatPhoneNumber.formatPhoneNumberTo84(userRequest.phone() );
+            if (!formattedPhone.equals(user.getPhone()) && existsByPhone(formattedPhone)) {
+                throw new AlreadyExistsException("Phone number already exists");
+            }
+            user.setPhone(formattedPhone);
+        }
+        if (userRequest.gender() != null) {
+            user.setGender(Gender.valueOf(userRequest.gender()));
+        }
+        if (userRequest.dob() != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+            user.setDob(LocalDate.parse(userRequest.dob(), formatter));
+        }
+
+        // Save the updated user entity
+        User updatedUser = userRepository.save(user);
+
+        // Convert the updated User entity to UserResponse DTO
+        return userMapper.toDto(updatedUser);
     }
 }
