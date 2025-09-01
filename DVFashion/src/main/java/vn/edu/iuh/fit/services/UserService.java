@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.services;
 
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
+import vn.edu.iuh.fit.dtos.request.UserRequest;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.User;
 
@@ -79,4 +80,21 @@ public interface UserService {
      * @param newPassword
      */
     void updatePassword(String phone, String newPassword);
+
+    /**
+     * Get a user by their ID.
+     *
+     * @param id the ID of the user
+     * @return the UserResponse representing the user with the specified ID
+     */
+    UserResponse getUserById(Long id);
+
+    /**
+     * Update user information for a user identified by their ID.
+     *
+     * @param id           the ID of the user to update
+     * @param userRequest the UserResponse containing updated user details
+     * @return the updated UserResponse
+     */
+    UserResponse updateUser(Long id, UserRequest userRequest);
 }
