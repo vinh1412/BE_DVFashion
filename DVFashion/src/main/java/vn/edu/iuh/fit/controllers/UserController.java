@@ -31,6 +31,7 @@ import vn.edu.iuh.fit.services.UserService;
 public class UserController {
     private final UserService userService;
 
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> getUserById(@PathVariable("id") Long id) {
         UserResponse user = userService.getUserById(id);
