@@ -38,4 +38,13 @@ public interface EmailService {
      * @param request the ResetPasswordRequest containing the new password and token
      */
     void resetPassword(ResetPasswordMailRequest request);
+
+    /**
+     * Sends a verification code email to the specified email address.
+     *
+     * @param email            the recipient's email address
+     * @param fullName         the recipient's full name
+     * @param verificationCode the verification code to be sent
+     */
+    void sendVerificationCode(String email, String fullName, String password, String verificationCode);
 }
