@@ -6,7 +6,10 @@
 
 package vn.edu.iuh.fit.services;
 
+import vn.edu.iuh.fit.dtos.request.CreateStaffRequest;
 import vn.edu.iuh.fit.dtos.request.SignUpRequest;
+import vn.edu.iuh.fit.dtos.request.UserRequest;
+import vn.edu.iuh.fit.dtos.request.VerifyStaffRequest;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.User;
 
@@ -79,4 +82,37 @@ public interface UserService {
      * @param newPassword
      */
     void updatePassword(String phone, String newPassword);
+
+    /**
+     * Get a user by their ID.
+     *
+     * @param id the ID of the user
+     * @return the UserResponse representing the user with the specified ID
+     */
+    UserResponse getUserById(Long id);
+
+    /**
+     * Update user information for a user identified by their ID.
+     *
+     * @param id           the ID of the user to update
+     * @param userRequest the UserResponse containing updated user details
+     * @return the updated UserResponse
+     */
+    UserResponse updateUser(Long id, UserRequest userRequest);
+
+    /**
+     * Create a new staff member.
+     *
+     * @param request the CreateStaffRequest containing staff details
+     * @return the UserResponse containing the created staff's details
+     */
+    UserResponse createStaff(CreateStaffRequest request);
+
+    /**
+     * Verify a staff member's account.
+     *
+     * @param request the VerifyStaffRequest containing verification details
+     * @return the UserResponse containing the verified staff's details
+     */
+    UserResponse verifyStaff(VerifyStaffRequest request);
 }

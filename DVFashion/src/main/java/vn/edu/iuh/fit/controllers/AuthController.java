@@ -47,34 +47,7 @@ public class AuthController {
     private final EmailService emailService;
 
     private final OtpAuthService otpAuthService;
-    /**
-     * API for customer sign up
-     *
-     * HOW TO TEST WITH POSTMAN:
-     *
-     * 1. METHOD: POST
-     * 2. URL: http://localhost:8080/api/v1/auth/sign-up
-     *
-     * 3. BODY (select raw - JSON):
-     *    {
-     *      "email": "user@example.com",
-     *      "password": "password123",
-     *      "fullName": "John Doe",
-     *      "phone": "0123456789"
-     *    }
-     *
-     * 4. SUCCESS RESPONSE (200):
-     *    {
-     *      "success": true,
-     *      "statusCode": 204,
-     *      "message": "Sign up successful.",
-     *    }
-     *
-     * COMMON ERRORS:
-     * - 400: Bad Request - Invalid input data or validation failed
-     * - 409: Conflict - Email already exists
-     * - 400: Bad Request - Invalid email format
-     */
+
     @PostMapping("/sign-up")
     public ResponseEntity<ApiResponse<?>> signUpForCustomer(@Valid @RequestBody SignUpRequest signUpRequest){
         boolean isSuccess = authService.signUpForCustomer(signUpRequest);
@@ -85,40 +58,6 @@ public class AuthController {
         }
     }
 
-
-    /**
-     * API for user sign in
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: POST
-     * 2. URL: http://localhost:8080/api/v1/auth/sign-in
-     *
-     * 3. BODY (select raw - JSON):
-     *   {
-     *     "username" : "test@gmail.com",
-     *     "password" : "12345678"
-     *   }
-     *
-     *  4. SUCCESS RESPONSE (200):
-     *  {
-     *   "success": true,
-     *   "statusCode": 200,
-     *   "message": "Sign in successful.",
-     *   "data": {
-     *       "id": 1,
-     *       "email": "test@gmail.com",
-     *       "phone": "+84123456789",
-     *        "roles": [
-     *             "ROLE_CUSTOMER"
-     *         ]
-     *     }
-     *  }
-     *
-     *  COMMON ERRORS:
-     *  - 400: Bad Request - Invalid input data or validation failed
-     *  - 401: Unauthorized - Invalid username or password
-     *  - 400: Bad Request - Account is disabled. Please contact support.
-     */
     @PostMapping("/sign-in")
     public ResponseEntity<ApiResponse<?>> signIn(@Valid @RequestBody SignInRequest signInRequest, HttpServletResponse response) {
         try {
@@ -129,33 +68,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * API to refresh JWT token
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: POST
-     * 2. URL: http://localhost:8080/api/v1/auth/refresh-token
-     *
-     * 3. RESPONSE (200):
-     * {
-     *     "success": true,
-     *     "statusCode": 200,
-     *     "message": "Token refreshed successfully.",
-     *     "data": {
-     *         "id": 1,
-     *         "email": "admin@gmail.com",
-     *         "phone": "+84123456789",
-     *         "roles": [
-     *             "ROLE_CUSTOMER",
-     *             "ROLE_STAFF",
-     *             "ROLE_ADMIN"
-     *         ]
-     *     }
-     * }
-     *
-     * COMMON ERRORS:
-     * - 400: Bad Request - Cookies are missing or invalid
-     */
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<?>> refreshToken(HttpServletRequest request,
                                                        HttpServletResponse response) {
@@ -168,24 +80,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * API for user logout
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: POST
-     * 2. URL: http://localhost:8080/api/v1/auth/logout
-     *
-     * 3. SUCCESS RESPONSE (200):
-     *    {
-     *      "success": true,
-     *      "statusCode": 204,
-     *      "message": "Logout successful."
-     *    }
-     *
-     * COMMON ERRORS:
-     * - 400: Bad Request - Access Denied
-     * - 400: Bad Request - Refresh token is missing
-     */
     @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request,
@@ -195,181 +89,36 @@ public class AuthController {
 
     }
 
-
-    /**
-     * API to get current logged-in user
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: GET
-     * 2. URL: http://localhost:8080/api/v1/auth/me
-     *
-     * 3. SUCCESS RESPONSE (200):
-     * {
-     *     "success": true,
-     *     "statusCode": 200,
-     *     "message": "User retrieved successfully.",
-     *     "data": {
-     *         "id": 1,
-     *         "email": "cus123@gmail.com",
-     *         "fullName": "cus123",
-     *         "phone": "+84123456789",
-     *         "dob": "2003-01-01",
-     *         "gender": "MALE",
-     *         "roles": [
-     *             "ROLE_CUSTOMER"
-     *         ]
-     *     }
-     * }
-     *
-     * COMMON ERRORS:
-     * - 401: Unauthorized - User is not authenticated
-     */
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<?>> getCurrentUser(){
         UserResponse user = userService.getCurrentUser();
         return ResponseEntity.ok(ApiResponse.success(user, "User retrieved successfully."));
     }
 
-    /**
-     * API for forgot password
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: POST
-     * 2. URL: http://localhost:8080/api/v1/auth/forgot-password
-     *
-     * 3. BODY (select raw - JSON):
-     *   {
-     *      "email" : "test@gmail.com"
-     *   }
-     *
-     * 4. SUCCESS RESPONSE (200):
-     *   {
-         *   "success": true,
-         *   "statusCode": 204,
-         *   "message": "Password reset email has been sent!"
-     *   }
-     *
-     *  COMMON ERRORS:
-     *  - 400: Bad Request - Invalid input data or validation failed
-     *  - 404: Not Found - Email does not exist
-     */
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         emailService.sendPasswordResetEmail(request);
         return ResponseEntity.ok(ApiResponse.noContent("Password reset email has been sent!"));
     }
 
-    /**
-     * API to validate password reset token
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: GET
-     * 2. URL: http://localhost:8080/api/v1/auth/password/{token}
-     *    (Replace {token} with the actual token received in the email)
-     *
-     * 3. SUCCESS RESPONSE (200):
-     *   {
-     *     "success": true,
-     *     "statusCode": 200,
-     *     "message": "Token is valid.",
-     *     "data": 1
-     *   }
-     *
-     * COMMON ERRORS:
-     * - 400: Bad Request - Invalid or expired token
-     * - 404: Not Found - Token does not exist
-     */
     @GetMapping("/password/{token}")
     public ResponseEntity<ApiResponse<?>> validateToken(@PathVariable("token") String token) {
         User user = emailService.validatePasswordResetToken(token);
         return ResponseEntity.ok(ApiResponse.success(user.getId(), "Token is valid."));
     }
 
-    /**
-     * API to reset password
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: POST
-     * 2. URL: http://localhost:8080/api/v1/auth/reset-password
-     *
-     * 3. BODY (select raw - JSON):
-     *   {
-     *      "token": "your-reset-token",
-     *      "newPassword": "NewPassword123"
-     *   }
-     *
-     * 4. SUCCESS RESPONSE (200):
-     *   {
-     *     "success": true,
-     *     "statusCode": 204,
-     *     "message": "Password has been reset successfully."
-     *   }
-     *
-     * COMMON ERRORS:
-     * - 400: Bad Request - Invalid input data or validation failed
-     * - 400: Bad Request - Token has expired or already used
-     * - 404: Not Found - Token does not exist
-     */
     @PostMapping("/reset-password-mail")
     public ResponseEntity<ApiResponse<?>> resetPasswordMail(@Valid @RequestBody ResetPasswordMailRequest request) {
         emailService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.noContent("Password has been reset successfully."));
     }
 
-    /**
-     * API to verify OTP and phone number
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: POST
-     * 2. URL: http://localhost:8080/api/v1/auth/verify-otp
-     *
-     * 3. BODY (select raw - JSON):
-     *   {
-     *      "idToken": "your-firebase-id-token"
-     *   }
-     *
-     * 4. SUCCESS RESPONSE (200):
-     *   {
-     *     "success": true,
-     *     "statusCode": 200,
-     *     "message": "Phone number +84123456789 verification successful!"
-     *   }
-     *
-     * COMMON ERRORS:
-     * - 400: Bad Request - Invalid input data or validation failed
-     * - 400: Bad Request - Phone number does not exist
-     * - 400: Bad Request - Error verifying ID token
-     */
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<?>> verifyOTP(@Valid @RequestBody VerifyOtpRequest request) {
         String phoneNumber = otpAuthService.verifyOtp(request);
         return ResponseEntity.ok(ApiResponse.success("Phone number "+phoneNumber+" verification successful!"));
     }
 
-    /**
-     * API to reset password using OTP verified phone number
-     *
-     * HOW TO TEST WITH POSTMAN:
-     * 1. METHOD: POST
-     * 2. URL: http://localhost:8080/api/v1/auth/reset-password-otp
-     *
-     * 3. BODY (select raw - JSON):
-     *   {
-     *      "phone": "0123456789",
-     *      "newPassword": "NewPassword123"
-     *   }
-     *
-     * 4. SUCCESS RESPONSE (200):
-     *   {
-     *     "success": true,
-     *     "statusCode": 204,
-     *     "message": "Password has been reset successfully."
-     *   }
-     *
-     * COMMON ERRORS:
-     * - 400: Bad Request - Invalid input data or validation failed
-     * - 400: Bad Request - Phone number does not exist
-     */
     @PostMapping("/reset-password-otp")
     public ResponseEntity<ApiResponse<?>> resetPasswordOTP(@Valid @RequestBody ResetPasswordOtpRequest request) {
         otpAuthService.resetPassword(request);

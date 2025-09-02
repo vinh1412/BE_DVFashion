@@ -178,4 +178,81 @@ public class EmailServiceImpl implements EmailService {
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
     }
+
+    @Override
+    public void sendVerificationCode(String email, String fullName, String password, String verificationCode) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            String htmlContent = """
+                                    <html>
+                                        <head>
+                                            <meta charset="UTF-8">
+                                        </head>
+                                        <body style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; font-size: medium;">
+                                            <div class="email-container">
+                                                <div class="header" style="margin-bottom: 20px;">
+                                                    <p style="font-size: medium; margin: 0; color: #212529;">Xin chào <strong>%s</strong>,</p>
+                                                </div>
+                    
+                                                <div class="content" style="margin-bottom: 20px;">
+                                                    <p style="font-size: medium; margin: 0; color: #212529;">
+                                                        Cảm ơn bạn đã đăng ký tài khoản tại <strong>DVFashion</strong>.<br>
+                                                        Vui lòng sử dụng tài khoản và mật khẩu bên dưới để đăng nhập vào hệ thống.
+                                                    </p>
+                                                </div>
+                    
+                                                <div>
+                                                <span style="font-size: medium; margin: 0; color: #212529;">Username: </span>
+                                                <div class="code-container" style="margin: 25px 0; padding: 15px; background-color: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; text-align: center;">
+                                                    <span style="display: inline-block; font-size: xx-large; font-weight: bold; letter-spacing: 5px; color: #007bff;">%s</span>
+                                                </div>
+                                                </div>
+                    
+                                                 <div>
+                                                <span style="font-size: medium; margin: 0; color: #212529;">Password: </span>
+                                                <div class="code-container" style="margin: 25px 0; padding: 15px; background-color: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; text-align: center;">
+                                                    <span style="display: inline-block; font-size: xx-large; font-weight: bold; letter-spacing: 5px; color: #007bff;">%s</span>
+                                                </div>
+                                                </div>
+                    
+                                                <div class="content" style="margin-bottom: 20px;">
+                                                    <p style="font-size: medium; margin: 0; color: #212529;">
+                                                        Sau khi đăng nhập tài khoản vui lòng bạn nhập mã xác thực bên dưới để được cấp phép sử dụng tài khoản
+                                                    </p>
+                                                </div>
+                    
+                                                <div class="code-container" style="margin: 25px 0; padding: 15px; background-color: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; text-align: center;">
+                                                    <span style="display: inline-block; font-size: xx-large; font-weight: bold; letter-spacing: 5px; color: #007bff;">%s</span>
+                                                </div>
+                    
+                                                <p style="font-size: medium; color: #dc3545; font-weight: bold; margin: 15px 0;">⚠️ Mã xác nhận chỉ có hiệu lực trong 24h.</p>
+                    
+                                                <div class="content" style="margin-bottom: 20px;">
+                                                    <p style="font-size: medium; margin: 0; color: #212529;">Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.</p>
+                                                </div>
+                    
+                                                <div class="support-info" style="background-color: #e7f3ff; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+                                                    <p style="font-size: medium; margin: 0 0 10px 0; color: #212529;">
+                                                        <strong>🤙🏻 Cần hỗ trợ?</strong><br>
+                                                        Hotline: <strong>123456</strong><br>
+                                                        Email: <a href="mailto:test@gmail.com" style="color: #007bff; text-decoration: underline;">test@gmail.com</a>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </body>
+                                    </html>
+                    """.formatted(fullName, email, password, verificationCode);
+
+            helper.setTo(email);
+            helper.setSubject("Mã xác nhận đăng ký tài khoản");
+            helper.setText(htmlContent, true);
+
+            // Send the email
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

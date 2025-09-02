@@ -13,6 +13,8 @@ import vn.edu.iuh.fit.dtos.response.CategoryResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.enums.Language;
 
+import java.util.List;
+
 
 /*
  * @description: Service interface for managing categories
@@ -65,4 +67,12 @@ public interface CategoryService {
      * @return a PageResponse containing the paginated list of CategoryResponse
      */
     PageResponse<CategoryResponse> getCategoriesPaging(Pageable pageable, Language language);
+
+    /**
+     * Retrieves all categories.
+     *
+     * @param language the language for the category data
+     * @return a list of all CategoryResponse
+     */
+    List<CategoryResponse> getAllCategories(Language language);
 }
