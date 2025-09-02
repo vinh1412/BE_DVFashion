@@ -19,6 +19,8 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.services.UserService;
 
+import java.util.List;
+
 /*
  * @description: REST controller for managing user-related operations
  * @author: Tran Hien Vinh
@@ -49,17 +51,23 @@ public class UserController {
 
     @PostMapping
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
-    public ResponseEntity<ApiResponse<UserResponse>> createStaff(
+    public ResponseEntity<ApiResponse<?>> createStaff(
             @Valid @RequestBody CreateStaffRequest request) {
         UserResponse staff = userService.createStaff(request);
         return ResponseEntity.ok(ApiResponse.success(staff, "Employee account created successfully. Verification email sent."));
     }
 
     @PostMapping("/verify-staff")
-    public ResponseEntity<ApiResponse<UserResponse>> verifyStaff(
+    public ResponseEntity<ApiResponse<?>> verifyStaff(
             @Valid @RequestBody VerifyStaffRequest request) {
         UserResponse staff = userService.verifyStaff(request);
         return ResponseEntity.ok(ApiResponse.success(staff, "Employee account verified successfully"));
     }
 
+    @GetMapping
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    public ResponseEntity<ApiResponse<?>> getAllUsers() {
+        List<UserResponse> users = userService.getAllUsers();
+        return ResponseEntity.ok(ApiResponse.success(users, "Users retrieved successfully"));
+    }
 }
