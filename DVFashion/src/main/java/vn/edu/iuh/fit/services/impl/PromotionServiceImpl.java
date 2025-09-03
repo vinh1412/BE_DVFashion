@@ -7,7 +7,6 @@
 package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.PromotionRequest;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
@@ -17,6 +16,7 @@ import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.PromotionType;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.mappers.PromotionMapper;
 import vn.edu.iuh.fit.repositories.PromotionRepository;
 import vn.edu.iuh.fit.repositories.PromotionTranslationRepository;
 import vn.edu.iuh.fit.services.PromotionService;
@@ -26,6 +26,7 @@ import vn.edu.iuh.fit.utils.TextUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /*
  * @description: Implementation of PromotionService interface for managing promotions.
@@ -41,6 +42,8 @@ public class PromotionServiceImpl implements PromotionService {
     private final PromotionTranslationRepository translationRepository;
 
     private final TranslationService translationService;
+
+    private final PromotionMapper promotionMapper;
 
     @Override
     public PromotionResponse createPromotion(PromotionRequest promotionRequest, Language inputLang) {
@@ -115,7 +118,7 @@ public class PromotionServiceImpl implements PromotionService {
                 .build();
         translationRepository.save(translatedTranslation);
 
-        return toResponse(promotion, inputLang);
+        return promotionMapper.toResponse(promotion, inputLang);
     }
 
     @Override
@@ -123,29 +126,109 @@ public class PromotionServiceImpl implements PromotionService {
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Promotion not found with id: " + id));
 
-        return toResponse(promotion, language);
+        return promotionMapper.toResponse(promotion, language);
     }
 
-    private PromotionResponse toResponse(Promotion promotion, Language lang) {
-        PromotionTranslation translation = translationRepository
-                .findByPromotionIdAndLanguage(promotion.getId(), lang)
-                .orElseGet(() -> translationRepository
-                        .findByPromotionIdAndLanguage(promotion.getId(), Language.VI)
-                        .orElseThrow(() -> new NotFoundException("No translation found"))
-                );
+    @Override
+    public PromotionResponse updatePromotion(PromotionRequest promotionRequest, Long id, Language inputLang) {
+        Promotion promotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Promotion not found with id: " + id));
 
-        return new PromotionResponse(
-                promotion.getId(),
-                TextUtils.removeTrailingDot(translation.getName()),
-                translation.getDescription(),
-                promotion.getType(),
-                promotion.getValue(),
-                promotion.getMinOrderAmount(),
-                promotion.getMaxUsages(),
-                promotion.getCurrentUsages(),
-                promotion.getStartDate(),
-                promotion.getEndDate(),
-                promotion.isActive()
-        );
+        // Update fields if provided
+        if (promotionRequest.type() != null && !promotionRequest.type().isBlank()) {
+            promotion.setType(PromotionType.fromString(promotionRequest.type()));
+        }
+
+        if (promotionRequest.value() != null) {
+            promotion.setValue(promotionRequest.value());
+        }
+
+        if (promotionRequest.minOrderAmount() != null) {
+            promotion.setMinOrderAmount(promotionRequest.minOrderAmount());
+        }
+
+        if (promotionRequest.maxUsages() != null) {
+            promotion.setMaxUsages(promotionRequest.maxUsages());
+        }
+
+        // Parse and validate dates if provided
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        if (promotionRequest.startDate() != null) {
+            LocalDate startDate = LocalDate.parse(promotionRequest.startDate(), formatter);
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            promotion.setStartDate(startDateTime);
+        }
+
+        if (promotionRequest.endDate() != null) {
+            LocalDate endDate = LocalDate.parse(promotionRequest.endDate(), formatter);
+            LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+            promotion.setEndDate(endDateTime);
+        }
+
+        if (promotion.getStartDate() != null && promotion.getEndDate() != null) {
+            if (promotion.getEndDate().isBefore(promotion.getStartDate())) {
+                throw new IllegalArgumentException("End date must be after start date.");
+            }
+        }
+
+
+        if (promotionRequest.active() != null) {
+            promotion.setActive(promotionRequest.active());
+        }
+
+        // Update or create translation for the input language
+        updateOrCreateTranslation(promotion, inputLang, promotionRequest.name(), promotionRequest.description());
+
+        // Determine the other language
+        Language otherLang = (inputLang == Language.EN) ? Language.VI : Language.EN;
+
+        String otherName = promotionRequest.name() != null
+                ? translationService.translate(promotionRequest.name(), otherLang.name())
+                : null;
+
+        String otherDesc = promotionRequest.description() != null
+                ? translationService.translate(promotionRequest.description(), otherLang.name())
+                : null;
+
+        // Update translations for the other language
+        updateOrCreateTranslation(promotion, otherLang, otherName, otherDesc);
+
+        // Save the updated promotion
+        promotionRepository.save(promotion);
+
+        return promotionMapper.toResponse(promotion, inputLang);
+    }
+
+    @Override
+    public List<PromotionResponse> getAllPromotions(Language language) {
+        List<Promotion> promotions = promotionRepository.findAll();
+
+        return promotions.stream()
+                .map(promotion -> promotionMapper.toResponse(promotion, language))
+                .toList();
+    }
+
+    // Helper method to update or create a translation
+    private void updateOrCreateTranslation(Promotion promotion, Language lang, String name, String description) {
+        // Find existing translation or create a new one
+        PromotionTranslation translation = promotion.getTranslations().stream()
+                .filter(t -> t.getLanguage() == lang)
+                .findFirst()
+                .orElseGet(() -> {
+                    PromotionTranslation t = PromotionTranslation.builder()
+                            .language(lang)
+                            .promotion(promotion)
+                            .build();
+                    promotion.getTranslations().add(t);
+                    return t;
+                });
+
+        // Update fields if new values are provided
+        if (name != null && !name.isBlank()) {
+            translation.setName(name);
+        }
+        if (description != null && !description.isBlank()) {
+            translation.setDescription(description);
+        }
     }
 }
