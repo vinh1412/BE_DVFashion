@@ -33,6 +33,7 @@ import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Set;
 
 /*
@@ -274,6 +275,15 @@ public class UserServiceImpl implements UserService {
 
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
+    }
+
+    @Override
+    public List<UserResponse> getAllUsers() {
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(userMapper::toDto)
+                .toList();
     }
 
     // Helper method to generate a 6-digit verification code

@@ -7,6 +7,8 @@
 package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,6 +16,7 @@ import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.request.ProductVariantRequest;
 import vn.edu.iuh.fit.dtos.response.BrandResponse;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
+import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
@@ -173,6 +176,25 @@ public class ProductServiceImpl implements ProductService {
 
         // Map to ProductResponse
         return toResponse(product, language);
+    }
+
+    @Override
+    public List<ProductResponse> getAllProducts(Language language) {
+        List<Product> products = productRepository.findAll();
+
+        // Map each product to ProductResponse
+        return products.stream()
+                .map(product -> toResponse(product, language))
+                .toList();
+    }
+
+    @Override
+    public PageResponse<ProductResponse> getProductsPaging(Pageable pageable, Language language) {
+        Page<Product> productPage = productRepository.findAll(pageable);
+
+        Page<ProductResponse> productResponses = productPage.map(product -> toResponse(product, language));
+
+        return PageResponse.from(productResponses);
     }
 
     private ProductResponse toResponse(Product product, Language inputLang) {

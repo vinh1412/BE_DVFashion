@@ -6,8 +6,10 @@
 
 package vn.edu.iuh.fit.services;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.ProductRequest;
+import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
 import vn.edu.iuh.fit.enums.Language;
 
@@ -48,4 +50,21 @@ public interface ProductService {
      * @return The product response containing the product details.
      */
     ProductResponse getProductById(Long productId, Language language);
+
+    /**
+     * Retrieves all products in the specified language.
+     *
+     * @param language The language for the product details.
+     * @return List of product responses containing all products.
+     */
+    List<ProductResponse> getAllProducts(Language language);
+
+    /**
+     * Retrieves a paginated list of products in the specified language.
+     *
+     * @param pageable Pagination information.
+     * @param language The language for the product details.
+     * @return A paginated response containing product responses.
+     */
+    PageResponse<ProductResponse> getProductsPaging(Pageable pageable, Language language);
 }
