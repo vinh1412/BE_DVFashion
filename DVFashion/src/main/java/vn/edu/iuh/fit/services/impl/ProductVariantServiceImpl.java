@@ -170,4 +170,16 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         // Map to Response DTO
         return productVariantMapper.toResponse(productVariant);
     }
+
+    @Override
+    public List<ProductVariantResponse> getProductVariantsByProductId(Long productId) {
+        // Check if Product exists
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new NotFoundException("Product not found with id: " + productId));
+
+        // Map each ProductVariant to Response DTO
+        return product.getVariants().stream()
+                .map(productVariantMapper::toResponse)
+                .toList();
+    }
 }

@@ -56,4 +56,10 @@ public class ProductVariantController {
         ProductVariantResponse response = productVariantService.getProductVariantById(variantId);
         return ResponseEntity.ok(ApiResponse.success(response, "Product variant retrieved successfully"));
     }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<?>> getAllProductVariantsByProductId(@PathVariable("productId") Long productId) {
+        List<ProductVariantResponse> response = productVariantService.getProductVariantsByProductId(productId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Product variants retrieved successfully"));
+    }
 }

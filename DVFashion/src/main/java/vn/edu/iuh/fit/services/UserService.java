@@ -13,6 +13,8 @@ import vn.edu.iuh.fit.dtos.request.VerifyStaffRequest;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.User;
 
+import java.util.List;
+
 /*
  * @description: Service interface for managing user operations
  * @author: Tran Hien Vinh
@@ -115,4 +117,11 @@ public interface UserService {
      * @return the UserResponse containing the verified staff's details
      */
     UserResponse verifyStaff(VerifyStaffRequest request);
+
+    /**
+     * Retrieve all users.
+     *
+     * @return a list of UserResponse representing all users
+     */
+    List<UserResponse> getAllUsers();
 }
