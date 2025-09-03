@@ -47,7 +47,6 @@ public class BrandController {
         return ResponseEntity.ok(ApiResponse.created(brandResponse, "Brand created successfully."));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> getBrandById(
             @PathVariable("id") Long id,
@@ -73,7 +72,6 @@ public class BrandController {
         return ResponseEntity.ok(ApiResponse.noContent("Brand deactivated successfully."));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getAllBrands(
             @PageableDefault(page = 0, size = 12, sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
