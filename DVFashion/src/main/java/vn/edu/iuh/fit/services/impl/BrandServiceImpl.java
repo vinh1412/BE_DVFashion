@@ -19,6 +19,7 @@ import vn.edu.iuh.fit.entities.BrandTranslation;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.mappers.BrandMapper;
 import vn.edu.iuh.fit.repositories.BrandRepository;
 import vn.edu.iuh.fit.repositories.BrandTranslationRepository;
 import vn.edu.iuh.fit.services.BrandService;
@@ -45,6 +46,8 @@ public class BrandServiceImpl implements BrandService {
     private final TranslationService translationService;
 
     private final BrandTranslationRepository brandTranslationRepository;
+
+    private final BrandMapper brandMapper;
 
     @Override
     public BrandResponse createBrand(BrandRequest request, MultipartFile logoFile, Language inputLang) {
@@ -99,7 +102,7 @@ public class BrandServiceImpl implements BrandService {
         brandTranslationRepository.save(brandTranslationTarget);
 
         // Convert to response DTO and return
-        return toResponse(brand, inputLang);
+        return brandMapper.toResponse(brand, inputLang);
     }
 
     @Override
@@ -109,7 +112,7 @@ public class BrandServiceImpl implements BrandService {
                 .orElseThrow(() -> new NotFoundException("Brand with id " + id + " not found"));
 
         // Convert to response DTO and return
-        return toResponse(brand, language);
+        return brandMapper.toResponse(brand, language);
     }
 
     @Override
@@ -149,11 +152,11 @@ public class BrandServiceImpl implements BrandService {
         // Determine the other language
         Language otherLang = (language == Language.EN) ? Language.VI : Language.EN;
 
-        String otherName = brandRequest.name() != null
+        String otherName = brandRequest.name() != null && !brandRequest.name().isBlank()
                 ? translationService.translate(brandRequest.name(), otherLang.name())
                 : null; // null means no update, the updateOrCreateTranslation function will remain the same
 
-        String otherDesc = brandRequest.description() != null
+        String otherDesc = brandRequest.description() != null && !brandRequest.description().isBlank()
                 ? translationService.translate(brandRequest.description(), otherLang.name())
                 : null; // null means no update, the updateOrCreateTranslation function will remain the same
 
@@ -166,7 +169,7 @@ public class BrandServiceImpl implements BrandService {
         brandRepository.save(brand);
 
         // Convert to response DTO and return
-        return toResponse(brand, language);
+        return brandMapper.toResponse(brand, language);
     }
 
     @Override
@@ -223,7 +226,7 @@ public class BrandServiceImpl implements BrandService {
         List<Brand> brands = brandRepository.findAll();
 
         return brands.stream()
-                .map(brand -> toResponse(brand, language))
+                .map(brand -> brandMapper.toResponse(brand, language))
                 .toList();
     }
 
@@ -243,31 +246,11 @@ public class BrandServiceImpl implements BrandService {
                 });
 
         // Update fields if new values are provided
-        if (name != null) {
+        if (name != null && !name.isBlank()) {
             translation.setName(name);
         }
-        if (description != null) {
+        if (description != null && !description.isBlank()) {
             translation.setDescription(description);
         }
-    }
-
-    private BrandResponse toResponse(Brand brand, Language lang) {
-        BrandTranslation translation = brandTranslationRepository
-                // Find translation by requested language
-                .findByBrandIdAndLanguage(brand.getId(), lang)
-                // If not found, fallback to Vietnamese
-                .orElseGet(() -> brandTranslationRepository
-                        .findByBrandIdAndLanguage(brand.getId(), Language.VI)
-                        .orElseThrow(() -> new NotFoundException("No translation found"))
-                );
-
-        // Map Brand + Translation to DTO
-        return new BrandResponse(
-                brand.getId(),
-                TextUtils.removeTrailingDot(translation.getName()),
-                translation.getDescription(),
-                brand.getLogo(),
-                brand.isActive()
-        );
     }
 }

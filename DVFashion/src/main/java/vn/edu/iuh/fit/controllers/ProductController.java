@@ -40,6 +40,7 @@ import java.util.List;
 public class ProductController {
     private final ProductService productService;
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ProductResponse>> createProduct(
             @Validated(ValidationGroups.Create.class)
@@ -51,6 +52,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.created(response, "Product created successfully"));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PutMapping(value = "/{productId}")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             @PathVariable("productId") Long productId,

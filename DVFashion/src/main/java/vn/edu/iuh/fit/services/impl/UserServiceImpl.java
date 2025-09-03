@@ -159,29 +159,29 @@ public class UserServiceImpl implements UserService {
         User user = findById(id);
 
         // Update user fields if they are provided in the request
-        if (userRequest.fullName() != null) {
+        if (userRequest.fullName() != null && !userRequest.fullName().isBlank()) {
             user.setFullName(userRequest.fullName());
         }
 
-        if (userRequest.email() != null) {
+        if (userRequest.email() != null && !userRequest.email().isBlank()) {
             if (!userRequest.email().equals(user.getEmail()) && existsByEmail(userRequest.email())) {
                 throw new AlreadyExistsException("Email already exists");
             }
             user.setEmail(userRequest.email());
         }
 
-        if (userRequest.phone() != null) {
+        if (userRequest.phone() != null && !userRequest.phone().isBlank()) {
             String formattedPhone = FormatPhoneNumber.formatPhoneNumberTo84(userRequest.phone() );
             if (!formattedPhone.equals(user.getPhone()) && existsByPhone(formattedPhone)) {
                 throw new AlreadyExistsException("Phone number already exists");
             }
             user.setPhone(formattedPhone);
         }
-        if (userRequest.gender() != null) {
+        if (userRequest.gender() != null && !userRequest.gender().isBlank()) {
             user.setGender(Gender.valueOf(userRequest.gender()));
         }
-        if (userRequest.dob() != null) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        if (userRequest.dob() != null && !userRequest.dob().isBlank()) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             user.setDob(LocalDate.parse(userRequest.dob(), formatter));
         }
 

@@ -19,6 +19,7 @@ import vn.edu.iuh.fit.entities.CategoryTranslation;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.mappers.CategoryMapper;
 import vn.edu.iuh.fit.repositories.CategoryRepository;
 import vn.edu.iuh.fit.repositories.CategoryTranslationRepository;
 import vn.edu.iuh.fit.services.CategoryService;
@@ -45,6 +46,8 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryTranslationRepository translationRepository;
 
     private final TranslationService translationService;
+
+    private final CategoryMapper categoryMapper;
 
     @Override
     public CategoryResponse createCategory(CategoryRequest categoryRequest, MultipartFile imageFile, Language inputLang) {
@@ -101,27 +104,7 @@ public class CategoryServiceImpl implements CategoryService {
         translationRepository.save(translatedTranslation );
 
         // Map the saved entity back to the response DTO
-        return toResponse(category, inputLang);
-    }
-
-    private CategoryResponse toResponse(Category category, Language lang) {
-        CategoryTranslation translation = translationRepository
-                // Find translation by requested language
-                .findByCategoryIdAndLanguage(category.getId(), lang)
-                // If not found, fallback to Vietnamese
-                .orElseGet(() -> translationRepository
-                        .findByCategoryIdAndLanguage(category.getId(), Language.VI)
-                        .orElseThrow(() -> new NotFoundException("No translation found"))
-                );
-
-        // Map Category + Translation to DTO
-        return new CategoryResponse(
-                category.getId(),
-                TextUtils.removeTrailingDot(translation.getName()),
-                translation.getDescription(),
-                category.getImage(),
-                category.isActive()
-        );
+        return categoryMapper.toResponse(category, inputLang);
     }
 
     @Override
@@ -131,7 +114,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new NotFoundException("Category not found with id: " + id));
 
         // Map the entity to the response DTO
-        return toResponse(category, language);
+        return categoryMapper.toResponse(category, language);
     }
 
     @Override
@@ -171,11 +154,11 @@ public class CategoryServiceImpl implements CategoryService {
         // Determine the other language
         Language otherLang = (language == Language.EN) ? Language.VI : Language.EN;
 
-        String otherName = categoryRequest.name() != null
+        String otherName = categoryRequest.name() != null && !categoryRequest.name().isBlank()
                 ? translationService.translate(categoryRequest.name(), otherLang.name())
                 : null; // null means no update, the updateOrCreateTranslation function will remain the same
 
-        String otherDesc = categoryRequest.description() != null
+        String otherDesc = categoryRequest.description() != null && !categoryRequest.description().isBlank()
                 ? translationService.translate(categoryRequest.description(), otherLang.name())
                 : null; // null means no update, the updateOrCreateTranslation function will remain the same
 
@@ -188,7 +171,7 @@ public class CategoryServiceImpl implements CategoryService {
         categoryRepository.save(category);
 
         // Map the updated entity back to the response DTO
-        return toResponse(category, language);
+        return categoryMapper.toResponse(category, language);
     }
 
 
@@ -208,10 +191,10 @@ public class CategoryServiceImpl implements CategoryService {
                 });
 
         // Update fields if new values are provided
-        if (name != null) {
+        if (name != null && !name.isBlank()) {
             translation.setName(name);
         }
-        if (description != null) {
+        if (description != null && !description.isBlank()) {
             translation.setDescription(description);
         }
     }
@@ -270,7 +253,7 @@ public class CategoryServiceImpl implements CategoryService {
         List<Category> categories = categoryRepository.findAll();
 
         return categories.stream()
-                .map(category -> toResponse(category, language))
+                .map(category -> categoryMapper.toResponse(category, language))
                 .toList();
     }
 }

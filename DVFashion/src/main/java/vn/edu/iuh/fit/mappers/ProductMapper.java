@@ -22,7 +22,7 @@ import vn.edu.iuh.fit.entities.*;
 public class ProductMapper {
     private final ProductVariantMapper productVariantMapper;
 
-    public ProductResponse toResponse(Product product, ProductTranslation translation, String categoryName, String brandName) {
+    public ProductResponse toResponse(Product product, ProductTranslation translation, String categoryName, String brandName, String promotionName) {
 
         return new ProductResponse(
                 product.getId(),
@@ -35,7 +35,7 @@ public class ProductMapper {
                 product.getStatus().name(),
                 categoryName,
                 brandName,
-                product.getPromotion() != null ? product.getPromotion().getName() : null,
+                product.getPromotion() != null ? promotionName : null,
                 product.getVariants().stream()
                         .map(productVariantMapper::toResponse)
                         .toList()

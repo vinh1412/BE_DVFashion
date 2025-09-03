@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -43,10 +44,8 @@ public class WebSecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
 
-//    @Autowired
     private final AuthEntryPointJwt unauthorizedHandler;
 
-//    @Autowired
     private final PasswordEncoder passwordEncoder;
 
     private final CustomOAuth2UserService customOAuth2UserService;
@@ -70,11 +69,16 @@ public class WebSecurityConfig {
                 path("/auth/sign-up"),
                 path("/auth/sign-in"),
                 path("/auth/refresh-token"),
+                path("/auth/forgot-password"),
+                path("/auth/password/*"),
+                path("/auth/reset-password-mail"),
+                path("/auth/verify-otp"),
+                path("/auth/reset-password-otp"),
                 path("/auth/**"),
                 path("/oauth2/**"),
                 "/oauth2/**",
                 "/login/oauth2/**",
-                "/oauth2/authorization/**"
+                "/oauth2/authorization/**",
         };
     }
 
@@ -104,6 +108,14 @@ public class WebSecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(HttpMethod.GET, path("/brands/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/categories/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/products/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/products/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/products/*/variants/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/product-variants/*/images/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/product-variants/*/sizes/**")).permitAll()
+
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated()
                 )

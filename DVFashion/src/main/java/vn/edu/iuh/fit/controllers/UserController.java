@@ -33,13 +33,14 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
 
-
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> getUserById(@PathVariable("id") Long id) {
         UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success(user, "User retrieved successfully"));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> updateUser(
             @PathVariable("id") Long id,
@@ -57,6 +58,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(staff, "Employee account created successfully. Verification email sent."));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_STAFF)
     @PostMapping("/verify-staff")
     public ResponseEntity<ApiResponse<?>> verifyStaff(
             @Valid @RequestBody VerifyStaffRequest request) {
