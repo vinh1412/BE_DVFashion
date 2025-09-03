@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
+import vn.edu.iuh.fit.dtos.request.ChangePasswordRequest;
 import vn.edu.iuh.fit.dtos.request.CreateStaffRequest;
 import vn.edu.iuh.fit.dtos.request.UserRequest;
 import vn.edu.iuh.fit.dtos.request.VerifyStaffRequest;
@@ -71,5 +72,13 @@ public class UserController {
     public ResponseEntity<ApiResponse<?>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers();
         return ResponseEntity.ok(ApiResponse.success(users, "Users retrieved successfully"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse<?>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(request);
+        return ResponseEntity.ok(ApiResponse.noContent("Password changed successfully"));
     }
 }

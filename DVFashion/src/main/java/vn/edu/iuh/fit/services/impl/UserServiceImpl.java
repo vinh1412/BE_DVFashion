@@ -10,10 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import vn.edu.iuh.fit.dtos.request.CreateStaffRequest;
-import vn.edu.iuh.fit.dtos.request.SignUpRequest;
-import vn.edu.iuh.fit.dtos.request.UserRequest;
-import vn.edu.iuh.fit.dtos.request.VerifyStaffRequest;
+import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
@@ -284,6 +281,34 @@ public class UserServiceImpl implements UserService {
         return users.stream()
                 .map(userMapper::toDto)
                 .toList();
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        // Get the current authenticated user's username
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        // Check if the username is null, empty, or represents an anonymous user
+        if (username == null || username.isEmpty() || "anonymousUser".equals(username)) {
+            throw new UnauthorizedException("User is not authenticated");
+        }
+
+        username = FormatPhoneNumber.normalizePhone(username);
+
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Check if the old password matches
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+
+        // Update the password
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 
     // Helper method to generate a 6-digit verification code
