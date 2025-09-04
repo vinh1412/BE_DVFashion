@@ -29,7 +29,28 @@ public interface ProductVariantService {
      */
     ProductVariantResponse createProductVariant(Long productId, ProductVariantRequest request, List<MultipartFile> variantImages);
 
+    /**
+     * Updates an existing product variant identified by the given variant ID with the provided request data.
+     *
+     * @param variantId The ID of the product variant to be updated.
+     * @param request   The product variant request data for the update.
+     * @return The updated product variant response.
+     */
     ProductVariantResponse updateProductVariant(Long variantId, ProductVariantRequest request);
 
+    /**
+     * Retrieves the product variant identified by the specified variant ID.
+     *
+     * @param variantId The ID of the product variant to be retrieved.
+     * @return The product variant response.
+     */
     ProductVariantResponse getProductVariantById(Long variantId);
+
+    /**
+     * Retrieves a list of product variants associated with the specified product ID.
+     *
+     * @param productId The ID of the product whose variants are to be retrieved.
+     * @return A list of product variant responses.
+     */
+    List<ProductVariantResponse> getProductVariantsByProductId(Long productId);
 }

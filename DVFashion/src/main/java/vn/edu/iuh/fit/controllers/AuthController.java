@@ -89,6 +89,7 @@ public class AuthController {
 
     }
 
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<?>> getCurrentUser(){
         UserResponse user = userService.getCurrentUser();

@@ -64,7 +64,6 @@ public class CategoryController {
         return ResponseEntity.ok(ApiResponse.noContent("Category deactivated successfully."));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getCategoriesPaging(
             @PageableDefault(page = 0, size = 12, sort = "id", direction = Sort.Direction.ASC) Pageable pageable,

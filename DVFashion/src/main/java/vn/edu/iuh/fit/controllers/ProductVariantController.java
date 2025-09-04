@@ -9,9 +9,11 @@ package vn.edu.iuh.fit.controllers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.ProductVariantRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.ProductVariantResponse;
@@ -32,6 +34,7 @@ import java.util.List;
 public class ProductVariantController {
     private final ProductVariantService productVariantService;
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> addProductVariant(
             @PathVariable("productId") Long productId,
@@ -42,6 +45,7 @@ public class ProductVariantController {
         return ResponseEntity.ok(ApiResponse.created(response, "Product variant added successfully"));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PutMapping(value = "/{variantId}")
     public ResponseEntity<ApiResponse<?>> updateProductVariant(
             @PathVariable("variantId") Long variantId,
@@ -55,5 +59,11 @@ public class ProductVariantController {
     public ResponseEntity<ApiResponse<?>> getProductVariantById(@PathVariable("variantId") Long variantId) {
         ProductVariantResponse response = productVariantService.getProductVariantById(variantId);
         return ResponseEntity.ok(ApiResponse.success(response, "Product variant retrieved successfully"));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<?>> getAllProductVariantsByProductId(@PathVariable("productId") Long productId) {
+        List<ProductVariantResponse> response = productVariantService.getProductVariantsByProductId(productId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Product variants retrieved successfully"));
     }
 }

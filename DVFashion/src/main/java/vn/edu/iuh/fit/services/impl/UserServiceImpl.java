@@ -10,10 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import vn.edu.iuh.fit.dtos.request.CreateStaffRequest;
-import vn.edu.iuh.fit.dtos.request.SignUpRequest;
-import vn.edu.iuh.fit.dtos.request.UserRequest;
-import vn.edu.iuh.fit.dtos.request.VerifyStaffRequest;
+import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
@@ -33,6 +30,7 @@ import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Set;
 
 /*
@@ -158,29 +156,29 @@ public class UserServiceImpl implements UserService {
         User user = findById(id);
 
         // Update user fields if they are provided in the request
-        if (userRequest.fullName() != null) {
+        if (userRequest.fullName() != null && !userRequest.fullName().isBlank()) {
             user.setFullName(userRequest.fullName());
         }
 
-        if (userRequest.email() != null) {
+        if (userRequest.email() != null && !userRequest.email().isBlank()) {
             if (!userRequest.email().equals(user.getEmail()) && existsByEmail(userRequest.email())) {
                 throw new AlreadyExistsException("Email already exists");
             }
             user.setEmail(userRequest.email());
         }
 
-        if (userRequest.phone() != null) {
+        if (userRequest.phone() != null && !userRequest.phone().isBlank()) {
             String formattedPhone = FormatPhoneNumber.formatPhoneNumberTo84(userRequest.phone() );
             if (!formattedPhone.equals(user.getPhone()) && existsByPhone(formattedPhone)) {
                 throw new AlreadyExistsException("Phone number already exists");
             }
             user.setPhone(formattedPhone);
         }
-        if (userRequest.gender() != null) {
+        if (userRequest.gender() != null && !userRequest.gender().isBlank()) {
             user.setGender(Gender.valueOf(userRequest.gender()));
         }
-        if (userRequest.dob() != null) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        if (userRequest.dob() != null && !userRequest.dob().isBlank()) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             user.setDob(LocalDate.parse(userRequest.dob(), formatter));
         }
 
@@ -274,6 +272,43 @@ public class UserServiceImpl implements UserService {
 
         User updatedUser = userRepository.save(user);
         return userMapper.toDto(updatedUser);
+    }
+
+    @Override
+    public List<UserResponse> getAllUsers() {
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(userMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        // Get the current authenticated user's username
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        // Check if the username is null, empty, or represents an anonymous user
+        if (username == null || username.isEmpty() || "anonymousUser".equals(username)) {
+            throw new UnauthorizedException("User is not authenticated");
+        }
+
+        username = FormatPhoneNumber.normalizePhone(username);
+
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Check if the old password matches
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+
+        // Update the password
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 
     // Helper method to generate a 6-digit verification code

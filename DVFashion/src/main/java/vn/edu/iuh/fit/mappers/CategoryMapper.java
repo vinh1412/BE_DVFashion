@@ -6,10 +6,15 @@
 
 package vn.edu.iuh.fit.mappers;
 
-import org.mapstruct.*;
-import vn.edu.iuh.fit.dtos.request.CategoryRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
 import vn.edu.iuh.fit.entities.Category;
+import vn.edu.iuh.fit.entities.CategoryTranslation;
+import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.repositories.CategoryTranslationRepository;
+import vn.edu.iuh.fit.utils.TextUtils;
 
 /*
  * @description: Mapper interface for converting between Category entity and Category DTOs (request and response)
@@ -17,33 +22,25 @@ import vn.edu.iuh.fit.entities.Category;
  * @date:   22/08/2025
  * @version:    1.0
  */
-@Mapper(componentModel = "spring")
-public interface CategoryMapper {
-    /**
-     * Converts a Category entity to a CategoryResponse DTO.
-     *
-     * @param category the Category entity to convert
-     * @return the converted CategoryResponse DTO
-     */
-    @Mapping(source = "image", target = "imageUrl") // image (Category) -> imageUrl (CategoryResponse)
-    CategoryResponse toDto(Category category);
+@Component
+@RequiredArgsConstructor
+public class CategoryMapper {
+    private final CategoryTranslationRepository translationRepository;
 
-    /**
-     * Converts a CategoryRequest DTO to a Category entity.
-     *
-     * @param request the CategoryRequest DTO to convert
-     * @return the converted Category entity
-     */
-    @Mapping(source = "imageUrl", target = "image") // imageUrl (CategoryRequest) -> image (Category)
-    Category toEntity(CategoryRequest request);
+    public CategoryResponse toResponse(Category category, Language lang) {
+        CategoryTranslation translation = translationRepository
+                .findByCategoryIdAndLanguage(category.getId(), lang)
+                .orElseGet(() -> translationRepository
+                        .findByCategoryIdAndLanguage(category.getId(), Language.VI)
+                        .orElseThrow(() -> new NotFoundException("No translation found"))
+                );
 
-    /**
-     * Updates an existing Category entity with values from a CategoryRequest DTO.
-     * Only non-null properties in the DTO will be applied to the entity
-     *
-     * @param request the CategoryRequest DTO containing new values
-     * @param category the existing Category entity to update
-     */
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateEntityFromDto(CategoryRequest request, @MappingTarget Category category);
+        return new CategoryResponse(
+                category.getId(),
+                TextUtils.removeTrailingDot(translation.getName()),
+                translation.getDescription(),
+                category.getImage(),
+                category.isActive()
+        );
+    }
 }
