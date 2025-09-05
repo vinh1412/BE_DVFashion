@@ -117,8 +117,10 @@ public class UserServiceImpl implements UserService {
             throw new UnauthorizedException("User is not authenticated");
         }
 
-        // Normalize the phone number if the username is a phone number
-        username = FormatPhoneNumber.normalizePhone(username);
+        // Normalize the phone number if the username is a phone number and not null/empty
+        if (username != null && !username.trim().isEmpty()) {
+            username = FormatPhoneNumber.normalizePhone(username);
+        }
 
         // Find the user by username and check if they are active
         User user = userRepository.findByUsernameAndActiveTrue(username)
