@@ -19,7 +19,7 @@ import vn.edu.iuh.fit.services.OtpAuthService;
 import vn.edu.iuh.fit.services.UserService;
 
 /*
- * @description:
+ * @description: Implementation of OTP-based authentication service
  * @author: Tran Hien Vinh
  * @date:   27/08/2025
  * @version:    1.0
@@ -30,7 +30,7 @@ public class OtpAuthServiceImpl implements OtpAuthService {
     private final UserService userService;
 
     @Override
-    public String verifyOtp(VerifyOtpRequest request) {
+    public String verifyOtpForgotPassword(VerifyOtpRequest request) {
         try {
             // Get the ID token from the request
             String idToken = request.idToken();
@@ -66,5 +66,29 @@ public class OtpAuthServiceImpl implements OtpAuthService {
 
             // Update the user's password
             userService.updatePassword(phone, newPassword);
+    }
+
+    @Override
+    public String verifyOtpForSignUp(VerifyOtpRequest request) {
+        try {
+            // Get the ID token from the request
+            String idToken = request.idToken();
+
+            // Verify the ID token using Firebase Admin SDK
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+
+            // Extract the phone number from the decoded token
+            String phoneNumber = decodedToken.getClaims().get("phone_number").toString();
+
+            // Check if the phone number exists in your user database
+            if (userService.existsByPhone(phoneNumber)) {
+                throw new AlreadyExistsException("Phone number already exists");
+            }
+
+            // Return the phone number if verification is successful
+            return phoneNumber;
+        } catch (FirebaseAuthException e) {
+            throw new FirebaseAuthCustomsException("Error verifying ID token: " + e.getMessage());
+        }
     }
 }
