@@ -69,7 +69,6 @@ public class User {
     @Column(name = "provider_id")
     private String providerId;
 
-    // Thêm vào User entity
     @Column(name = "verification_code")
     private String verificationCode;
 
