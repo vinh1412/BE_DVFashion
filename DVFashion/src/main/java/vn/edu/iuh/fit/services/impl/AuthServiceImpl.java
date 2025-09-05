@@ -207,6 +207,8 @@ public class AuthServiceImpl implements AuthService {
         // Delete cookies
         CookieUtils.deleteCookie(response, "accessToken");
         CookieUtils.deleteCookie(response, "refreshToken");
+        CookieUtils.deleteCookie(response, "isAuthenticated");
+
     }
 
     // Check if the token is expired
