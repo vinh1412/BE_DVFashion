@@ -74,6 +74,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             // Check if username exists
             String username = signInRequest.username();
+
             boolean existsByUsername = userService.existsByEmail(username)
                     || userService.existsByPhone(FormatPhoneNumber.normalizePhone(username));
 
@@ -81,6 +82,18 @@ public class AuthServiceImpl implements AuthService {
                 throw new NotFoundException("Email or phone number does not exist. Please sign up first.");
             }
 
+            if (!username.contains("@")) {
+                username = FormatPhoneNumber.normalizePhone(username);
+            }
+
+            User findUser= userRepository.findByUsernameAndActiveTrue(username)
+                    .orElseThrow(() -> new NotFoundException("Email or phone number does not exist. Please sign up first."));
+
+            if (!findUser.getTypeProviderAuths().contains(TypeProviderAuth.LOCAL)) {
+                throw new UnauthorizedException(
+                        "This account was registered with Google. Please login with Google."
+                );
+            }
 
             // Authenticate user
             Authentication authentication = authenticationManager.authenticate(
@@ -102,8 +115,10 @@ public class AuthServiceImpl implements AuthService {
             User user = userService.findById(userPrincipal.getId());
 
             // Update user type provider auths
-            user.getTypeProviderAuths().add(TypeProviderAuth.LOCAL);
-            userRepository.save(user);
+            if (!user.getTypeProviderAuths().contains(TypeProviderAuth.LOCAL)) {
+                user.getTypeProviderAuths().add(TypeProviderAuth.LOCAL);
+                userRepository.save(user);
+            }
 
             // Save refresh token in the database
             tokenService.saveRefreshToken(user, refreshToken);
