@@ -33,5 +33,7 @@ public record UserRequest(
             regexp = "\\d{4}-\\d{2}-\\d{2}",
             message = "Dob must be in format yyyy-MM-dd"
     )
-    String dob
+    String dob,
+
+    Boolean active
 ) {}
