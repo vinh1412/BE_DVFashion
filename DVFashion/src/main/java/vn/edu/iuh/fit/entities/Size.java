@@ -37,4 +37,7 @@ public class Size {
 
     @Column(name = "stock_quantity")
     private int stockQuantity;
+
+    @OneToOne(mappedBy = "size", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Inventory inventory;
 }
