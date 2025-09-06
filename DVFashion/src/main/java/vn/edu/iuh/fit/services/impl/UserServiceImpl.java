@@ -181,6 +181,9 @@ public class UserServiceImpl implements UserService {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             user.setDob(LocalDate.parse(userRequest.dob(), formatter));
         }
+        if (userRequest.active() != null) {
+            user.setActive(userRequest.active());
+        }
 
         // Save the updated user entity
         User updatedUser = userRepository.save(user);
