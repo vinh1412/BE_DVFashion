@@ -15,6 +15,7 @@ import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.enums.Gender;
+import vn.edu.iuh.fit.enums.TypeProviderAuth;
 import vn.edu.iuh.fit.enums.UserRole;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -83,7 +84,7 @@ public class UserServiceImpl implements UserService {
         user.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.phone()));
         user.setFullName(signUpRequest.fullName());
         user.setPassword(passwordEncoder.encode(signUpRequest.password()));
-//        user.setTypeProviderAuth(TypeProviderAuth.LOCAL);
+        user.setTypeProviderAuths(Set.of(TypeProviderAuth.LOCAL));
         user.setRoles(Set.of(role));
 
         // Save the user to the repository
@@ -117,8 +118,10 @@ public class UserServiceImpl implements UserService {
             throw new UnauthorizedException("User is not authenticated");
         }
 
-        // Normalize the phone number if the username is a phone number
-        username = FormatPhoneNumber.normalizePhone(username);
+        // Normalize the phone number if the username is a phone number and not null/empty
+        if (username != null && !username.trim().isEmpty()) {
+            username = FormatPhoneNumber.normalizePhone(username);
+        }
 
         // Find the user by username and check if they are active
         User user = userRepository.findByUsernameAndActiveTrue(username)
