@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import vn.edu.iuh.fit.enums.Gender;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -40,4 +41,10 @@ public class UserResponse {
     private Gender gender;
 
     private List<String> roles;
+
+    private LocalDateTime createAt;
+
+    private boolean active ;
+
+
 }
