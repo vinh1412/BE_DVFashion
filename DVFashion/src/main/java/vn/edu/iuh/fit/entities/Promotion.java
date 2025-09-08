@@ -61,5 +61,8 @@ public class Promotion {
 
     @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PromotionTranslation> translations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "promotion")
+    private List<Order> orders = new ArrayList<>();
 }
 

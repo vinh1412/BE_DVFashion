@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import vn.edu.iuh.fit.entities.embedded.ShippingInfo;
 import vn.edu.iuh.fit.enums.OrderStatus;
 import vn.edu.iuh.fit.enums.PaymentMethod;
 import vn.edu.iuh.fit.enums.PaymentStatus;
@@ -47,13 +48,20 @@ public class Order {
     @Column(name = "shipping_fee")
     private BigDecimal shippingFee;
 
-    private BigDecimal discount;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "promotion_id")
+    private Promotion promotion;
 
-    @Column(name = "shipping_address_id")
-    private Long shippingAddressId;
-
-    @Column(name = "shipping_address")
-    private String shippingAddress;
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "fullName", column = @Column(name = "full_name")),
+            @AttributeOverride(name = "country", column = @Column(name = "shipping_country")),
+            @AttributeOverride(name = "city", column = @Column(name = "shipping_city")),
+            @AttributeOverride(name = "district", column = @Column(name = "shipping_district")),
+            @AttributeOverride(name = "ward", column = @Column(name = "shipping_ward")),
+            @AttributeOverride(name = "street", column = @Column(name = "shipping_street")),
+    })
+    private ShippingInfo shippingInfo;
 
     private String notes;
 
@@ -68,14 +76,6 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> items;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method")
-    private PaymentMethod paymentMethod;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status")
-    private PaymentStatus paymentStatus;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Payment payment;

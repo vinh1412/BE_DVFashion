@@ -38,19 +38,21 @@ public class UserDetailsImpl implements UserDetails {
 
     private boolean active;
 
-    private String verificationCode;
+//    private String verificationCode;
 
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsImpl(Long id, String email, String phone, String loginUsername, String password,
-                           boolean active, String verificationCode, Collection<? extends GrantedAuthority> authorities) {
+                           boolean active,
+//                           String verificationCode
+            Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.email = email;
         this.phone = phone;
         this.loginUsername = loginUsername;
         this.password = password;
         this.active = active;
-        this.verificationCode = verificationCode;
+//        this.verificationCode = verificationCode;
         this.authorities = authorities;
     }
 
@@ -69,7 +71,7 @@ public class UserDetailsImpl implements UserDetails {
                 username,
                 user.getPassword(),
                 user.isActive(),
-                user.getVerificationCode(),
+//                user.getVerificationCode(),
                 authorities);
     }
 
@@ -105,7 +107,8 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return active || (verificationCode != null && !verificationCode.trim().isEmpty());
+        return active;
+//                || (verificationCode != null && !verificationCode.trim().isEmpty());
     }
 
     public Long getId() {
@@ -124,9 +127,9 @@ public class UserDetailsImpl implements UserDetails {
         return loginUsername;
     }
 
-    public String getVerificationCode() {
-        return verificationCode;
-    }
+//    public String getVerificationCode() {
+//        return verificationCode;
+//    }
 
     public boolean isActive() {
         return active;
