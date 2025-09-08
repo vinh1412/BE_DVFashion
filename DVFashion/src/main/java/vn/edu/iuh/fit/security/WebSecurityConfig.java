@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -22,6 +23,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import vn.edu.iuh.fit.security.jwt.JwtAuthenticationFilter;
@@ -43,10 +47,8 @@ public class WebSecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
 
-//    @Autowired
     private final AuthEntryPointJwt unauthorizedHandler;
 
-//    @Autowired
     private final PasswordEncoder passwordEncoder;
 
     private final CustomOAuth2UserService customOAuth2UserService;
@@ -70,11 +72,19 @@ public class WebSecurityConfig {
                 path("/auth/sign-up"),
                 path("/auth/sign-in"),
                 path("/auth/refresh-token"),
+                path("/auth/forgot-password"),
+                path("/auth/password/*"),
+                path("/auth/reset-password-mail"),
+                path("/auth/verify-otp-forgot-password"),
+                path("/auth/verify-otp-sign-up"),
+                path("/auth/reset-password-otp"),
                 path("/auth/**"),
                 path("/oauth2/**"),
+                path("/oauth2/authorization/**"),
+                path("/login/oauth2/code/**"),
                 "/oauth2/**",
                 "/login/oauth2/**",
-                "/oauth2/authorization/**"
+                "/oauth2/authorization/**",
         };
     }
 
@@ -98,20 +108,33 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
+        OAuth2AuthorizationRequestResolver resolver =
+                new DefaultOAuth2AuthorizationRequestResolver(
+                        clientRegistrationRepository,
+                        "/api/v1/oauth2/authorization" // Custom authorization endpoint base URI
+                );
         http.cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(HttpMethod.GET, path("/brands/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/categories/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/products/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/products/*/variants/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/product-variants/*/images/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/product-variants/*/sizes/**")).permitAll()
+
+
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
-//                        .authorizationEndpoint(authorization -> authorization
-//                                .baseUri("/oauth2/authorize"))
-//                        .redirectionEndpoint(redirection -> redirection
-//                                .baseUri("/oauth2/callback/*"))
+                        .authorizationEndpoint(authorization -> authorization
+                                        .authorizationRequestResolver(resolver))
+                        .redirectionEndpoint(redirection -> redirection
+                                .baseUri("/api/v1/login/oauth2/code/*")) // Custom redirection endpoint
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService))
                         .successHandler(oAuth2AuthenticationSuccessHandler)

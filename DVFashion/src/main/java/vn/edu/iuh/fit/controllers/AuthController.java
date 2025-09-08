@@ -89,6 +89,7 @@ public class AuthController {
 
     }
 
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<?>> getCurrentUser(){
         UserResponse user = userService.getCurrentUser();
@@ -113,9 +114,9 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.noContent("Password has been reset successfully."));
     }
 
-    @PostMapping("/verify-otp")
-    public ResponseEntity<ApiResponse<?>> verifyOTP(@Valid @RequestBody VerifyOtpRequest request) {
-        String phoneNumber = otpAuthService.verifyOtp(request);
+    @PostMapping("/verify-otp-forgot-password")
+    public ResponseEntity<ApiResponse<?>> verifyOtpForgotPassword(@Valid @RequestBody VerifyOtpRequest request) {
+        String phoneNumber = otpAuthService.verifyOtpForgotPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Phone number "+phoneNumber+" verification successful!"));
     }
 
@@ -125,4 +126,9 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.noContent("Password has been reset successfully."));
     }
 
+    @PostMapping("/verify-otp-sign-up")
+    public ResponseEntity<ApiResponse<?>> verifyOTPForSignUp(@Valid @RequestBody VerifyOtpRequest request) {
+        String phoneNumber = otpAuthService.verifyOtpForSignUp(request);
+        return ResponseEntity.ok(ApiResponse.success("Phone number "+phoneNumber+" verification successful!"));
+    }
 }

@@ -33,12 +33,6 @@ public class Promotion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-
-    private String code;
-
-    private String description;
-
     @Enumerated(EnumType.STRING)
     private PromotionType type;
 
@@ -64,5 +58,11 @@ public class Promotion {
 
     @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Product> applicableProducts= new ArrayList<>();
+
+    @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<PromotionTranslation> translations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "promotion")
+    private List<Order> orders = new ArrayList<>();
 }
 

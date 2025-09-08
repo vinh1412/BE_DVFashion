@@ -134,7 +134,7 @@ public class ProductVariantServiceImpl implements ProductVariantService {
                 .orElseThrow(() -> new NotFoundException("Product variant not found with id: " + variantId));
 
         // Update basic variant properties
-        if (request.color() != null) {
+        if (request.color() != null && !request.color().isBlank()) {
             // Check for duplicate color within the same product
             boolean exists = productVariantRepository.existsByProductIdAndColorIgnoreCase(
                     productVariant.getProduct().getId(), request.color());
@@ -153,7 +153,7 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         }
 
         // Update status if provided
-        if (request.status() != null) {
+        if (request.status() != null && !request.status().isBlank()) {
             productVariant.setStatus(ProductVariantStatus.valueOf(request.status()));
         }
 

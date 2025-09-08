@@ -10,14 +10,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import vn.edu.iuh.fit.dtos.request.CreateStaffRequest;
-import vn.edu.iuh.fit.dtos.request.SignUpRequest;
-import vn.edu.iuh.fit.dtos.request.UserRequest;
-import vn.edu.iuh.fit.dtos.request.VerifyStaffRequest;
+import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.enums.Gender;
+import vn.edu.iuh.fit.enums.TypeProviderAuth;
 import vn.edu.iuh.fit.enums.UserRole;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -86,7 +84,7 @@ public class UserServiceImpl implements UserService {
         user.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.phone()));
         user.setFullName(signUpRequest.fullName());
         user.setPassword(passwordEncoder.encode(signUpRequest.password()));
-//        user.setTypeProviderAuth(TypeProviderAuth.LOCAL);
+        user.setTypeProviderAuths(Set.of(TypeProviderAuth.LOCAL));
         user.setRoles(Set.of(role));
 
         // Save the user to the repository
@@ -120,8 +118,10 @@ public class UserServiceImpl implements UserService {
             throw new UnauthorizedException("User is not authenticated");
         }
 
-        // Normalize the phone number if the username is a phone number
-        username = FormatPhoneNumber.normalizePhone(username);
+        // Normalize the phone number if the username is a phone number and not null/empty
+        if (username != null && !username.trim().isEmpty()) {
+            username = FormatPhoneNumber.normalizePhone(username);
+        }
 
         // Find the user by username and check if they are active
         User user = userRepository.findByUsernameAndActiveTrue(username)
@@ -159,30 +159,33 @@ public class UserServiceImpl implements UserService {
         User user = findById(id);
 
         // Update user fields if they are provided in the request
-        if (userRequest.fullName() != null) {
+        if (userRequest.fullName() != null && !userRequest.fullName().isBlank()) {
             user.setFullName(userRequest.fullName());
         }
 
-        if (userRequest.email() != null) {
+        if (userRequest.email() != null && !userRequest.email().isBlank()) {
             if (!userRequest.email().equals(user.getEmail()) && existsByEmail(userRequest.email())) {
                 throw new AlreadyExistsException("Email already exists");
             }
             user.setEmail(userRequest.email());
         }
 
-        if (userRequest.phone() != null) {
+        if (userRequest.phone() != null && !userRequest.phone().isBlank()) {
             String formattedPhone = FormatPhoneNumber.formatPhoneNumberTo84(userRequest.phone() );
             if (!formattedPhone.equals(user.getPhone()) && existsByPhone(formattedPhone)) {
                 throw new AlreadyExistsException("Phone number already exists");
             }
             user.setPhone(formattedPhone);
         }
-        if (userRequest.gender() != null) {
+        if (userRequest.gender() != null && !userRequest.gender().isBlank()) {
             user.setGender(Gender.valueOf(userRequest.gender()));
         }
-        if (userRequest.dob() != null) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        if (userRequest.dob() != null && !userRequest.dob().isBlank()) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             user.setDob(LocalDate.parse(userRequest.dob(), formatter));
+        }
+        if (userRequest.active() != null) {
+            user.setActive(userRequest.active());
         }
 
         // Save the updated user entity
@@ -192,46 +195,102 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDto(updatedUser);
     }
 
+//    @Override
+//    public UserResponse createStaff(CreateStaffRequest request) {
+//        // Check if email or phone number already exists
+//        if (existsByEmail(request.email())) {
+//            throw new AlreadyExistsException("Email already exists");
+//        }
+//
+//        if (existsByPhone(FormatPhoneNumber.formatPhoneNumberTo84(request.phone()))) {
+//            throw new AlreadyExistsException("Phone number already exists");
+//        }
+//
+//        // Generate a verification code and set a default password
+//        String verificationCode = generateVerificationCode();
+//        String defaultPassword = "Staff@123";
+//
+//        Role role = roleService.findByName(UserRole.STAFF);
+//
+//        // Create a new User entity for the staff member
+//        User staff = new User();
+//        staff.setEmail(request.email());
+//        staff.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(request.phone()));
+//        staff.setFullName(request.fullName());
+//        staff.setPassword(passwordEncoder.encode(defaultPassword));
+//        staff.setRoles(Set.of(role));
+//        staff.setVerificationCode(verificationCode);
+//        staff.setVerificationCodeExpiry(LocalDateTime.now().plusHours(24));
+//        staff.setVerified(false);
+//        staff.setActive(false);
+//
+//        // Save the new staff member to the repository
+//        User savedStaff = userRepository.save(staff);
+//
+//        // Send verification code email to the new staff member
+//        emailService.sendVerificationCode(request.email(), request.fullName(), defaultPassword, verificationCode);
+//
+//        return userMapper.toDto(savedStaff);
+//    }
+
+//    @Override
+//    public UserResponse verifyStaff(VerifyStaffRequest request) {
+//        // Get the current authenticated user's username
+//        String username = SecurityContextHolder.getContext()
+//                .getAuthentication()
+//                .getName();
+//
+//        // Check if the username is null, empty, or represents an anonymous user
+//        if (username == null || username.isEmpty() || "anonymousUser".equals(username)) {
+//            throw new UnauthorizedException("User is not authenticated");
+//        }
+//
+//        // Find the user by username
+//        User user = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new NotFoundException("User not found"));
+//
+//        // Check if the account is already verified
+//        if (user.isActive()) {
+//            throw new VerificationCodeException("Account is already verified");
+//        }
+//
+//        // Check if verification code is present
+//        if (user.getVerificationCode() == null || user.getVerificationCode().trim().isEmpty()) {
+//            throw new VerificationCodeException("No verification code found for this account");
+//        }
+//
+//        // Check if verification code matches
+//        if (!request.verificationCode().equals(user.getVerificationCode())) {
+//            throw new VerificationCodeException("Invalid verification code");
+//        }
+//
+//        // Check if verification code has expired
+//        if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
+//            throw new VerificationCodeException("Verification code has expired");
+//        }
+//
+//        // Update user
+//        user.setPassword(passwordEncoder.encode(request.newPassword()));
+//        user.setVerified(true);
+//        user.setActive(true);
+//        user.setVerificationCode(null);
+//        user.setVerificationCodeExpiry(null);
+//
+//        User updatedUser = userRepository.save(user);
+//        return userMapper.toDto(updatedUser);
+//    }
+
     @Override
-    public UserResponse createStaff(CreateStaffRequest request) {
-        // Check if email or phone number already exists
-        if (existsByEmail(request.email())) {
-            throw new AlreadyExistsException("Email already exists");
-        }
+    public List<UserResponse> getAllUsers() {
+        List<User> users = userRepository.findAll();
 
-        if (existsByPhone(FormatPhoneNumber.formatPhoneNumberTo84(request.phone()))) {
-            throw new AlreadyExistsException("Phone number already exists");
-        }
-
-        // Generate a verification code and set a default password
-        String verificationCode = generateVerificationCode();
-        String defaultPassword = "Staff@123";
-
-        Role role = roleService.findByName(UserRole.STAFF);
-
-        // Create a new User entity for the staff member
-        User staff = new User();
-        staff.setEmail(request.email());
-        staff.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(request.phone()));
-        staff.setFullName(request.fullName());
-        staff.setPassword(passwordEncoder.encode(defaultPassword));
-        staff.setRoles(Set.of(role));
-        staff.setVerificationCode(verificationCode);
-        staff.setVerificationCodeExpiry(LocalDateTime.now().plusHours(24));
-        staff.setVerified(false);
-        staff.setActive(false);
-
-        // Save the new staff member to the repository
-        User savedStaff = userRepository.save(staff);
-
-        // Send verification code email to the new staff member
-        emailService.sendVerificationCode(request.email(), request.fullName(), defaultPassword, verificationCode);
-
-        return userMapper.toDto(savedStaff);
+        return users.stream()
+                .map(userMapper::toDto)
+                .toList();
     }
 
     @Override
-    public UserResponse verifyStaff(VerifyStaffRequest request) {
+    public void changePassword(ChangePasswordRequest request) {
         // Get the current authenticated user's username
         String username = SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -242,48 +301,20 @@ public class UserServiceImpl implements UserService {
             throw new UnauthorizedException("User is not authenticated");
         }
 
+        username = FormatPhoneNumber.normalizePhone(username);
+
         // Find the user by username
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        // Check if the account is already verified
-        if (user.isActive()) {
-            throw new VerificationCodeException("Account is already verified");
+        // Check if the old password matches
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new UnauthorizedException("Current password is incorrect");
         }
 
-        // Check if verification code is present
-        if (user.getVerificationCode() == null || user.getVerificationCode().trim().isEmpty()) {
-            throw new VerificationCodeException("No verification code found for this account");
-        }
-
-        // Check if verification code matches
-        if (!request.verificationCode().equals(user.getVerificationCode())) {
-            throw new VerificationCodeException("Invalid verification code");
-        }
-
-        // Check if verification code has expired
-        if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
-            throw new VerificationCodeException("Verification code has expired");
-        }
-
-        // Update user
+        // Update the password
         user.setPassword(passwordEncoder.encode(request.newPassword()));
-        user.setVerified(true);
-        user.setActive(true);
-        user.setVerificationCode(null);
-        user.setVerificationCodeExpiry(null);
-
-        User updatedUser = userRepository.save(user);
-        return userMapper.toDto(updatedUser);
-    }
-
-    @Override
-    public List<UserResponse> getAllUsers() {
-        List<User> users = userRepository.findAll();
-
-        return users.stream()
-                .map(userMapper::toDto)
-                .toList();
+        userRepository.save(user);
     }
 
     // Helper method to generate a 6-digit verification code

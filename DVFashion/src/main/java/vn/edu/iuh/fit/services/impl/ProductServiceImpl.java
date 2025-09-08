@@ -14,10 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.request.ProductVariantRequest;
-import vn.edu.iuh.fit.dtos.response.BrandResponse;
-import vn.edu.iuh.fit.dtos.response.CategoryResponse;
-import vn.edu.iuh.fit.dtos.response.PageResponse;
-import vn.edu.iuh.fit.dtos.response.ProductResponse;
+import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.ProductStatus;
@@ -56,6 +53,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductTranslationRepository productTranslationRepository;
 
     private final ProductMapper productMapper;
+
+    private final PromotionService promotionService;
 
     @Transactional
     @Override
@@ -211,7 +210,11 @@ public class ProductServiceImpl implements ProductService {
         BrandResponse brandResponse = brandService.getBrandById(product.getBrand().getId(), inputLang);
         String brandName = brandResponse != null ? brandResponse.name() : "Unknown";
 
+        // Find promotion name if exists
+        PromotionResponse promotionResponse = promotionService.getPromotionById(product.getPromotion().getId(), inputLang);
+        String promotionName = promotionResponse != null ? promotionResponse.name() : null;
+
         // Map to ProductResponse
-        return productMapper.toResponse(product, translation, categoryName, brandName);
+        return productMapper.toResponse(product, translation, categoryName, brandName, promotionName);
     }
 }

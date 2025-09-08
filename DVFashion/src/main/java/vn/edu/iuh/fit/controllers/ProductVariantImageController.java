@@ -9,9 +9,11 @@ package vn.edu.iuh.fit.controllers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.ProductVariantImageRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.ProductVariantImageResponse;
@@ -32,6 +34,7 @@ import java.util.List;
 public class ProductVariantImageController {
     private final ProductVariantImageService productVariantImageService;
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> addImageToVariant(
             @PathVariable("variantId") Long variantId,
@@ -42,6 +45,7 @@ public class ProductVariantImageController {
         return ResponseEntity.ok(ApiResponse.created(response, "Image added successfully"));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PutMapping(value = "/{imageId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> updateVariantImage(
             @PathVariable("imageId") Long imageId,

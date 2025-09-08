@@ -40,7 +40,7 @@ public record ProductRequest(
                 groups = {ValidationGroups.Create.class, ValidationGroups.Update.class})
         BigDecimal salePrice,
 
-        boolean onSale,
+        Boolean onSale,
 
         @NotBlank(message = "Status is required", groups = ValidationGroups.Create.class)
         String status,

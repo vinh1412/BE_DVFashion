@@ -66,7 +66,7 @@ public class SizeServiceImpl implements SizeService {
                 .orElseThrow(() -> new NotFoundException("Size not found with id: " + sizeId));
 
 
-        if (request.sizeName() != null) {
+        if (request.sizeName() != null && !request.sizeName().isEmpty()) {
             // Check if Size with the same name already exists for the given ProductVariant
             boolean exists = sizeRepository.existsByProductVariantAndSizeName(size.getProductVariant(), request.sizeName());
 

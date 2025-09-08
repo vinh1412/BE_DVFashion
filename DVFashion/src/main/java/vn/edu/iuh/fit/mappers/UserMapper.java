@@ -14,6 +14,7 @@ package vn.edu.iuh.fit.mappers;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Role;
 import vn.edu.iuh.fit.entities.User;
@@ -31,7 +32,7 @@ public interface UserMapper {
      * @return the mapped UserResponse DTO
      */
     @Mapping(target = "roles", source = "roles") // map roles to a list of strings
-    @Mapping(target = "phone", expression = "java(FormatPhoneNumber.formatPhoneNumberToLocal(user.getPhone()))")
+    @Mapping(target = "phone", source = "phone", qualifiedByName = "formatPhone") // format phone number
     UserResponse toDto(User user);
 
     /**
@@ -45,5 +46,16 @@ public interface UserMapper {
         return roles.stream()
                 .map(role -> "ROLE_" + role.getName().name()) // convert to String
                 .toList();
+    }
+
+    /**
+     * Formats a phone number to a local format.
+     *
+     * @param phone the phone number to format
+     * @return the formatted phone number, or null if the input is null
+     */
+    @Named("formatPhone")
+    default String formatPhone(String phone) {
+        return phone != null ? FormatPhoneNumber.formatPhoneNumberToLocal(phone) : null;
     }
 }

@@ -7,8 +7,10 @@
 package vn.edu.iuh.fit.dtos.request;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.format.annotation.DateTimeFormat;
+import vn.edu.iuh.fit.validators.ValidationGroups;
 
 /*
  * @description: DTO for user request data
@@ -27,6 +29,11 @@ public record UserRequest(
 
     String gender,
 
-    @DateTimeFormat(pattern = "dd-MM-yyyy")
-    String dob
+    @Pattern(
+            regexp = "\\d{4}-\\d{2}-\\d{2}",
+            message = "Dob must be in format yyyy-MM-dd"
+    )
+    String dob,
+
+    Boolean active
 ) {}

@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /*
- * @description:
+ * @description: Embeddable class representing the composite primary key for the OrderItem entity.
  * @author: Nguyen Tan Thai Duong
  * @date:   8/17/2025
  * @version:    1.0

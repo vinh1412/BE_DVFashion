@@ -7,6 +7,8 @@
 package vn.edu.iuh.fit.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 import vn.edu.iuh.fit.enums.PaymentStatus;
 
@@ -37,15 +39,16 @@ public class Review {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_variant_id", nullable = false)
     private ProductVariant productVariant;
 
+    @Column(nullable = false)
+    @Min(1) @Max(5)
     private int rating;
-
-    private String comment;
-
-    @Enumerated(EnumType.STRING)
-    private PaymentStatus status;
 
     @Column(name = "helpful_count", columnDefinition = "int default 0")
     private int helpfulCount;
@@ -58,6 +61,9 @@ public class Review {
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ReviewImage> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ReviewTranslation> translations = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {
