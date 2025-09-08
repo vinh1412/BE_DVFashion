@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import vn.edu.iuh.fit.entities.embedded.ShippingInfo;
 
 /*
  * @description: Entity class representing an address in the system.
@@ -27,18 +28,11 @@ public class Address {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String street;
-
-    private String ward;
-
-    private String district;
-
-    private String city;
-
-    private String country;
-
-    @Column(name = "zip_code")
-    private String zipCode;
+   @Embedded
+   @AttributeOverrides({
+           @AttributeOverride(name = "fullName", column = @Column(name = "full_name")),
+   })
+   private ShippingInfo shippingInfo;
 
     @Column(name = "is_default")
     private boolean isDefault;

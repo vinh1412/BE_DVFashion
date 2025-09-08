@@ -13,9 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.ChangePasswordRequest;
-import vn.edu.iuh.fit.dtos.request.CreateStaffRequest;
 import vn.edu.iuh.fit.dtos.request.UserRequest;
-import vn.edu.iuh.fit.dtos.request.VerifyStaffRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.services.UserService;
@@ -49,22 +47,6 @@ public class UserController {
     ) {
         UserResponse updatedUser = userService.updateUser(id, userRequest);
         return ResponseEntity.ok(ApiResponse.success(updatedUser, "User updated successfully"));
-    }
-
-    @PostMapping
-    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
-    public ResponseEntity<ApiResponse<?>> createStaff(
-            @Valid @RequestBody CreateStaffRequest request) {
-        UserResponse staff = userService.createStaff(request);
-        return ResponseEntity.ok(ApiResponse.success(staff, "Employee account created successfully. Verification email sent."));
-    }
-
-    @PreAuthorize(RoleConstant.HAS_ROLE_STAFF)
-    @PostMapping("/verify-staff")
-    public ResponseEntity<ApiResponse<?>> verifyStaff(
-            @Valid @RequestBody VerifyStaffRequest request) {
-        UserResponse staff = userService.verifyStaff(request);
-        return ResponseEntity.ok(ApiResponse.success(staff, "Employee account verified successfully"));
     }
 
     @GetMapping
