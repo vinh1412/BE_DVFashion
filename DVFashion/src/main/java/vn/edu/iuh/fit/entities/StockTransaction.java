@@ -35,7 +35,7 @@ public class StockTransaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inventory_id", nullable = false)
-    private Inventory inventory; // Quan hệ Many-to-One với Inventory
+    private Inventory inventory;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "transaction_type", nullable = false)
@@ -48,13 +48,13 @@ public class StockTransaction {
     private String referenceNumber;
 
     @Column(name = "order_id")
-    private Long orderId; // Liên kết với Order (không dùng @JoinColumn)
+    private Long orderId;
 
     private String notes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
-    private User createdBy; // Quan hệ Many-to-One với User
+    private User createdBy;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

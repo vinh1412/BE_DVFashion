@@ -6,6 +6,7 @@
 
 package vn.edu.iuh.fit.utils;
 
+import lombok.experimental.UtilityClass;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.services.CloudinaryService;
 
@@ -15,6 +16,7 @@ import vn.edu.iuh.fit.services.CloudinaryService;
  * @date:   21/08/2025
  * @version:    1.0
  */
+@UtilityClass
 public class ImageUtils {
     private static final String IMAGE_DEFAULT_URL = "https://res.cloudinary.com/diilgkg1a/image/upload/v1755791598/no-image.png";
 
@@ -32,7 +34,7 @@ public class ImageUtils {
         }
 
         // Validate file size (limit 5MB)
-        long maxSize = 5 * 1024 * 1024; // 5MB
+        long maxSize = 5 * 1024 * 1024L; // 5MB
         if (imageFile.getSize() > maxSize) {
             throw new IllegalArgumentException("File size exceeds the maximum allowed limit of 5MB");
         }
