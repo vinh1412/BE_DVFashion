@@ -6,12 +6,15 @@
 
 package vn.edu.iuh.fit.utils;
 
+import lombok.experimental.UtilityClass;
+
 /*
  * @description: Utility class for formatting and normalizing phone numbers in Vietnam
  * @author: Tran Hien Vinh
  * @date:   14/08/2025
  * @version:    1.0
  */
+@UtilityClass
 public class FormatPhoneNumber {
     /**
      * Formats a phone number to the international format for Vietnam (+84).
