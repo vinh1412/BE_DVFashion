@@ -43,6 +43,10 @@ public class Inventory {
     @Builder.Default
     private Integer quantityInStock = 0;
 
+    @Column(name = "reserved_quantity")
+    @Builder.Default
+    private Integer reservedQuantity = 0;
+
     @Column(name = "min_stock_level")
     @Builder.Default
     private Integer minStockLevel = 5;
@@ -54,5 +58,9 @@ public class Inventory {
     // Quan hệ One-to-Many với StockTransaction
     @OneToMany(mappedBy = "inventory", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<StockTransaction> stockTransactions = new ArrayList<>();
+
+    public int getAvailableQuantity() {
+        return quantityInStock - reservedQuantity;
+    }
 }
 

@@ -43,12 +43,20 @@ public class CartItem {
     @JoinColumn(name = "product_variant_id", nullable = false)
     private ProductVariant productVariant;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "size_id", nullable = false)
+    private Size size;
+
     @Column(name = "added_at", nullable = false)
     private LocalDateTime addedAt;
+
+    @Column(name = "reserved_until")
+    private LocalDateTime reservedUntil;
 
     @PrePersist
     public void prePersist() {
         this.addedAt = LocalDateTime.now();
+        this.reservedUntil = LocalDateTime.now().plusMinutes(30);
     }
 
 }
