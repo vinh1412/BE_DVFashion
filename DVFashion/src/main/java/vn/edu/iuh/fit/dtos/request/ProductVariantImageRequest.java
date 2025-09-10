@@ -6,7 +6,6 @@
 
 package vn.edu.iuh.fit.dtos.request;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import vn.edu.iuh.fit.validators.ValidationGroups;
 
@@ -18,9 +17,5 @@ import vn.edu.iuh.fit.validators.ValidationGroups;
  */
 public record ProductVariantImageRequest(
         @NotNull(message = "isPrimary must not be null", groups = {ValidationGroups.Create.class})
-        Boolean isPrimary,
-
-        @NotNull(message = "Sort order must not be null", groups = {ValidationGroups.Create.class})
-        @Min(value = 0, message = "Sort order must be >= 0", groups = {ValidationGroups.Create.class, ValidationGroups.Update.class})
-        Integer sortOrder
+        Boolean isPrimary
 ) {}
