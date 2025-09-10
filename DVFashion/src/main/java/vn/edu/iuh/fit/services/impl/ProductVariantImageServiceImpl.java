@@ -48,10 +48,6 @@ public class ProductVariantImageServiceImpl implements ProductVariantImageServic
         ProductVariant variant = productVariantRepository.findById(variantId)
                 .orElseThrow(() -> new NotFoundException("Product variant not found with id: " + variantId));
 
-        if (imageFile == null || imageFile.isEmpty()) {
-            throw new IllegalArgumentException("Image file must not be null or empty");
-        }
-
         // Upload image and get URL
         String imageUrl = ImageUtils.getImageUrl(imageFile, cloudinaryService);
 
