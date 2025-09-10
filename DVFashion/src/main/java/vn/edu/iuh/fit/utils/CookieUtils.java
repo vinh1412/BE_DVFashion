@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.utils;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.experimental.UtilityClass;
 
 /*
  * @description: Utility class for managing cookies in HTTP responses
@@ -15,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * @date:   17/08/2025
  * @version:    1.0
  */
+@UtilityClass
 public class CookieUtils {
     public static void addCookie(HttpServletResponse response, String name, String value, int maxAge, boolean httpOnly) {
         Cookie cookie = new Cookie(name, value);
