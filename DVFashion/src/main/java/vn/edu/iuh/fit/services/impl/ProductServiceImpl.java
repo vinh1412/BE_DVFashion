@@ -96,19 +96,28 @@ public class ProductServiceImpl implements ProductService {
 
         // Tick off images for each variant
         int imageIndex = 0;
-        for (ProductVariantRequest v : request.variants()) {
-            // Count images for this variant
-            int imgCount = (v.images() != null) ? v.images().size() : 0;
 
-            // Get the correct number of images belonging to the current variant from the list variantImages
-            List<MultipartFile> variantImageFiles =
-                    (variantImages != null && imageIndex + imgCount <= variantImages.size()) // If file uploaded and enough photos in the list
-                    ? variantImages.subList(imageIndex, imageIndex + imgCount) // Get the sublist for this variant
-                    : List.of();
+        // Total uploaded images
+        int totalUploadedImages = (variantImages != null) ? variantImages.size() : 0;
+
+        for (ProductVariantRequest v : request.variants()) {
+            // Determine how many images to assign to this variant
+            int requestedImageCount = (v.images() != null) ? v.images().size() : 0;
+            // Calculate how many images are still available to assign
+            int availableImages = Math.max(0, totalUploadedImages - imageIndex);
+            // Actual number of images to assign to this variant
+            int actualImageCount = Math.min(requestedImageCount, availableImages);
+
+            List<MultipartFile> variantImageFiles;
+            if (actualImageCount > 0) {
+                variantImageFiles = variantImages.subList(imageIndex, imageIndex + actualImageCount);
+                imageIndex += actualImageCount;
+            } else {
+                variantImageFiles = List.of();
+            }
 
             // Create ProductVariant
             productVariantService.createProductVariant(product.getId(), v, variantImageFiles);
-            imageIndex += imgCount;
         }
 
         // Return product with translations
@@ -211,8 +220,11 @@ public class ProductServiceImpl implements ProductService {
         String brandName = brandResponse != null ? brandResponse.name() : "Unknown";
 
         // Find promotion name if exists
-        PromotionResponse promotionResponse = promotionService.getPromotionById(product.getPromotion().getId(), inputLang);
-        String promotionName = promotionResponse != null ? promotionResponse.name() : null;
+        String promotionName = null;
+        if (product.getPromotion() != null) {
+            PromotionResponse promotionResponse = promotionService.getPromotionById(product.getPromotion().getId(), inputLang);
+            promotionName = promotionResponse != null ? promotionResponse.name() : null;
+        }
 
         // Map to ProductResponse
         return productMapper.toResponse(product, translation, categoryName, brandName, promotionName);
