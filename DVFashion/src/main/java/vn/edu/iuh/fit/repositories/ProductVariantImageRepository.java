@@ -27,4 +27,13 @@ public interface ProductVariantImageRepository extends JpaRepository<ProductVari
      * @return A list of ProductVariantImage entities.
      */
     List<ProductVariantImage> findByProductVariantId(Long variantId);
+
+    /**
+     * Checks if a ProductVariantImage exists with the given ProductVariant ID and sort order.
+     *
+     * @param variantId The ID of the ProductVariant.
+     * @param sortOrder The sort order to check for.
+     * @return true if an image with the specified variant ID and sort order exists, false otherwise.
+     */
+    boolean existsByProductVariantIdAndSortOrder(Long variantId, Integer sortOrder);
 }
