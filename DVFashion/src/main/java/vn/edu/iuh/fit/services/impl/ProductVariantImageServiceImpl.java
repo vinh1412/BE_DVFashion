@@ -48,6 +48,18 @@ public class ProductVariantImageServiceImpl implements ProductVariantImageServic
         ProductVariant variant = productVariantRepository.findById(variantId)
                 .orElseThrow(() -> new NotFoundException("Product variant not found with id: " + variantId));
 
+        // Auto-assign sortOrder (auto-increment)
+        List<ProductVariantImage> existingImages = productVariantImageRepository.findByProductVariantId(variantId);
+        Integer sortOrder = existingImages.stream()
+                .mapToInt(img -> img.getSortOrder() == 0 ? 0 : img.getSortOrder())
+                .max()
+                .orElse(0) + 1;
+
+        // Check and update existing primary image if the new one is set as primary
+        if (request.isPrimary() != null && request.isPrimary()) {
+           updatePrimaryImageStatus(variantId, null);
+        }
+
         // Upload image and get URL
         String imageUrl = ImageUtils.getImageUrl(imageFile, cloudinaryService);
 
@@ -56,9 +68,21 @@ public class ProductVariantImageServiceImpl implements ProductVariantImageServic
         productVariantImage.setProductVariant(variant);
         productVariantImage.setImageUrl(imageUrl);
         productVariantImage.setPrimary(request.isPrimary());
-        productVariantImage.setSortOrder(request.sortOrder());
+        productVariantImage.setSortOrder(sortOrder);
 
         ProductVariantImage savedImage = productVariantImageRepository.save(productVariantImage);
+
+        // If no primary image exists, set this one as primary
+        if (!savedImage.isPrimary()) {
+            List<ProductVariantImage> allImages = productVariantImageRepository.findByProductVariantId(variantId);
+            boolean hasPrimary = allImages.stream().anyMatch(ProductVariantImage::isPrimary);
+
+            if (!hasPrimary) {
+                savedImage.setPrimary(true);
+                savedImage = productVariantImageRepository.save(savedImage);
+            }
+        }
+
         // Save and return the image response
         return productVariantImageMapper.toResponse(savedImage);
     }
@@ -77,11 +101,11 @@ public class ProductVariantImageServiceImpl implements ProductVariantImageServic
         // Update other fields if provided
         if (request != null) {
             if (request.isPrimary() != null) {
+                if (request.isPrimary() && !image.isPrimary()) {
+                    // If setting to primary, update other images
+                    updatePrimaryImageStatus(image.getProductVariant().getId(), imageId);
+                }
                 image.setPrimary(request.isPrimary());
-            }
-
-            if (request.sortOrder() != null) {
-                image.setSortOrder(request.sortOrder());
             }
         }
 
@@ -115,4 +139,16 @@ public class ProductVariantImageServiceImpl implements ProductVariantImageServic
                 .map(productVariantImageMapper::toResponse)
                 .toList();
     }
+
+    private void updatePrimaryImageStatus(Long variantId, Long excludeImageId) {
+        List<ProductVariantImage> images = productVariantImageRepository.findByProductVariantId(variantId);
+
+        for (ProductVariantImage image : images) {
+            if (image.isPrimary() && !image.getId().equals(excludeImageId)) {
+                image.setPrimary(false);
+                productVariantImageRepository.save(image);
+            }
+        }
+    }
+
 }
