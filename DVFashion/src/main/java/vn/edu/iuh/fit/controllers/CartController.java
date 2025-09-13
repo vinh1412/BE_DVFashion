@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.dtos.request.AddToCartRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateCartItemQuantityRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.CartResponse;
 import vn.edu.iuh.fit.services.CartService;
@@ -39,5 +40,27 @@ public class CartController {
         CartResponse response = cartService.getCart();
 
         return ResponseEntity.ok(ApiResponse.success(response, "Cart retrieved successfully."));
+    }
+
+    @PutMapping("/items/{cartItemId}/quantity")
+    public ResponseEntity<ApiResponse<?>> updateCartItemQuantity(@PathVariable Long cartItemId,
+                                                                 @Valid @RequestBody UpdateCartItemQuantityRequest request) {
+        CartResponse response = cartService.updateCartItemQuantity(cartItemId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(response, "Cart item quantity updated successfully."));
+    }
+
+    @DeleteMapping("/items/{cartItemId}")
+    public ResponseEntity<ApiResponse<?>> removeCartItem(@PathVariable Long cartItemId) {
+        CartResponse response = cartService.removeCartItem(cartItemId);
+
+        return ResponseEntity.ok(ApiResponse.success(response, "Cart item removed successfully."));
+    }
+
+    @DeleteMapping("/clear")
+    public ResponseEntity<ApiResponse<CartResponse>> clearCart() {
+        CartResponse response = cartService.clearCart();
+
+        return ResponseEntity.ok(ApiResponse.success(response, "Cart cleared successfully."));
     }
 }
