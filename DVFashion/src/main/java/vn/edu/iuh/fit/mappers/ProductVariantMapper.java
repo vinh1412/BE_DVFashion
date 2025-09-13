@@ -30,7 +30,10 @@ public class ProductVariantMapper {
     public ProductVariantResponse toResponse(ProductVariant variant) {
         List<SizeResponse> sizeResponses = new ArrayList<>();
         for (Size size : variant.getSizes()) {
-            SizeResponse sizeResponse = new SizeResponse(size.getId(), size.getSizeName(),  size.getStockQuantity(),
+            SizeResponse sizeResponse = new SizeResponse(
+                    size.getId(), size.getSizeName(),
+                    size.getStockQuantity(),
+                    size.getAvailableQuantity(),
                     size.getProductVariant().getId());
             sizeResponses.add(sizeResponse);
         }
