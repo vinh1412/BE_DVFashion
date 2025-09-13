@@ -15,10 +15,11 @@ package vn.edu.iuh.fit.enums;
 public enum StockTransactionType {
     INBOUND("INBOUND"),
     OUTBOUND("OUTBOUND"),
-    ADJUSTMENT("ADJUSTMENT"),
-    RESERVE("RESERVE"), // RESERVED ITEMS
-    RELEASE("RELEASE"), // RELEASED ITEMS
-    CONFIRMED("CONFIRMED");
+    RESERVE("RESERVE"),
+    RELEASE("RELEASE"),
+    CONFIRMED("CONFIRMED"),
+    ADJUSTMENT_IN("ADJUSTMENT_IN"),
+    ADJUSTMENT_OUT("ADJUSTMENT_OUT");
 
     private final String description;
 

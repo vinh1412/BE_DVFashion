@@ -27,6 +27,7 @@ public class SizeMapper {
                 size.getId(),
                 size.getSizeName(),
                 size.getStockQuantity(),
+                size.getAvailableQuantity(),
                 size.getProductVariant() != null ? size.getProductVariant().getId() : null
         );
     }

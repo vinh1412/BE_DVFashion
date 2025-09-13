@@ -163,11 +163,6 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartResponse updateCartItemQuantity(Long cartItemId, UpdateCartItemQuantityRequest request) {
-        // Validate newQuantity
-        if (request.newQuantity() < 0) {
-            throw new IllegalArgumentException("Quantity cannot be negative");
-        }
-
         // Validate user exists
         UserResponse currentUserResponse = userService.getCurrentUser();
         User user = userRepository.findById(currentUserResponse.getId())
