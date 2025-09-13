@@ -52,7 +52,6 @@ public class SizeServiceImpl implements SizeService {
         Size size = new Size();
         size.setProductVariant(variant);
         size.setSizeName(request.sizeName());
-        size.setStockQuantity(request.stockQuantity());
 
         Size sizeResponse = sizeRepository.save(size);
         // return the size response
@@ -78,8 +77,6 @@ public class SizeServiceImpl implements SizeService {
 
             size.setSizeName(request.sizeName());
         }
-
-        size.setStockQuantity(request.stockQuantity());
 
         // Save updated Size
         Size sizeResponse = sizeRepository.save(size);

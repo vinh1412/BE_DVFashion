@@ -19,5 +19,7 @@ public record SizeResponse(
 
         int stockQuantity,
 
+        int availableQuantity,
+
         Long productVariantId
 ) {}

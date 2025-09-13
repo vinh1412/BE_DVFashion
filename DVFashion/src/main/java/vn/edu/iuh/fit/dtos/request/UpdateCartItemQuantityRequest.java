@@ -6,7 +6,7 @@
 
 package vn.edu.iuh.fit.dtos.request;
 
-import javax.validation.constraints.Min;
+import jakarta.validation.constraints.Min;
 
 /*
  * @description: Request DTO for updating the quantity of a cart item
@@ -15,6 +15,6 @@ import javax.validation.constraints.Min;
  * @version:    1.0
  */
 public record UpdateCartItemQuantityRequest(
-        @Min(value = 1, message = "Quantity must be zero or greater")
+        @Min(value = 0, message = "Quantity must be zero or greater")
         Integer newQuantity
 ) {}
