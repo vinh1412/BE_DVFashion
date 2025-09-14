@@ -35,9 +35,14 @@ public class Size {
     @Column(name = "size_name", nullable = false)
     private String sizeName;
 
-    @Column(name = "stock_quantity")
-    private int stockQuantity;
-
     @OneToOne(mappedBy = "size", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Inventory inventory;
+
+    public int getStockQuantity() {
+        return inventory != null ? inventory.getQuantityInStock() : 0;
+    }
+
+    public int getAvailableQuantity() {
+        return inventory != null ? inventory.getAvailableQuantity() : 0;
+    }
 }

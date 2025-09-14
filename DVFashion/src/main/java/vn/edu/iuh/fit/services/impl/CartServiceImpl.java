@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.AddToCartRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateCartItemQuantityRequest;
 import vn.edu.iuh.fit.dtos.response.CartItemResponse;
 import vn.edu.iuh.fit.dtos.response.CartResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
@@ -155,6 +156,154 @@ public class CartServiceImpl implements CartService {
                     List.of()
             );
         }
+
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+        return shoppingCartMapper.buildCartResponse(cart, currentLanguage);
+    }
+
+    @Override
+    public CartResponse updateCartItemQuantity(Long cartItemId, UpdateCartItemQuantityRequest request) {
+        // Validate user exists
+        UserResponse currentUserResponse = userService.getCurrentUser();
+        User user = userRepository.findById(currentUserResponse.getId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Find cart item
+        CartItem cartItem = cartItemRepository.findById(cartItemId)
+                .orElseThrow(() -> new NotFoundException("Cart item not found"));
+
+        // Verify cart item belongs to current user
+        if (!cartItem.getCart().getUser().getId().equals(user.getId())) {
+            throw new NotFoundException("Cart item does not belong to current user");
+        }
+
+        int currentQuantity = cartItem.getQuantity();
+        int newQuantity = request.newQuantity();
+
+        // If newQuantity is 0, remove item from cart
+        if (newQuantity == 0) {
+            return removeCartItem(cartItemId);
+        }
+
+        // Calculate quantity difference
+        int quantityDiff = newQuantity - currentQuantity;
+
+        String referenceNumber = "CART_UPDATE_QTY_" + cartItemId + "_" + System.currentTimeMillis();
+
+        if (quantityDiff > 0) {
+            // Need to reserve more stock
+            boolean reserved = inventoryService.reserveStock(
+                    cartItem.getSize().getId(), quantityDiff, referenceNumber);
+
+            if (!reserved) {
+                int availableQty = inventoryService.getAvailableQuantity(cartItem.getSize().getId());
+                throw new InsufficientStockException(
+                        String.format("Insufficient stock. Available: %d, Requested: %d",
+                                availableQty, newQuantity)
+                );
+            }
+        } else if (quantityDiff < 0) {
+            // Need to release some reserved stock
+            inventoryService.releaseReservedStock(
+                    cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber);
+        }
+
+        try {
+            // Update quantity
+            cartItem.setQuantity(newQuantity);
+            cartItem.setReservedUntil(LocalDateTime.now().plusMinutes(30));
+            cartItemRepository.save(cartItem);
+
+            log.info("Updated cart item {} quantity from {} to {} for user {}",
+                    cartItemId, currentQuantity, newQuantity, user.getId());
+
+            Language currentLanguage = LanguageUtils.getCurrentLanguage();
+            return shoppingCartMapper.buildCartResponse(cartItem.getCart(), currentLanguage);
+
+        } catch (Exception e) {
+            // Rollback stock changes if error occurs
+            if (quantityDiff > 0) {
+                inventoryService.releaseReservedStock(
+                        cartItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK");
+            } else if (quantityDiff < 0) {
+                inventoryService.reserveStock(
+                        cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber + "_ROLLBACK");
+            }
+            throw e;
+        }
+    }
+
+    @Override
+    public CartResponse removeCartItem(Long cartItemId) {
+        UserResponse currentUserResponse = userService.getCurrentUser();
+        User user = userRepository.findById(currentUserResponse.getId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        CartItem cartItem = cartItemRepository.findById(cartItemId)
+                .orElseThrow(() -> new NotFoundException("Cart item not found"));
+
+        if (!cartItem.getCart().getUser().getId().equals(user.getId())) {
+            throw new NotFoundException("Cart item does not belong to current user");
+        }
+
+        // Release reserved stock
+        String referenceNumber = "CART_REMOVE_" + cartItemId + "_" + System.currentTimeMillis();
+        inventoryService.releaseReservedStock(
+                cartItem.getSize().getId(), cartItem.getQuantity(), referenceNumber);
+
+        cartItemRepository.delete(cartItem);
+
+        log.info("Removed cart item {} for user {}", cartItemId, user.getId());
+
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+        return shoppingCartMapper.buildCartResponse(cartItem.getCart(), currentLanguage);
+    }
+
+    @Override
+    public CartResponse clearCart() {
+        // Validate user exists
+        UserResponse currentUserResponse = userService.getCurrentUser();
+        User user = userRepository.findById(currentUserResponse.getId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Find cart for user
+        ShoppingCart cart = shoppingCartRepository.findByUserId(user.getId())
+                .orElse(null);
+
+        // If no cart exists, return empty cart response
+        if (cart == null) {
+            return new CartResponse(
+                    null,
+                    0,
+                    BigDecimal.ZERO,
+                    List.of()
+            );
+        }
+
+        // Get all cart items
+        List<CartItem> cartItems = cartItemRepository.findByCartUserId(user.getId());
+
+        // If cart is already empty
+        if (cartItems.isEmpty()) {
+            Language currentLanguage = LanguageUtils.getCurrentLanguage();
+            return shoppingCartMapper.buildCartResponse(cart, currentLanguage);
+        }
+
+        // Release reserved stock for all items
+        String referenceNumber = "CART_CLEAR_" + user.getId() + "_" + System.currentTimeMillis();
+
+        for (CartItem item : cartItems) {
+            inventoryService.releaseReservedStock(
+                    item.getSize().getId(),
+                    item.getQuantity(),
+                    referenceNumber + "_ITEM_" + item.getId()
+            );
+        }
+
+        // Delete all cart items
+        cartItemRepository.deleteAll(cartItems);
+
+        log.info("Cleared cart for user {} - removed {} items", user.getId(), cartItems.size());
 
         Language currentLanguage = LanguageUtils.getCurrentLanguage();
         return shoppingCartMapper.buildCartResponse(cart, currentLanguage);
