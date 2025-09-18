@@ -36,6 +36,8 @@ public class ProductMapper {
                 categoryName,
                 brandName,
                 product.getPromotion() != null ? promotionName : null,
+                product.getCreatedAt(),
+                product.getUpdatedAt(),
                 product.getVariants().stream()
                         .map(productVariantMapper::toResponse)
                         .toList()

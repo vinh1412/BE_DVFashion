@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.dtos.response;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /*
@@ -37,6 +38,10 @@ public record ProductResponse(
         String brandName,
 
         String promotionName,
+
+        LocalDateTime createdAt,
+
+        LocalDateTime updatedAt,
 
         List<ProductVariantResponse> variants
 ) {}
