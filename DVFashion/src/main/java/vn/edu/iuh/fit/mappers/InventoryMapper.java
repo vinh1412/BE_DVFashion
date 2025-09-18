@@ -36,6 +36,7 @@ public class InventoryMapper {
         return new InventoryResponse(
                 inventory.getId(),
                 size.getId(),
+                product.getId(),
                 size.getSizeName(),
                 productName,
                 variant.getColor(),
