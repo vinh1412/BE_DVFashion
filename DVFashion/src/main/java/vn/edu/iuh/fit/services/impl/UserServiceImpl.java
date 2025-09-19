@@ -156,40 +156,83 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse updateUser(Long id, UserRequest userRequest) {
-        User user = findById(id);
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
 
-        // Update user fields if they are provided in the request
-        if (userRequest.fullName() != null && !userRequest.fullName().isBlank()) {
-            user.setFullName(userRequest.fullName());
+        // Check if the username is null, empty, or represents an anonymous user
+        if (username == null || username.isEmpty() || "anonymousUser".equals(username)) {
+            throw new UnauthorizedException("User is not authenticated");
         }
 
-        if (userRequest.email() != null && !userRequest.email().isBlank()) {
-            if (!userRequest.email().equals(user.getEmail()) && existsByEmail(userRequest.email())) {
-                throw new AlreadyExistsException("Email already exists");
+        username = FormatPhoneNumber.normalizePhone(username);
+
+        // Find the current authenticated user
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Find the target user to be updated
+        User targetUser = findById(id);
+
+        // Check user roles and apply business rules
+        boolean isAdmin = currentUser.getRoles().stream()
+                .anyMatch(role -> role.getName() == UserRole.ADMIN);
+        boolean isCustomer = currentUser.getRoles().stream()
+                .anyMatch(role -> role.getName() == UserRole.CUSTOMER);
+
+        if (isAdmin){
+            // Check if admin is trying to update other fields
+            if (userRequest.fullName() != null && !userRequest.fullName().isBlank() ||
+                    userRequest.email() != null && !userRequest.email().isBlank() ||
+                    userRequest.phone() != null && !userRequest.phone().isBlank() ||
+                    userRequest.gender() != null && !userRequest.gender().isBlank() ||
+                    userRequest.dob() != null && !userRequest.dob().isBlank()) {
+
+                throw new UnauthorizedException("Admin can only update the 'active' field");
             }
-            user.setEmail(userRequest.email());
-        }
 
-        if (userRequest.phone() != null && !userRequest.phone().isBlank()) {
-            String formattedPhone = FormatPhoneNumber.formatPhoneNumberTo84(userRequest.phone() );
-            if (!formattedPhone.equals(user.getPhone()) && existsByPhone(formattedPhone)) {
-                throw new AlreadyExistsException("Phone number already exists");
+            // Admin can only update the 'active' field of any user
+            if (userRequest.active() != null) {
+                targetUser.setActive(userRequest.active());
             }
-            user.setPhone(formattedPhone);
-        }
-        if (userRequest.gender() != null && !userRequest.gender().isBlank()) {
-            user.setGender(Gender.valueOf(userRequest.gender()));
-        }
-        if (userRequest.dob() != null && !userRequest.dob().isBlank()) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            user.setDob(LocalDate.parse(userRequest.dob(), formatter));
-        }
-        if (userRequest.active() != null) {
-            user.setActive(userRequest.active());
+        } else if (isCustomer) {
+            // Customer can only update their own information (except 'active' field)
+            if (!currentUser.getId().equals(id)) {
+                throw new UnauthorizedException("You are not authorized to update this user's information");
+            }
+
+            // Update user fields if they are provided in the request
+            if (userRequest.fullName() != null && !userRequest.fullName().isBlank()) {
+                targetUser.setFullName(userRequest.fullName());
+            }
+
+            if (userRequest.email() != null && !userRequest.email().isBlank()) {
+                if (!userRequest.email().equals(currentUser.getEmail()) && existsByEmail(userRequest.email())) {
+                    throw new AlreadyExistsException("Email already exists");
+                }
+                targetUser.setEmail(userRequest.email());
+            }
+
+            if (userRequest.phone() != null && !userRequest.phone().isBlank()) {
+                String formattedPhone = FormatPhoneNumber.formatPhoneNumberTo84(userRequest.phone() );
+                if (!formattedPhone.equals(currentUser.getPhone()) && existsByPhone(formattedPhone)) {
+                    throw new AlreadyExistsException("Phone number already exists");
+                }
+                targetUser.setPhone(formattedPhone);
+            }
+            if (userRequest.gender() != null && !userRequest.gender().isBlank()) {
+                targetUser.setGender(Gender.valueOf(userRequest.gender()));
+            }
+            if (userRequest.dob() != null && !userRequest.dob().isBlank()) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                targetUser.setDob(LocalDate.parse(userRequest.dob(), formatter));
+            }
+        } else {
+            throw new UnauthorizedException("You are not authorized to update this user's information");
         }
 
         // Save the updated user entity
-        User updatedUser = userRepository.save(user);
+        User updatedUser = userRepository.save(targetUser);
 
         // Convert the updated User entity to UserResponse DTO
         return userMapper.toDto(updatedUser);
