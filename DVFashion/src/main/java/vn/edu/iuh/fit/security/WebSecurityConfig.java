@@ -82,6 +82,7 @@ public class WebSecurityConfig {
                 path("/oauth2/**"),
                 path("/oauth2/authorization/**"),
                 path("/login/oauth2/code/**"),
+                path("/recommendations/**"),
                 "/oauth2/**",
                 "/login/oauth2/**",
                 "/oauth2/authorization/**",
@@ -122,9 +123,12 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, path("/brands/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/categories/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/products/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/promotions/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/products/*/variants/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/product-variants/*/images/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/product-variants/*/sizes/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/cart/**")).permitAll()
+                        .requestMatchers(HttpMethod.POST, path("/cart/**")).permitAll()
 
 
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()

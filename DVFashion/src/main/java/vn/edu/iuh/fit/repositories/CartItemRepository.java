@@ -50,4 +50,12 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
      * @return list of cart items belonging to the user
      */
     List<CartItem> findByCartUserId(Long userId);
+
+    /**
+     * Counts the number of cart items in a cart by cart ID.
+     *
+     * @param cartId the ID of the cart
+     * @return the count of cart items in the specified cart
+     */
+    int countByCartId(Long cartId);
 }

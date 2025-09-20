@@ -102,3 +102,8 @@ cloudinary:
 # Url for resetting password
 app:
   reset-password-url: ${RESET_PASSWORD_URL}
+
+# Recommendation service configuration
+recommendation:
+  service:
+    url: ${RECOMMENDATION_SERVICE_URL}

@@ -19,6 +19,8 @@ public record InventoryResponse(
 
         Long sizeId,
 
+        Long productId,
+
         String sizeName,
 
         String productName,
