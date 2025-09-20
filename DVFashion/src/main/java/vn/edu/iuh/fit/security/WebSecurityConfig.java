@@ -82,6 +82,7 @@ public class WebSecurityConfig {
                 path("/oauth2/**"),
                 path("/oauth2/authorization/**"),
                 path("/login/oauth2/code/**"),
+                path("/recommendations/**"),
                 "/oauth2/**",
                 "/login/oauth2/**",
                 "/oauth2/authorization/**",
