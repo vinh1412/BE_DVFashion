@@ -102,3 +102,7 @@ cloudinary:
 # Url for resetting password
 app:
   reset-password-url: ${RESET_PASSWORD_URL}
+
+recommendation:
+  service:
+    url: http://localhost:8001

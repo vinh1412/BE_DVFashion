@@ -1,0 +1,59 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.venv/
+env/
+ENV/
+venv.bak/
+env.bak/
+
+# IDE files
+.vscode/
+.idea/
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Data files
+*.sqlite3
+*.db
+*.sqlite
+*.h5
+
+# Environment variables file
+.env
+
+# Cache / build
+.cache/
+dist/
+build/
+*.egg-info/
+
+# Coverage / test
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.mypy_cache/
+.pyre/
+
+# FastAPI / Uvicorn specific
+*.pid

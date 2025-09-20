@@ -17,6 +17,7 @@ import vn.edu.iuh.fit.dtos.response.CartResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.exceptions.CartLimitExceededException;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.mappers.CartItemMapper;
@@ -60,8 +61,16 @@ public class CartServiceImpl implements CartService {
 
     private final ShoppingCartMapper shoppingCartMapper;
 
+    private static final int MAX_QUANTITY_PER_ITEM = 20;
+    private static final int MAX_DIFFERENT_ITEMS_IN_CART = 70;
+
     @Override
     public CartResponse addToCart(AddToCartRequest request) {
+        // Validate quantity limit
+        if (request.quantity() > MAX_QUANTITY_PER_ITEM) {
+            throw new CartLimitExceededException("Maximum quantity per item is "+MAX_QUANTITY_PER_ITEM +" .For bulk orders, please contact admin.");
+        }
+
         // Validate user exists
         UserResponse currentUserResponse = userService.getCurrentUser();
         User user = userRepository.findById(currentUserResponse.getId())
@@ -92,6 +101,12 @@ public class CartServiceImpl implements CartService {
         if (existingItem.isPresent()) {
             // If exists, update quantity
             return updateCartItem(existingItem.get(), request.quantity());
+        }
+
+        // Check cart item limit before adding new product
+        int currentCartItemCount = cartItemRepository.countByCartId(cart.getId());
+        if (currentCartItemCount >= MAX_DIFFERENT_ITEMS_IN_CART) {
+            throw new CartLimitExceededException("Cart limit exceeded. Maximum 70 different products allowed in cart");
         }
 
         // Generate reference number for stock reservation
@@ -163,6 +178,14 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartResponse updateCartItemQuantity(Long cartItemId, UpdateCartItemQuantityRequest request) {
+        // Validate quantity limit
+        if (request.newQuantity() > MAX_QUANTITY_PER_ITEM) {
+            throw new CartLimitExceededException(
+                    String.format("Maximum quantity per item is %d. For bulk orders, please contact admin.",
+                            MAX_QUANTITY_PER_ITEM)
+            );
+        }
+
         // Validate user exists
         UserResponse currentUserResponse = userService.getCurrentUser();
         User user = userRepository.findById(currentUserResponse.getId())
@@ -315,7 +338,7 @@ public class CartServiceImpl implements CartService {
         int currentQuantity = existingItem.getQuantity();
 
         // Calculate new total quantity
-        int newTotalQuantity = currentQuantity + additionalQuantity; // Cộng dồn thay vì replace
+        int newTotalQuantity = currentQuantity + additionalQuantity; // additionalQuantity is positive
 
         // Quantity diff need to reserve more
         int quantityDiff = additionalQuantity;
