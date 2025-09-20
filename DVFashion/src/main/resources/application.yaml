@@ -103,6 +103,7 @@ cloudinary:
 app:
   reset-password-url: ${RESET_PASSWORD_URL}
 
+# Recommendation service configuration
 recommendation:
   service:
-    url: http://localhost:8001
+    url: ${RECOMMENDATION_SERVICE_URL}
