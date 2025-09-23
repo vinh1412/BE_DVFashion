@@ -35,8 +35,6 @@ public record ProductResponse(
 
         String categoryName,
 
-        String brandName,
-
         String promotionName,
 
         LocalDateTime createdAt,

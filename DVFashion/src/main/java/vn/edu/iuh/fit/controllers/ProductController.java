@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
-import vn.edu.iuh.fit.dtos.response.BrandResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
 import vn.edu.iuh.fit.enums.Language;

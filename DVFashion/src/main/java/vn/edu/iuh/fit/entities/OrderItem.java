@@ -40,6 +40,7 @@ public class OrderItem {
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("sizeId")
     @JoinColumn(name = "size_id", nullable = false)
     private Size size;
 
