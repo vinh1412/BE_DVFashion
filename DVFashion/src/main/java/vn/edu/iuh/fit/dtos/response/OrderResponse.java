@@ -13,28 +13,44 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /*
- * @description:
+ * @description: Response DTO for order details
  * @author: Tran Hien Vinh
  * @date:   22/09/2025
  * @version:    1.0
  */
 public record OrderResponse(
          Long id,
+
          String orderNumber,
+
          Long customerId,
+
          String customerName,
+
          OrderStatus status,
+
          BigDecimal subtotal,
+
          BigDecimal shippingFee,
+
          BigDecimal discountAmount,
+
          BigDecimal totalAmount,
+
          ShippingInfoResponse shippingInfo,
+
          String notes,
+
          LocalDateTime orderDate,
+
          LocalDateTime shippedDate,
+
          LocalDateTime deliveredDate,
-         List<OrderItemResponse> items,
+
+         List<OrderItemResponse> items
+        ,
          PaymentResponse payment,
+
          PromotionOrderResponse promotion
 ) {
 }

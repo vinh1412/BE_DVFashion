@@ -9,7 +9,7 @@ package vn.edu.iuh.fit.dtos.request;
 import jakarta.validation.constraints.NotBlank;
 
 /*
- * @description:
+ * @description: DTO for shipping information in an order request
  * @author: Tran Hien Vinh
  * @date:   22/09/2025
  * @version:    1.0

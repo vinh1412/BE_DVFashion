@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /*
- * @description:
+ * @description: DTO for creating a new order
  * @author: Tran Hien Vinh
  * @date:   22/09/2025
  * @version:    1.0

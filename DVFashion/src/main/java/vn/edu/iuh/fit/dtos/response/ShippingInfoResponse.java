@@ -7,7 +7,7 @@
 package vn.edu.iuh.fit.dtos.response;
 
 /*
- * @description:
+ * @description: Response DTO for shipping information
  * @author: Tran Hien Vinh
  * @date:   22/09/2025
  * @version:    1.0

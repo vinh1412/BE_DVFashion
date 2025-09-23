@@ -31,7 +31,10 @@ import vn.edu.iuh.fit.utils.FormatPhoneNumber;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /*
@@ -65,13 +68,51 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createCustomer(SignUpRequest signUpRequest) {
+        String normalizedPhone = FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.phone());
+
+        // Check for deleted account by email first
+        Optional<User> deletedUserByEmail = userRepository.findDeletedByEmail(signUpRequest.email());
+
+        // Check for deleted account by phone if not found by email
+        Optional<User> deletedUserByPhone = userRepository.findDeletedByPhone(normalizedPhone);
+
+        // If there's a deleted account, check if it can be restored
+        User deletedUser = null;
+        if (deletedUserByEmail.isPresent()) {
+            deletedUser = deletedUserByEmail.get();
+        } else if (deletedUserByPhone.isPresent()) {
+            deletedUser = deletedUserByPhone.get();
+        }
+
+        if (deletedUser != null) {
+            if (deletedUser.canRestore()) {
+                // Account can be restored, do the restoration
+                UserResponse restoredUser = restoreDeletedAccount(
+                        signUpRequest.email(),
+                        signUpRequest.phone(),
+                        signUpRequest.password(),
+                        signUpRequest.fullName()
+                );
+                return restoredUser;
+            } else {
+                // Account exists but cannot be restored yet (less than 30 days)
+                long daysRemaining = 30 - ChronoUnit.DAYS.between(
+                        deletedUser.getDeletedAt().toLocalDate(),
+                        LocalDateTime.now().toLocalDate()
+                );
+                throw new IllegalStateException(
+                        String.format("A deleted account with this email/phone exists. " +
+                                "You can register again in %d days.", daysRemaining));
+            }
+        }
+
         // Check if email already exists
-        if (existsByEmail(signUpRequest.email())) {
+        if (existsByEmailAnIsDeletedFalse(signUpRequest.email())) {
             throw new AlreadyExistsException("Email already exists");
         }
 
         // Check if phone number already exists
-        if (existsByPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.phone()))) {
+        if (existsByPhoneAnIsDeletedFalse(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.phone()))) {
             throw new AlreadyExistsException("Phone number already exists");
         }
 
@@ -84,8 +125,8 @@ public class UserServiceImpl implements UserService {
         user.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(signUpRequest.phone()));
         user.setFullName(signUpRequest.fullName());
         user.setPassword(passwordEncoder.encode(signUpRequest.password()));
-        user.setTypeProviderAuths(Set.of(TypeProviderAuth.LOCAL));
-        user.setRoles(Set.of(role));
+        user.setTypeProviderAuths(new HashSet<>(Set.of(TypeProviderAuth.LOCAL)));
+        user.setRoles(new HashSet<>(Set.of(role)));
 
         // Save the user to the repository
         User savedUser = userRepository.save(user);
@@ -180,7 +221,7 @@ public class UserServiceImpl implements UserService {
         boolean isCustomer = currentUser.getRoles().stream()
                 .anyMatch(role -> role.getName() == UserRole.CUSTOMER);
 
-        if (isAdmin){
+        if (isAdmin) {
             // Check if admin is trying to update other fields
             if (userRequest.fullName() != null && !userRequest.fullName().isBlank() ||
                     userRequest.email() != null && !userRequest.email().isBlank() ||
@@ -214,7 +255,7 @@ public class UserServiceImpl implements UserService {
             }
 
             if (userRequest.phone() != null && !userRequest.phone().isBlank()) {
-                String formattedPhone = FormatPhoneNumber.formatPhoneNumberTo84(userRequest.phone() );
+                String formattedPhone = FormatPhoneNumber.formatPhoneNumberTo84(userRequest.phone());
                 if (!formattedPhone.equals(currentUser.getPhone()) && existsByPhone(formattedPhone)) {
                     throw new AlreadyExistsException("Phone number already exists");
                 }
@@ -358,6 +399,84 @@ public class UserServiceImpl implements UserService {
         // Update the password
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
+    }
+
+    @Override
+    public boolean existsByEmailAnIsDeletedFalse(String email) {
+        return userRepository.existsByEmailAndIsDeleteFalse(email);
+    }
+
+    @Override
+    public boolean existsByPhoneAnIsDeletedFalse(String phone) {
+        return userRepository.existsByPhoneAndIsDeleteFalse(phone);
+    }
+
+    @Override
+    public void softDeleteAccount() {
+        // Get the current authenticated user's username
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        // Check if the username is null, empty, or represents an anonymous user
+        if (username == null || username.isEmpty() || "anonymousUser".equals(username)) {
+            throw new UnauthorizedException("User is not authenticated");
+        }
+
+        // Normalize the phone number if the username is a phone number and not null/empty
+        username = FormatPhoneNumber.normalizePhone(username);
+
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Check if the account is already deleted
+        if (user.isDeleted()) {
+            throw new IllegalStateException("Account is already deleted");
+        }
+
+        user.setDeleted(true);
+        user.setDeletedAt(LocalDateTime.now());
+        user.setActive(false);
+
+        userRepository.save(user);
+    }
+
+    @Override
+    public UserResponse restoreDeletedAccount(String email, String phone, String password, String fullName) {
+        String normalizedPhone = FormatPhoneNumber.formatPhoneNumberTo84(phone);
+
+        // Check for deleted account by email first
+        Optional<User> deletedUser = userRepository.findDeletedByEmail(email);
+
+        // If not found by email, check by phone
+        if (deletedUser.isEmpty()) {
+            deletedUser = userRepository.findDeletedByPhone(normalizedPhone);
+        }
+
+        if (deletedUser.isPresent()) {
+            User user = deletedUser.get();
+
+            // Check if enough time has passed (30 days)
+            if (!user.canRestore()) {
+                throw new IllegalStateException("Cannot restore account yet. Must wait 30 days after deletion.");
+            }
+
+            // Restore the account with new data
+            user.setDeleted(false);
+            user.setDeletedAt(null);
+            user.setActive(true);
+            user.setEmail(email);
+            user.setPhone(normalizedPhone);
+            user.setFullName(fullName);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setTypeProviderAuths(new HashSet<>(Set.of(TypeProviderAuth.LOCAL)));
+
+            User restoredUser = userRepository.save(user);
+            return userMapper.toDto(restoredUser);
+        }
+
+        return null;
     }
 
     // Helper method to generate a 6-digit verification code

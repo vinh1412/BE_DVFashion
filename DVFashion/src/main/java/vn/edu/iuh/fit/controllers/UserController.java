@@ -63,4 +63,11 @@ public class UserController {
         userService.changePassword(request);
         return ResponseEntity.ok(ApiResponse.noContent("Password changed successfully"));
     }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
+    @DeleteMapping("/delete-account")
+    public ResponseEntity<ApiResponse<?>> deleteAccount() {
+        userService.softDeleteAccount();
+        return ResponseEntity.ok(ApiResponse.noContent("Account deleted successfully. You can restore it after 30 days by registering again."));
+    }
 }

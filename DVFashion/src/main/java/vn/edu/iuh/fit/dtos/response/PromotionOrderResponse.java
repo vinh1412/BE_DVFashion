@@ -9,7 +9,7 @@ package vn.edu.iuh.fit.dtos.response;
 import java.math.BigDecimal;
 
 /*
- * @description:
+ * @description: Response DTO for promotion details in an order
  * @author: Tran Hien Vinh
  * @date:   22/09/2025
  * @version:    1.0

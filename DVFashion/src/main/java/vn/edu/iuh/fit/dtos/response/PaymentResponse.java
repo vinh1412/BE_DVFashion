@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /*
- * @description:
+ * @description: Response DTO for payment details
  * @author: Tran Hien Vinh
  * @date:   22/09/2025
  * @version:    1.0

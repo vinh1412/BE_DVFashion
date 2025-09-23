@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 /*
- * @description:
+ * @description: DTO for an item in an order request
  * @author: Tran Hien Vinh
  * @date:   22/09/2025
  * @version:    1.0
