@@ -26,5 +26,6 @@ import lombok.Setter;
 public class OrderItemId {
     private Long productVariantId;
     private Long orderId;
+    private Long sizeId;
 }
 

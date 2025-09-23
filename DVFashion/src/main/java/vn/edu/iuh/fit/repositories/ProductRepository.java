@@ -32,16 +32,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByCategoryIdAndIdNotAndStatus(Long categoryId, Long excludeId, ProductStatus status);
 
     /**
-     * Find products by brand ID, excluding a list of product IDs, and with a specific status.
-     *
-     * @param brandId    The ID of the brand to filter products.
-     * @param excludeIds A list of product IDs to exclude from the results.
-     * @param status     The status of the products to filter.
-     * @return A list of products matching the criteria.
-     */
-    List<Product> findByBrandIdAndIdNotInAndStatus(Long brandId, List<Long> excludeIds, ProductStatus status);
-
-    /**
      * Find products excluding a list of product IDs, with a specific status, ordered by creation date descending.
      *
      * @param excludeIds A list of product IDs to exclude from the results.

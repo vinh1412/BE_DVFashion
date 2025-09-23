@@ -97,7 +97,7 @@ public class RecommendationServiceImpl implements RecommendationService {
             Language language = LanguageUtils.getCurrentLanguage();
 
             // Find products from the same category
-            List<ProductResponse> categoryRecommendations = productRepository
+            List<ProductResponse> recommendations = productRepository
                     .findByCategoryIdAndIdNotAndStatus(
                             originalProduct.getCategory().getId(),
                             productId,
@@ -108,34 +108,11 @@ public class RecommendationServiceImpl implements RecommendationService {
                     .map(product -> productService.getProductById(product.getId(), language))
                     .collect(Collectors.toList());
 
-            if (categoryRecommendations.size() >= numRecommendations) {
-                return categoryRecommendations;
-            }
-
-            // If not enough from same category, add products from same brand
-            int remaining = numRecommendations - categoryRecommendations.size();
-            List<Long> existingIds = categoryRecommendations.stream()
-                    .map(ProductResponse::id)
-                    .collect(Collectors.toList());
-            existingIds.add(productId);
-
-            List<ProductResponse> brandRecommendations = productRepository
-                    .findByBrandIdAndIdNotInAndStatus(
-                            originalProduct.getBrand().getId(),
-                            existingIds,
-                            originalProduct.getStatus()
-                    )
-                    .stream()
-                    .limit(remaining)
-                    .map(product -> productService.getProductById(product.getId(), language))
-                    .collect(Collectors.toList());
-
-            categoryRecommendations.addAll(brandRecommendations);
-
             // If still not enough, add random popular products
-            if (categoryRecommendations.size() < numRecommendations) {
-                remaining = numRecommendations - categoryRecommendations.size();
-                existingIds = categoryRecommendations.stream()
+            if (recommendations.size() < numRecommendations) {
+                int remaining = numRecommendations - recommendations.size();
+
+                List<Long> existingIds = recommendations.stream()
                         .map(ProductResponse::id)
                         .collect(Collectors.toList());
                 existingIds.add(productId);
@@ -150,10 +127,10 @@ public class RecommendationServiceImpl implements RecommendationService {
                         .map(product -> productService.getProductById(product.getId(), language))
                         .collect(Collectors.toList());
 
-                categoryRecommendations.addAll(randomRecommendations);
+                recommendations.addAll(randomRecommendations);
             }
 
-            return categoryRecommendations;
+            return recommendations;
 
         } catch (Exception e) {
             log.error("Error in fallback recommendations for product {}: {}", productId, e.getMessage());

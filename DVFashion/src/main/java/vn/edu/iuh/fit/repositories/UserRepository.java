@@ -44,7 +44,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param username
      * @return an Optional containing the User if found and active, or empty if not found or inactive
      */
-    @Query("SELECT u FROM User u WHERE (u.email = :username OR u.phone = :username) AND u.active = true")
+    @Query("SELECT u FROM User u WHERE (u.email = :username OR u.phone = :username) AND u.active = true AND u.isDeleted = false")
     Optional<User> findByUsernameAndActiveTrue(@Param("username") String username);
 
     /**
@@ -83,4 +83,40 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("SELECT u FROM User u WHERE (u.email = :username OR u.phone = :username)")
     Optional<User> findByUsername(@Param("username") String username);
+
+    /**
+     * Check if a user exists by their email and is not deleted.
+     *
+     * @param email the email to check
+     * @return true if a user with the specified email exists and is not deleted, false otherwise
+     */
+    @Query("SELECT u FROM User u WHERE u.id = :id AND u.isDeleted = false")
+    boolean existsByEmailAndIsDeleteFalse(String email);
+
+    /**
+     * Check if a user exists by their phone and is not deleted.
+     *
+     * @param phone the phone number to check
+     * @return true if a user with the specified phone number exists and is not deleted, false otherwise
+     */
+    @Query("SELECT u FROM User u WHERE u.phone = :phone AND u.isDeleted = false")
+    boolean existsByPhoneAndIsDeleteFalse(String phone);
+
+    /**
+     * Find a deleted user by their email.
+     *
+     * @param email the email to search for
+     * @return an Optional containing the User if found and is deleted, or empty if not found or not deleted
+     */
+    @Query("SELECT u FROM User u WHERE u.email = :email AND u.isDeleted = true")
+    Optional<User> findDeletedByEmail(@Param("email") String email);
+
+    /**
+     * Find a deleted user by their phone number.
+     *
+     * @param phone the phone number to search for
+     * @return an Optional containing the User if found and is deleted, or empty if not found or not deleted
+     */
+    @Query("SELECT u FROM User u WHERE u.phone = :phone AND u.isDeleted = true")
+    Optional<User> findDeletedByPhone(@Param("phone") String phone);
 }

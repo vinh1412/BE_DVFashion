@@ -38,8 +38,6 @@ public class ProductServiceImpl implements ProductService {
 
     private final CategoryRepository categoryRepository;
 
-    private final BrandRepository brandRepository;
-
     private final PromotionRepository promotionRepository;
 
     private final ProductTranslationService productTranslationService;
@@ -47,8 +45,6 @@ public class ProductServiceImpl implements ProductService {
     private final ProductVariantService productVariantService;
 
     private final CategoryService categoryService;
-
-    private final BrandService brandService;
 
     private final ProductTranslationRepository productTranslationRepository;
 
@@ -62,9 +58,6 @@ public class ProductServiceImpl implements ProductService {
         // Check if Category exists
         Category category= categoryRepository.findById(request.categoryId())
                 .orElseThrow(()-> new NotFoundException("Category not found"));
-        // Check if Brand exists
-        Brand brand= brandRepository.findById(request.brandId())
-                .orElseThrow(()-> new NotFoundException("Brand not found"));
 
         // Check if Promotion exists (if provided)
         Promotion promotion = null;
@@ -76,7 +69,6 @@ public class ProductServiceImpl implements ProductService {
         // Create and save the Product entity
         Product product = new Product();
         product.setCategory(category);
-        product.setBrand(brand);
         product.setPromotion(promotion);
         product.setPrice(request.price());
         product.setSalePrice(request.salePrice());
@@ -136,13 +128,6 @@ public class ProductServiceImpl implements ProductService {
             Category category = categoryRepository.findById(request.categoryId())
                     .orElseThrow(() -> new NotFoundException("Category not found"));
             product.setCategory(category);
-        }
-
-        // Check if Brand exists
-        if (request.brandId() != null) {
-            Brand brand = brandRepository.findById(request.brandId())
-                    .orElseThrow(() -> new NotFoundException("Brand not found"));
-            product.setBrand(brand);
         }
 
         // Check if Promotion exists (if provided)
@@ -215,10 +200,6 @@ public class ProductServiceImpl implements ProductService {
         CategoryResponse categoryResponse = categoryService.getCategoryById(product.getCategory().getId(), inputLang);
         String categoryName = categoryResponse != null ? categoryResponse.name() : "Unknown";
 
-        // Find brand name
-        BrandResponse brandResponse = brandService.getBrandById(product.getBrand().getId(), inputLang);
-        String brandName = brandResponse != null ? brandResponse.name() : "Unknown";
-
         // Find promotion name if exists
         String promotionName = null;
         if (product.getPromotion() != null) {
@@ -227,6 +208,6 @@ public class ProductServiceImpl implements ProductService {
         }
 
         // Map to ProductResponse
-        return productMapper.toResponse(product, translation, categoryName, brandName, promotionName);
+        return productMapper.toResponse(product, translation, categoryName, promotionName);
     }
 }
