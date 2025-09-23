@@ -64,6 +64,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @ElementCollection(fetch = FetchType.EAGER)
+    @Builder.Default
     private Set<TypeProviderAuth> typeProviderAuths = new HashSet<>();
 
     @Column(name = "provider_id")
@@ -93,6 +94,12 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private Wishlist wishlist;
 
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @OneToMany(mappedBy = "user")
     private List<Token> tokens = new ArrayList<>();
 
@@ -100,6 +107,7 @@ public class User {
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
+    @Builder.Default
     private Set<Role> roles = new HashSet<>();
 
     @PrePersist
@@ -112,5 +120,10 @@ public class User {
     @PreUpdate
     public void preUpdate() {
         this.updateAt = LocalDateTime.now();
+    }
+
+    public boolean canRestore() {
+        return isDeleted && deletedAt != null &&
+                deletedAt.plusDays(30).isBefore(LocalDateTime.now());
     }
 }

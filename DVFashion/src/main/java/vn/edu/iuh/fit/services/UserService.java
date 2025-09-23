@@ -128,4 +128,37 @@ public interface UserService {
      * @param request the ChangePasswordRequest containing the new password details
      */
     void changePassword(ChangePasswordRequest request);
+
+    /**
+     * Check if a user exists by their email and is not deleted.
+     *
+     * @param email the email to check
+     * @return true if a user with the specified email exists and is not deleted, false otherwise
+     */
+    boolean existsByEmailAnIsDeletedFalse(String email);
+
+    /**
+     * Check if a user exists by their phone and is not deleted.
+     *
+     * @param phone the phone number to check
+     * @return true if a user with the specified phone number exists and is not deleted, false otherwise
+     */
+    boolean existsByPhoneAnIsDeletedFalse(String phone);
+
+    /**
+     * Soft delete the current logged-in user's account.
+     * The account can be restored within 30 days by re-registering.
+     */
+    void softDeleteAccount();
+
+    /**
+     * Restore a deleted account using email, phone, password, and full name.
+     *
+     * @param email    the email of the deleted account
+     * @param phone    the phone number of the deleted account
+     * @param password the new password for the restored account
+     * @param fullName the full name for the restored account
+     * @return the UserResponse containing the restored user's details
+     */
+    UserResponse restoreDeletedAccount(String email, String phone, String password, String fullName);
 }
