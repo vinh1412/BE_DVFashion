@@ -18,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import vn.edu.iuh.fit.exceptions.MissingTokenException;
 import vn.edu.iuh.fit.security.UserDetailsServiceImpl;
 
 import java.io.IOException;
@@ -82,7 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .filter(cookie -> "accessToken".equals(cookie.getName()))
                     .map(Cookie::getValue)
                     .findFirst()
-                    .orElseThrow(() -> new RuntimeException("JWT is missing in cookies"));
+                    .orElseThrow(() -> new MissingTokenException("JWT is missing in cookies"));
         }
         return null;
     }

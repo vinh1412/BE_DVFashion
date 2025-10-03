@@ -17,6 +17,8 @@ import vn.edu.iuh.fit.dtos.request.CreateAddressRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateAddressRequest;
 import vn.edu.iuh.fit.dtos.response.AddressResponse;
 
+import java.util.List;
+
 public interface AddressService {
     /**
      * Creates a new address based on the provided request data.
@@ -34,4 +36,19 @@ public interface AddressService {
      * @return the updated address response
      */
     AddressResponse updateAddress(Long id, UpdateAddressRequest request);
+
+    /**
+     * Retrieves an address by its ID.
+     *
+     * @param id the ID of the address to be retrieved
+     * @return the address response
+     */
+    AddressResponse getAddressById(Long id);
+
+    /**
+     * Retrieves all addresses associated with the currently authenticated user.
+     *
+     * @return a list of address responses
+     */
+    List<AddressResponse> getAddresses();
 }

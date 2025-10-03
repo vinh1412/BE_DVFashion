@@ -16,6 +16,8 @@ import vn.edu.iuh.fit.dtos.response.AddressResponse;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.services.AddressService;
 
+import java.util.List;
+
 /*
  * @description: Controller class for managing address-related HTTP requests.
  * @author: Tran Hien Vinh
@@ -28,16 +30,26 @@ import vn.edu.iuh.fit.services.AddressService;
 public class AddressController {
      private final AddressService addressService;
 
-     @PostMapping
+    @PostMapping
     public ResponseEntity<ApiResponse<AddressResponse>> createAddress(@Valid @RequestBody CreateAddressRequest request) {
         AddressResponse response = addressService.createAddress(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Address created successfully."));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AddressResponse> update(
+    public ResponseEntity<ApiResponse<AddressResponse>> update(
             @PathVariable Long id,
             @RequestBody @Valid UpdateAddressRequest request) {
-        return ResponseEntity.ok(addressService.updateAddress(id, request));
+        return ResponseEntity.ok(ApiResponse.success(addressService.updateAddress(id, request), "Address updated successfully."));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<AddressResponse>> getAddressById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(addressService.getAddressById(id), "Address retrieved successfully."));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddressesByUser() {
+        return ResponseEntity.ok(ApiResponse.success(addressService.getAddresses(), "Addresses retrieved successfully."));
     }
 }

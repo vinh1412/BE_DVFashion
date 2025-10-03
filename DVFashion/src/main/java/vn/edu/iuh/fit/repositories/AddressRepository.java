@@ -6,12 +6,14 @@
 
 package vn.edu.iuh.fit.repositories;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.Address;
 
+import java.util.List;
 import java.util.Optional;
 
 /*
@@ -65,4 +67,13 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
      * @return an Optional containing the found Address, or empty if not found
      */
     Optional<Address> findByIdAndUserId(Long id, Long userId);
+
+    /**
+     * Finds all addresses associated with a specific user, sorted by the provided Sort object.
+     *
+     * @param userId the ID of the user
+     * @param sort   the sorting criteria
+     * @return a list of addresses associated with the user
+     */
+    List<Address> findAllByUserId(Long userId, Sort sort);
 }

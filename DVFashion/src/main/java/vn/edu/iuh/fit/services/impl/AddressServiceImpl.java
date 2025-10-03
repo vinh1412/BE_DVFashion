@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.dtos.request.CreateAddressRequest;
@@ -22,6 +23,8 @@ import vn.edu.iuh.fit.mappers.AddressMapper;
 import vn.edu.iuh.fit.repositories.AddressRepository;
 import vn.edu.iuh.fit.services.AddressService;
 import vn.edu.iuh.fit.services.UserService;
+
+import java.util.List;
 
 /*
  * @description: Service implementation for handling address-related operations.
@@ -133,5 +136,30 @@ public class AddressServiceImpl implements AddressService {
 
         Address updated = addressRepository.save(address);
         return addressMapper.toResponse(updated);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AddressResponse getAddressById(Long id) {
+        UserResponse current = userService.getCurrentUser();
+
+        Address address = addressRepository.findByIdAndUserId(id, current.getId())
+                .orElseThrow(() -> new NotFoundException("Address not found with id: " + id));
+
+        return addressMapper.toResponse(address);
+    }
+
+    @Override
+    public List<AddressResponse> getAddresses() {
+        UserResponse current = userService.getCurrentUser();
+
+        List<Address> addresses = addressRepository.findAllByUserId(
+                current.getId(),
+                Sort.by(Sort.Direction.DESC, "createAt")
+        );
+
+        return addresses.stream()
+                .map(addressMapper::toResponse)
+                .toList();
     }
 }
