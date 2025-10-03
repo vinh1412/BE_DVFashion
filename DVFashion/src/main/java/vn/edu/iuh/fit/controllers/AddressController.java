@@ -9,14 +9,14 @@ package vn.edu.iuh.fit.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.dtos.request.CreateAddressRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateAddressRequest;
 import vn.edu.iuh.fit.dtos.response.AddressResponse;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.services.AddressService;
+
+import java.util.List;
 
 /*
  * @description: Controller class for managing address-related HTTP requests.
@@ -30,9 +30,32 @@ import vn.edu.iuh.fit.services.AddressService;
 public class AddressController {
      private final AddressService addressService;
 
-     @PostMapping
+    @PostMapping
     public ResponseEntity<ApiResponse<AddressResponse>> createAddress(@Valid @RequestBody CreateAddressRequest request) {
         AddressResponse response = addressService.createAddress(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Address created successfully."));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<AddressResponse>> update(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateAddressRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(addressService.updateAddress(id, request), "Address updated successfully."));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<AddressResponse>> getAddressById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(addressService.getAddressById(id), "Address retrieved successfully."));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddressesByUser() {
+        return ResponseEntity.ok(ApiResponse.success(addressService.getAddresses(), "Addresses retrieved successfully."));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> softDelete(@PathVariable Long id) {
+        addressService.softDeleteAddress(id);
+        return ResponseEntity.ok(ApiResponse.noContent("Address deleted successfully."));
     }
 }
