@@ -47,10 +47,9 @@ public record OrderResponse(
 
          LocalDateTime deliveredDate,
 
-         List<OrderItemResponse> items
-        ,
+         List<OrderItemResponse> items,
+
          PaymentResponse payment,
 
          PromotionOrderResponse promotion
-) {
-}
+) {}

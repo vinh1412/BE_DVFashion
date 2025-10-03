@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.services;
 
 import vn.edu.iuh.fit.dtos.request.PromotionRequest;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
+import vn.edu.iuh.fit.entities.Promotion;
 import vn.edu.iuh.fit.enums.Language;
 
 import java.util.List;
@@ -54,4 +55,12 @@ public interface PromotionService {
      * @return A list of PromotionResponse objects in the specified language.
      */
     List<PromotionResponse> getAllPromotions(Language language);
+
+    /*
+     * Validates a promotion by its ID.
+     *
+     * @param promotionId The ID of the promotion to validate.
+     * @return The validated Promotion entity.
+     */
+    Promotion validatePromotion(Long promotionId);
 }

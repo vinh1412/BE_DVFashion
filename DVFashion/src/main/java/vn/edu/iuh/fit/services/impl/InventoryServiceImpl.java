@@ -374,6 +374,29 @@ public class InventoryServiceImpl implements InventoryService {
         return inventoryMapper.mapToInventoryResponseList(outOfStockInventories, currentLanguage);
     }
 
+    @Override
+    public boolean checkAvailability(Long sizeId, int quantity) {
+        // Find inventory by size ID
+        Optional<Inventory> inventoryOpt = inventoryRepository.findBySizeId(sizeId);
+
+        // If inventory not found, no stock available
+        if (inventoryOpt.isEmpty()) {
+            log.warn("No inventory found for size ID: {}", sizeId);
+            return false;
+        }
+
+        Inventory inventory = inventoryOpt.get();
+        int availableQuantity = inventory.getAvailableQuantity();
+
+        // Check if requested quantity is available
+        boolean isAvailable = availableQuantity >= quantity;
+
+        log.debug("Availability check for size {}: requested={}, available={}, result={}",
+                sizeId, quantity, availableQuantity, isAvailable);
+
+        return isAvailable;
+    }
+
     // Helper method to create a new inventory record for a size
     private Inventory createInventoryForSize(Size size) {
         return Inventory.builder()
