@@ -22,6 +22,7 @@ public class RoleConstant {
     public static final String HAS_ROLE_CUSTOMER = "hasRole('" + CUSTOMER + "')";
 
     public static final String HAS_ANY_ROLE_ADMIN_STAFF = "hasAnyRole('" + ADMIN + "','" + STAFF + "')";
+    public static final String HAS_ANY_ROLE_STAFF_CUSTOMER = "hasAnyRole('" + STAFF + "','" + CUSTOMER + "')";
     public static final String HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER =
             "hasAnyRole('" + ADMIN + "','" + STAFF + "','" + CUSTOMER + "')";
 }
