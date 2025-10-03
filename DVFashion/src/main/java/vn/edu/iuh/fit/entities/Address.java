@@ -10,6 +10,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import vn.edu.iuh.fit.entities.embedded.ShippingInfo;
 
+import java.time.LocalDateTime;
+
 /*
  * @description: Entity class representing an address in the system.
  * @author: Nguyen Tan Thai Duong
@@ -40,5 +42,28 @@ public class Address {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Column(name = "created_at")
+    private LocalDateTime createAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updateAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean isDeleted = false;
+
+    @PrePersist
+    public void prePersist() {
+        this.createAt = LocalDateTime.now();
+        this.updateAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updateAt = LocalDateTime.now();
+    }
 }
 
