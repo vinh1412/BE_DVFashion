@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.mappers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import vn.edu.iuh.fit.dtos.response.PromotionOrderResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.entities.Promotion;
 import vn.edu.iuh.fit.entities.PromotionTranslation;
@@ -47,6 +48,21 @@ public class PromotionMapper {
                 promotion.getStartDate(),
                 promotion.getEndDate(),
                 promotion.isActive()
+        );
+    }
+
+    public PromotionOrderResponse mapPromotionOrderResponse(Promotion promotion, Language language) {
+        String promotionName = promotion.getTranslations().stream()
+                .filter(t -> t.getLanguage() == language)
+                .findFirst()
+                .map(PromotionTranslation::getName)
+                .orElse("Unknown Promotion");
+
+        return new PromotionOrderResponse(
+                promotion.getId(),
+                promotionName,
+                promotion.getValue(),
+                promotion.getType().name()
         );
     }
 }
