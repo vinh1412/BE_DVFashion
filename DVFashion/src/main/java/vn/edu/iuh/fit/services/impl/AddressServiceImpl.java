@@ -24,6 +24,7 @@ import vn.edu.iuh.fit.repositories.AddressRepository;
 import vn.edu.iuh.fit.services.AddressService;
 import vn.edu.iuh.fit.services.UserService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /*
@@ -50,17 +51,42 @@ public class AddressServiceImpl implements AddressService {
         // Fetch the full user entity from the database
         User userEntity = userService.findById(user.getId());
 
+        String phone = request.phone().trim();
+        String country = request.country().trim();
+        String city = request.city().trim();
+        String district = request.district().trim();
+        String ward = request.ward().trim();
+        String street = request.street().trim();
+
         // Duplicate check (normalize by trimming)
-        if (addressRepository.existsDuplicate(
-                userEntity.getId(),
-                request.phone().trim(),
-                request.country().trim(),
-                request.city().trim(),
-                request.district().trim(),
-                request.ward().trim(),
-                request.street().trim()
-        )) {
+        if (addressRepository.existsDuplicate(userEntity.getId(), phone, country, city, district, ward, street)) {
             throw new DuplicateAddressException("Address with this phone already exists.");
+        }
+
+        // Soft-deleted duplicate -> restore instead of creating new
+        Address restored = addressRepository.findSoftDeletedDuplicate(
+                userEntity.getId(), phone, country, city, district, ward, street
+        ).map(a -> {
+            ShippingInfo info = a.getShippingInfo();
+            info.setFullName(request.fullName());
+            info.setPhone(phone);
+            info.setCountry(country);
+            info.setCity(city);
+            info.setDistrict(district);
+            info.setWard(ward);
+            info.setStreet(street);
+            a.setDeleted(false);
+            a.setDeletedAt(null);
+
+            if (Boolean.TRUE.equals(request.isDefault())) {
+                addressRepository.clearDefaultForUser(userEntity.getId());
+                a.setDefault(true);
+            }
+            return addressRepository.save(a);
+        }).orElse(null);
+
+        if (restored != null) {
+            return addressMapper.toResponse(restored);
         }
 
         // If the new address is marked as default, clear existing default addresses for the user
@@ -87,6 +113,9 @@ public class AddressServiceImpl implements AddressService {
         Address address = addressRepository.findByIdAndUserId(id, userEntity.getId())
                 .orElseThrow(() -> new NotFoundException("Address not found with id: " + id));
 
+        if (address.isDeleted()) {
+            throw new NotFoundException("Address has been deleted.");
+        }
 
         // Check for duplicates
         if (addressRepository.existsDuplicate(
@@ -146,6 +175,10 @@ public class AddressServiceImpl implements AddressService {
         Address address = addressRepository.findByIdAndUserId(id, current.getId())
                 .orElseThrow(() -> new NotFoundException("Address not found with id: " + id));
 
+        if (address.isDeleted()) {
+            throw new NotFoundException("Address not found with id: " + id);
+        }
+
         return addressMapper.toResponse(address);
     }
 
@@ -153,7 +186,7 @@ public class AddressServiceImpl implements AddressService {
     public List<AddressResponse> getAddresses() {
         UserResponse current = userService.getCurrentUser();
 
-        List<Address> addresses = addressRepository.findAllByUserId(
+        List<Address> addresses = addressRepository.findAllByUserIdAndIsDeletedFalse(
                 current.getId(),
                 Sort.by(Sort.Direction.DESC, "createAt")
         );
@@ -161,5 +194,34 @@ public class AddressServiceImpl implements AddressService {
         return addresses.stream()
                 .map(addressMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    public void softDeleteAddress(Long id) {
+        UserResponse current = userService.getCurrentUser();
+
+        Address address = addressRepository.findByIdAndUserId(id, current.getId())
+                .orElseThrow(() -> new NotFoundException("Address not found with id: " + id));
+
+        if (address.isDeleted()) return;
+
+//        boolean wasDefault = address.isDefault();
+        address.setDeleted(true);
+        address.setDeletedAt(LocalDateTime.now());
+        address.setDefault(false);
+
+        addressRepository.save(address);
+
+//        // Optionally promote another address if default removed
+//        if (wasDefault) {
+//            addressRepository.findAllByUserIdAndIsDeletedFalse(current.getId(),
+//                            Sort.by(Sort.Direction.DESC, "createAt"))
+//                    .stream()
+//                    .findFirst()
+//                    .ifPresent(a -> {
+//                        a.setDefault(true);
+//                        addressRepository.save(a);
+//                    });
+//        }
     }
 }

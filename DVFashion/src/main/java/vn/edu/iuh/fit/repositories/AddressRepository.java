@@ -69,11 +69,37 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     Optional<Address> findByIdAndUserId(Long id, Long userId);
 
     /**
-     * Finds all addresses associated with a specific user, sorted by the provided Sort object.
+     * Retrieves all non-deleted addresses for a specific user, sorted by the provided Sort object.
      *
      * @param userId the ID of the user
-     * @param sort   the sorting criteria
-     * @return a list of addresses associated with the user
+     * @param sort   the Sort object defining the sorting order
+     * @return a list of non-deleted addresses for the user
      */
-    List<Address> findAllByUserId(Long userId, Sort sort);
+    @Query("select a from Address a where a.user.id = :userId and a.isDeleted = false")
+    List<Address> findAllByUserIdAndIsDeletedFalse(Long userId, Sort sort);
+
+    /**
+     * Finds a soft-deleted duplicate address for a user based on the provided shipping information.
+     *
+     * @param userId   the ID of the user
+     * @param phone    the phone number in the shipping information
+     * @param country  the country in the shipping information
+     * @param city     the city in the shipping information
+     * @param district the district in the shipping information
+     * @param ward     the ward in the shipping information
+     * @param street   the street in the shipping information
+     * @return an Optional containing the found soft-deleted Address, or empty if not found
+     */
+    @Query("""
+        select a from Address a
+        where a.user.id = :userId
+          and a.isDeleted = true
+          and a.shippingInfo.phone = :phone
+          and lower(a.shippingInfo.country) = lower(:country)
+          and lower(a.shippingInfo.city) = lower(:city)
+          and lower(a.shippingInfo.district) = lower(:district)
+          and lower(a.shippingInfo.ward) = lower(:ward)
+          and lower(a.shippingInfo.street) = lower(:street)
+        """)
+    Optional<Address> findSoftDeletedDuplicate(Long userId, String phone, String country, String city, String district, String ward, String street);
 }

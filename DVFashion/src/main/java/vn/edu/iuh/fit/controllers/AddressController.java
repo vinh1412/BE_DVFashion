@@ -52,4 +52,10 @@ public class AddressController {
     public ResponseEntity<ApiResponse<List<AddressResponse>>> getAllAddressesByUser() {
         return ResponseEntity.ok(ApiResponse.success(addressService.getAddresses(), "Addresses retrieved successfully."));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> softDelete(@PathVariable Long id) {
+        addressService.softDeleteAddress(id);
+        return ResponseEntity.ok(ApiResponse.noContent("Address deleted successfully."));
+    }
 }

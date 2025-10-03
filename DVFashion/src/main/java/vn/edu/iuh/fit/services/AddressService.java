@@ -51,4 +51,11 @@ public interface AddressService {
      * @return a list of address responses
      */
     List<AddressResponse> getAddresses();
+
+    /**
+     * Soft deletes an address by setting its isDeleted flag to true.
+     *
+     * @param id the ID of the address to be soft deleted
+     */
+    void softDeleteAddress(Long id);
 }
