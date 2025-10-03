@@ -13,7 +13,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.ChangePasswordRequest;
+import vn.edu.iuh.fit.dtos.request.CreateStaffRequest;
 import vn.edu.iuh.fit.dtos.request.UserRequest;
+import vn.edu.iuh.fit.dtos.request.VerifyStaffRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.services.UserService;
@@ -64,10 +66,25 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.noContent("Password changed successfully"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_STAFF_CUSTOMER)
     @DeleteMapping("/delete-account")
     public ResponseEntity<ApiResponse<?>> deleteAccount() {
         userService.softDeleteAccount();
         return ResponseEntity.ok(ApiResponse.noContent("Account deleted successfully. You can restore it after 30 days by registering again."));
+    }
+
+    @PostMapping
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    public ResponseEntity<ApiResponse<UserResponse>> createStaff(
+            @Valid @RequestBody CreateStaffRequest request) {
+        UserResponse staff = userService.createStaff(request);
+        return ResponseEntity.ok(ApiResponse.success(staff, "Employee account created successfully. Verification email sent."));
+    }
+
+    @PostMapping("/verify-staff")
+    public ResponseEntity<ApiResponse<UserResponse>> verifyStaff(
+            @Valid @RequestBody VerifyStaffRequest request) {
+        UserResponse staff = userService.verifyStaff(request);
+        return ResponseEntity.ok(ApiResponse.success(staff, "Employee account verified successfully"));
     }
 }
