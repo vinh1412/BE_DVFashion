@@ -14,6 +14,7 @@ package vn.edu.iuh.fit.services;
  */
 
 import vn.edu.iuh.fit.dtos.request.CreateAddressRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateAddressRequest;
 import vn.edu.iuh.fit.dtos.response.AddressResponse;
 
 public interface AddressService {
@@ -24,4 +25,13 @@ public interface AddressService {
      * @return the created address response
      */
     AddressResponse createAddress(CreateAddressRequest request);
+
+    /**
+     * Updates an existing address identified by the given ID with the provided request data.
+     *
+     * @param id      the ID of the address to be updated
+     * @param request the request data for updating the address
+     * @return the updated address response
+     */
+    AddressResponse updateAddress(Long id, UpdateAddressRequest request);
 }

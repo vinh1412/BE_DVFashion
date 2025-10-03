@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.Address;
 
+import java.util.Optional;
+
 /*
  * @description: Repository interface for managing Address entities in the database.
  * @author: Tran Hien Vinh
@@ -54,4 +56,13 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
           and lower(a.shippingInfo.street) = lower(:street)
         """)
     boolean existsDuplicate(Long userId, String phone, String country, String city, String district, String ward, String street);
+
+    /**
+     * Finds an address by its ID and the associated user's ID.
+     *
+     * @param id     the ID of the address
+     * @param userId the ID of the user
+     * @return an Optional containing the found Address, or empty if not found
+     */
+    Optional<Address> findByIdAndUserId(Long id, Long userId);
 }

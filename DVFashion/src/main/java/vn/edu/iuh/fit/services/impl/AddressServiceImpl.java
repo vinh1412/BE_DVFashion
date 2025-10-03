@@ -10,11 +10,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.dtos.request.CreateAddressRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateAddressRequest;
 import vn.edu.iuh.fit.dtos.response.AddressResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Address;
 import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.entities.embedded.ShippingInfo;
 import vn.edu.iuh.fit.exceptions.DuplicateAddressException;
+import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.mappers.AddressMapper;
 import vn.edu.iuh.fit.repositories.AddressRepository;
 import vn.edu.iuh.fit.services.AddressService;
@@ -69,5 +72,66 @@ public class AddressServiceImpl implements AddressService {
         Address saved = addressRepository.save(address);
 
         return addressMapper.toResponse(saved);
+    }
+
+    @Transactional
+    @Override
+    public AddressResponse updateAddress(Long id, UpdateAddressRequest request) {
+        UserResponse current = userService.getCurrentUser();
+        User userEntity = userService.findById(current.getId());
+
+        // Check if the address exists and belongs to the current user
+        Address address = addressRepository.findByIdAndUserId(id, userEntity.getId())
+                .orElseThrow(() -> new NotFoundException("Address not found with id: " + id));
+
+
+        // Check for duplicates
+        if (addressRepository.existsDuplicate(
+                userEntity.getId(),
+                request.phone(),
+                request.country(),
+                request.city(),
+                request.district(),
+                request.ward(),
+                request.street()
+        )) {
+            throw new DuplicateAddressException("Another address with this phone and location exists.");
+        }
+
+        // Update fields if they are provided in the request
+        ShippingInfo info = address.getShippingInfo();
+
+        if (request.fullName() != null && !request.fullName().trim().isEmpty()) {
+            info.setFullName(request.fullName().trim());
+        }
+        if (request.phone() != null && !request.phone().trim().isEmpty()) {
+            info.setPhone(request.phone().trim());
+        }
+        if (request.country() != null && !request.country().trim().isEmpty()) {
+            info.setCountry(request.country().trim());
+        }
+        if (request.city() != null && !request.city().trim().isEmpty()) {
+            info.setCity(request.city().trim());
+        }
+        if (request.district() != null && !request.district().trim().isEmpty()) {
+            info.setDistrict(request.district().trim());
+        }
+        if (request.ward() != null && !request.ward().trim().isEmpty()) {
+            info.setWard(request.ward().trim());
+        }
+        if (request.street() != null && !request.street().trim().isEmpty()) {
+            info.setStreet(request.street().trim());
+        }
+
+        // Handle default address logic
+        if (request.isDefault() != null && request.isDefault()) {
+            addressRepository.clearDefaultForUser(userEntity.getId());
+            address.setDefault(true);
+        } else if (request.isDefault() != null && !request.isDefault()) {
+            address.setDefault(false);
+        }
+
+        Address updated = addressRepository.save(address);
+        return addressMapper.toResponse(updated);
     }
 }
