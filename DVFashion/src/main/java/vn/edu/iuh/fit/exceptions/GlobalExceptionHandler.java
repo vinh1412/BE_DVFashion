@@ -129,4 +129,11 @@ public class GlobalExceptionHandler  {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
     }
+    
+    @ExceptionHandler(DuplicateAddressException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicateAddressException(DuplicateAddressException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
 }

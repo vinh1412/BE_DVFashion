@@ -48,6 +48,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameAndActiveTrue(@Param("username") String username);
 
     /**
+     * Find a user by email or phone and ensure the user is active.
+     *
+     * @param username
+     * @return an Optional containing the User if found and active, or empty if not found or inactive
+     */
+    @Query("SELECT u FROM User u WHERE (u.email = :username OR u.phone = :username) AND u.isDeleted = false")
+    Optional<User> findByUsernameAndDeleteFalse(@Param("username") String username);
+
+    /**
      * Check if a user exists by their username (email or phone).
      *
      * @param username the username to check

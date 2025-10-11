@@ -21,7 +21,6 @@ import vn.edu.iuh.fit.repositories.PromotionRepository;
 import vn.edu.iuh.fit.repositories.PromotionTranslationRepository;
 import vn.edu.iuh.fit.services.PromotionService;
 import vn.edu.iuh.fit.services.TranslationService;
-import vn.edu.iuh.fit.utils.TextUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -206,6 +205,26 @@ public class PromotionServiceImpl implements PromotionService {
         return promotions.stream()
                 .map(promotion -> promotionMapper.toResponse(promotion, language))
                 .toList();
+    }
+
+    @Override
+    public Promotion validatePromotion(Long promotionId) {
+        Promotion dbPromotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new NotFoundException("Promotion not found with id: " + promotionId));
+
+        if (!dbPromotion.isActive()) {
+            throw new IllegalArgumentException("Promotion is not active");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (dbPromotion.getStartDate().isAfter(now) || dbPromotion.getEndDate().isBefore(now)) {
+            throw new IllegalArgumentException("Promotion is not valid for current date");
+        }
+
+        if (dbPromotion.getCurrentUsages() >= dbPromotion.getMaxUsages()) {
+            throw new IllegalArgumentException("Promotion usage limit exceeded");
+        }
+        return dbPromotion;
     }
 
     // Helper method to update or create a translation

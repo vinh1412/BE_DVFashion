@@ -108,4 +108,13 @@ public interface InventoryService {
      * @return a list of inventory responses for out of stock items
      */
     List<InventoryResponse> getOutOfStockItems();
+
+    /**
+     * Check if a specific quantity of a product size is available
+     *
+     * @param sizeId   the ID of the product size
+     * @param quantity the quantity to check
+     * @return true if the quantity is available, false otherwise
+     */
+    boolean checkAvailability(Long sizeId, int quantity);
 }

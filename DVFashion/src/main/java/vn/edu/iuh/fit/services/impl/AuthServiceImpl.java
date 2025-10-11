@@ -86,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
                 username = FormatPhoneNumber.normalizePhone(username);
             }
 
-            User findUser= userRepository.findByUsernameAndActiveTrue(username)
+            User findUser= userRepository.findByUsernameAndDeleteFalse(username)
                     .orElseThrow(() -> new NotFoundException("Email or phone number does not exist. Please sign up first."));
 
             if (!findUser.getTypeProviderAuths().contains(TypeProviderAuth.LOCAL)) {

@@ -279,90 +279,91 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDto(updatedUser);
     }
 
-//    @Override
-//    public UserResponse createStaff(CreateStaffRequest request) {
-//        // Check if email or phone number already exists
-//        if (existsByEmail(request.email())) {
-//            throw new AlreadyExistsException("Email already exists");
-//        }
-//
-//        if (existsByPhone(FormatPhoneNumber.formatPhoneNumberTo84(request.phone()))) {
-//            throw new AlreadyExistsException("Phone number already exists");
-//        }
-//
-//        // Generate a verification code and set a default password
-//        String verificationCode = generateVerificationCode();
-//        String defaultPassword = "Staff@123";
-//
-//        Role role = roleService.findByName(UserRole.STAFF);
-//
-//        // Create a new User entity for the staff member
-//        User staff = new User();
-//        staff.setEmail(request.email());
-//        staff.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(request.phone()));
-//        staff.setFullName(request.fullName());
-//        staff.setPassword(passwordEncoder.encode(defaultPassword));
-//        staff.setRoles(Set.of(role));
-//        staff.setVerificationCode(verificationCode);
-//        staff.setVerificationCodeExpiry(LocalDateTime.now().plusHours(24));
-//        staff.setVerified(false);
-//        staff.setActive(false);
-//
-//        // Save the new staff member to the repository
-//        User savedStaff = userRepository.save(staff);
-//
-//        // Send verification code email to the new staff member
-//        emailService.sendVerificationCode(request.email(), request.fullName(), defaultPassword, verificationCode);
-//
-//        return userMapper.toDto(savedStaff);
-//    }
+    @Override
+    public UserResponse createStaff(CreateStaffRequest request) {
+        // Check if email or phone number already exists
+        if (existsByEmail(request.email())) {
+            throw new AlreadyExistsException("Email already exists");
+        }
 
-//    @Override
-//    public UserResponse verifyStaff(VerifyStaffRequest request) {
-//        // Get the current authenticated user's username
-//        String username = SecurityContextHolder.getContext()
-//                .getAuthentication()
-//                .getName();
-//
-//        // Check if the username is null, empty, or represents an anonymous user
-//        if (username == null || username.isEmpty() || "anonymousUser".equals(username)) {
-//            throw new UnauthorizedException("User is not authenticated");
-//        }
-//
-//        // Find the user by username
-//        User user = userRepository.findByUsername(username)
-//                .orElseThrow(() -> new NotFoundException("User not found"));
-//
-//        // Check if the account is already verified
-//        if (user.isActive()) {
-//            throw new VerificationCodeException("Account is already verified");
-//        }
-//
-//        // Check if verification code is present
-//        if (user.getVerificationCode() == null || user.getVerificationCode().trim().isEmpty()) {
-//            throw new VerificationCodeException("No verification code found for this account");
-//        }
-//
-//        // Check if verification code matches
-//        if (!request.verificationCode().equals(user.getVerificationCode())) {
-//            throw new VerificationCodeException("Invalid verification code");
-//        }
-//
-//        // Check if verification code has expired
-//        if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
-//            throw new VerificationCodeException("Verification code has expired");
-//        }
-//
-//        // Update user
-//        user.setPassword(passwordEncoder.encode(request.newPassword()));
-//        user.setVerified(true);
-//        user.setActive(true);
-//        user.setVerificationCode(null);
-//        user.setVerificationCodeExpiry(null);
-//
-//        User updatedUser = userRepository.save(user);
-//        return userMapper.toDto(updatedUser);
-//    }
+        if (existsByPhone(FormatPhoneNumber.formatPhoneNumberTo84(request.phone()))) {
+            throw new AlreadyExistsException("Phone number already exists");
+        }
+
+        // Generate a verification code and set a default password
+        String verificationCode = generateVerificationCode();
+        String defaultPassword = "Staff@123";
+
+        Role role = roleService.findByName(UserRole.STAFF);
+
+        // Create a new User entity for the staff member
+        User staff = new User();
+        staff.setEmail(request.email());
+        staff.setPhone(FormatPhoneNumber.formatPhoneNumberTo84(request.phone()));
+        staff.setFullName(request.fullName());
+        staff.setPassword(passwordEncoder.encode(defaultPassword));
+        staff.setTypeProviderAuths(new HashSet<>(Set.of(TypeProviderAuth.LOCAL)));
+        staff.setRoles(Set.of(role));
+        staff.setVerificationCode(verificationCode);
+        staff.setVerificationCodeExpiry(LocalDateTime.now().plusHours(24));
+        staff.setVerified(false);
+        staff.setActive(false);
+
+        // Save the new staff member to the repository
+        User savedStaff = userRepository.save(staff);
+
+        // Send verification code email to the new staff member
+        emailService.sendVerificationCode(request.email(), request.fullName(), defaultPassword, verificationCode);
+
+        return userMapper.toDto(savedStaff);
+    }
+
+    @Override
+    public UserResponse verifyStaff(VerifyStaffRequest request) {
+        // Get the current authenticated user's username
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        // Check if the username is null, empty, or represents an anonymous user
+        if (username == null || username.isEmpty() || "anonymousUser".equals(username)) {
+            throw new UnauthorizedException("User is not authenticated");
+        }
+
+        // Find the user by username
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Check if the account is already verified
+        if (user.isVerified()) {
+            throw new VerificationCodeException("Account is already verified");
+        }
+
+        // Check if verification code is present
+        if (user.getVerificationCode() == null || user.getVerificationCode().trim().isEmpty()) {
+            throw new VerificationCodeException("No verification code found for this account");
+        }
+
+        // Check if verification code matches
+        if (!request.verificationCode().equals(user.getVerificationCode())) {
+            throw new VerificationCodeException("Invalid verification code");
+        }
+
+        // Check if verification code has expired
+        if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
+            throw new VerificationCodeException("Verification code has expired");
+        }
+
+        // Update user
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setVerified(true);
+        user.setActive(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiry(null);
+
+        User updatedUser = userRepository.save(user);
+        return userMapper.toDto(updatedUser);
+    }
 
     @Override
     public List<UserResponse> getAllUsers() {
