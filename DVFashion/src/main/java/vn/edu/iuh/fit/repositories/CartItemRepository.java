@@ -58,4 +58,13 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
      * @return the count of cart items in the specified cart
      */
     int countByCartId(Long cartId);
+
+    /**
+     * Finds cart items with reservedUntil before the specified dateTime.
+     *
+     * @param dateTime the dateTime to compare against reservedUntil
+     * @return list of cart items with reservedUntil before the specified dateTime
+     */
+    @Query("SELECT ci FROM CartItem ci WHERE ci.reservedUntil < :dateTime AND ci.cart IS NOT NULL")
+    List<CartItem> findByReservedUntilBefore(LocalDateTime dateTime);
 }

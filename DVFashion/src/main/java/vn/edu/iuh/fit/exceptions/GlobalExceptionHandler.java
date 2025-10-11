@@ -136,4 +136,11 @@ public class GlobalExceptionHandler  {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
     }
+
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePaymentException(PaymentException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
 }

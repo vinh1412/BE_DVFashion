@@ -107,3 +107,12 @@ app:
 recommendation:
   service:
     url: ${RECOMMENDATION_SERVICE_URL}
+
+# PayPal configuration
+paypal:
+    base-url: https://api-m.sandbox.paypal.com
+    client-id: ${PAYPAL_CLIENT_ID}
+    client-secret: ${PAYPAL_CLIENT_SECRET}
+    mode: ${PAYPAL_MODE}
+    success-url: http://localhost:8080/api/v1/payments/paypal/success
+    cancel-url: http://localhost:8080/api/v1/payments/paypal/cancel

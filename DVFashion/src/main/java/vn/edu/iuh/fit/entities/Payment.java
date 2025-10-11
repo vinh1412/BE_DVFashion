@@ -48,8 +48,21 @@ public class Payment {
     @Column(name = "payment_date")
     private LocalDateTime paymentDate;
 
+    @Column(name = "paypal_payment_id")
+    private String paypalPaymentId;
+
+    @Column(name = "approval_url")
+    private String approvalUrl;
+
+    @Column(name = "captured_at")
+    private LocalDateTime capturedAt;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
+
+    public boolean isCompleted() {
+        return PaymentStatus.COMPLETED.equals(this.paymentStatus);
+    }
 }
 

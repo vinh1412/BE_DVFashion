@@ -7,6 +7,8 @@
 package vn.edu.iuh.fit.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.ShoppingCart;
 
@@ -26,5 +28,6 @@ public interface ShoppingCartRepository extends JpaRepository<ShoppingCart, Long
      * @param userId the ID of the user
      * @return an Optional containing the found shopping cart, or empty if not found
      */
-    Optional<ShoppingCart> findByUserId(Long userId);
+    @Query("select c from ShoppingCart c where c.user.id = :userId")
+    Optional<ShoppingCart> findByUserId(@Param("userId") Long userId);
 }

@@ -17,6 +17,7 @@ import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.OrderStatus;
 import vn.edu.iuh.fit.enums.PaymentMethod;
+import vn.edu.iuh.fit.enums.PaymentStatus;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.mappers.OrderMapper;
@@ -63,6 +64,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final ShippingInfoMapper shippingInfoMapper;
 
+    private final PayPalService payPalService;
+
     @Override
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -85,7 +88,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         // Validate cart items and check inventory
-        List<CartItem> cartItems = validateAndReserveStock(request.orderItems(), customer, order);
+        List<CartItem> cartItems = validateReserveStock(request.orderItems(), customer);
 
         // Apply promotion if provided
         if (request.promotionId() != null) {
@@ -98,7 +101,8 @@ public class OrderServiceImpl implements OrderService {
         order.setItems(orderItems);
 
         // Create payment
-        Payment payment = paymentService.createPayment(order, PaymentMethod.valueOf(request.paymentMethod()));
+        PaymentMethod method = PaymentMethod.valueOf(request.paymentMethod());
+        Payment payment = paymentService.createPayment(order, method);
         order.setPayment(payment);
 
         // Save order
@@ -109,12 +113,85 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("Order created successfully with ID: {}", savedOrder.getId());
 
-        Language language= LanguageUtils.getCurrentLanguage();
-        return orderMapper.mapToOrderResponse(savedOrder, currentUserResponse.getEmail(), language);
+        // For Cash on Delivery, return order details directly
+        if (method == PaymentMethod.CASH_ON_DELIVERY) {
+            return orderMapper.mapToOrderResponse(savedOrder, currentUserResponse.getEmail(), LanguageUtils.getCurrentLanguage());
+        }
+
+        // For PayPal, create PayPal order and get approval URL
+        if (method == PaymentMethod.PAYPAL) {
+            return OrderResponse.builder()
+                    .orderNumber(savedOrder.getOrderNumber())
+                    .paypalApprovalUrl(payment.getApprovalUrl())
+                    .build();
+        }
+
+        throw new UnsupportedOperationException("Unsupported payment method: " + method);
     }
 
-    // Validate cart items belong to user and check & reserve stock
-    private List<CartItem> validateAndReserveStock(List<OrderItemRequest> orderItems, User customer, Order order) {
+    @Override
+    public OrderResponse confirmPayPalPayment(String token, String orderNumber) {
+        // Capture payment
+        payPalService.capturePayment(token);
+
+        // Get order by orderNumber
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        // Update order status
+        order.setStatus(OrderStatus.CONFIRMED);
+
+        // Update payment status
+        Payment payment = order.getPayment();
+        payment.setPaymentStatus(PaymentStatus.COMPLETED);
+        payment.setPaymentDate(LocalDateTime.now());
+
+        // Save order
+        orderRepository.save(order);
+
+        // Confirmation of deduction of physical goods in stock
+        order.getItems().forEach(item ->
+                inventoryService.confirmReservedStock(
+                        item.getSize().getId(),
+                        item.getQuantity(),
+                        "ORD-" + order.getOrderNumber() + "-" + item.getId(),
+                        order.getCustomer(),
+                        order
+                )
+        );
+
+        // Map to response
+        return orderMapper.mapToOrderResponse(
+                order,
+                order.getCustomer().getEmail(),
+                LanguageUtils.getCurrentLanguage()
+        );
+    }
+
+    @Transactional
+    @Override
+    public String cancelPayPalPayment(String orderNumber) {
+        // Get order by orderNumber
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
+
+        // Update order status
+        order.setStatus(OrderStatus.CANCELED);
+
+        // Update payment status
+        Payment payment = order.getPayment();
+        if (payment != null) {
+            payment.setPaymentStatus(PaymentStatus.CANCELED);
+            payment.setPaymentDate(LocalDateTime.now());
+        }
+
+        orderRepository.save(order);
+
+        return "Payment cancelled successfully.";
+    }
+
+    // Validate cart items belong to user and check reserve stock
+    private List<CartItem> validateReserveStock(List<OrderItemRequest> orderItems, User customer) {
         List<CartItem> cartItems = new ArrayList<>();
 
         for (OrderItemRequest item : orderItems) {
@@ -131,12 +208,6 @@ public class OrderServiceImpl implements OrderService {
             if (!inventoryService.checkAvailability(cartItem.getSize().getId(), cartItem.getQuantity())) {
                 throw new InsufficientStockException("Insufficient stock for item: " + cartItem.getProductVariant().getColor());
             }
-
-            // Generate unique reference number for stock reservation(E.g., "ORD-<orderId>-<cartItemId>-<quantity>-<timestamp>")
-            String referenceNumber = String.format("ORD-%d-%d-%d-%d", order.getId(), cartItem.getId(), cartItem.getQuantity(), System.currentTimeMillis());
-
-            // Reserve stock
-            inventoryService.reserveStock(cartItem.getSize().getId(), cartItem.getQuantity(), referenceNumber);
 
             cartItems.add(cartItem);
         }

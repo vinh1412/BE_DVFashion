@@ -9,6 +9,7 @@ package vn.edu.iuh.fit.services.impl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.AddToCartRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateCartItemQuantityRequest;
@@ -113,7 +114,7 @@ public class CartServiceImpl implements CartService {
         String referenceNumber = "CART_" + user.getId() + "_" + System.currentTimeMillis();
 
         // Reserve stock
-        boolean reserved = inventoryService.reserveStock(request.sizeId(), request.quantity(), referenceNumber);
+        boolean reserved = inventoryService.reserveStock(request.sizeId(), request.quantity(), referenceNumber, user);
 
         // If reservation fails due to insufficient stock
         if (!reserved) {
@@ -143,7 +144,7 @@ public class CartServiceImpl implements CartService {
         } catch (Exception e) {
             // If error occurs, release reserved stock
             inventoryService.releaseReservedStock(
-                    request.sizeId(), request.quantity(), referenceNumber + "_ROLLBACK"
+                    request.sizeId(), request.quantity(), referenceNumber + "_ROLLBACK", user
             );
             throw e;
         }
@@ -216,7 +217,7 @@ public class CartServiceImpl implements CartService {
         if (quantityDiff > 0) {
             // Need to reserve more stock
             boolean reserved = inventoryService.reserveStock(
-                    cartItem.getSize().getId(), quantityDiff, referenceNumber);
+                    cartItem.getSize().getId(), quantityDiff, referenceNumber, user);
 
             if (!reserved) {
                 int availableQty = inventoryService.getAvailableQuantity(cartItem.getSize().getId());
@@ -228,7 +229,7 @@ public class CartServiceImpl implements CartService {
         } else if (quantityDiff < 0) {
             // Need to release some reserved stock
             inventoryService.releaseReservedStock(
-                    cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber);
+                    cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber, user);
         }
 
         try {
@@ -247,10 +248,10 @@ public class CartServiceImpl implements CartService {
             // Rollback stock changes if error occurs
             if (quantityDiff > 0) {
                 inventoryService.releaseReservedStock(
-                        cartItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK");
+                        cartItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK", user);
             } else if (quantityDiff < 0) {
                 inventoryService.reserveStock(
-                        cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber + "_ROLLBACK");
+                        cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber + "_ROLLBACK", user);
             }
             throw e;
         }
@@ -272,7 +273,7 @@ public class CartServiceImpl implements CartService {
         // Release reserved stock
         String referenceNumber = "CART_REMOVE_" + cartItemId + "_" + System.currentTimeMillis();
         inventoryService.releaseReservedStock(
-                cartItem.getSize().getId(), cartItem.getQuantity(), referenceNumber);
+                cartItem.getSize().getId(), cartItem.getQuantity(), referenceNumber, user);
 
         cartItemRepository.delete(cartItem);
 
@@ -319,7 +320,8 @@ public class CartServiceImpl implements CartService {
             inventoryService.releaseReservedStock(
                     item.getSize().getId(),
                     item.getQuantity(),
-                    referenceNumber + "_ITEM_" + item.getId()
+                    referenceNumber + "_ITEM_" + item.getId(),
+                    user
             );
         }
 
@@ -330,6 +332,29 @@ public class CartServiceImpl implements CartService {
 
         Language currentLanguage = LanguageUtils.getCurrentLanguage();
         return shoppingCartMapper.buildCartResponse(cart, currentLanguage);
+    }
+
+    @Scheduled(cron = "0 0,30 * * * *") // Every hour at minute 0 and 30
+    @Transactional
+    @Override
+    public void autoReleaseExpiredCartItems() {
+        List<CartItem> expiredItems = cartItemRepository.findByReservedUntilBefore(LocalDateTime.now());
+
+        for (CartItem item : expiredItems) {
+            // Release reserved stock
+            String referenceNumber = "CART_EXPIRE_" + item.getId() + "_" + System.currentTimeMillis();
+            inventoryService.releaseReservedStock(
+                    item.getSize().getId(),
+                    item.getQuantity(),
+                    referenceNumber,
+                    item.getCart().getUser()
+            );
+
+            // Delete cart item
+            cartItemRepository.delete(item);
+
+            log.info("Auto-released expired cart item {} for user {}", item.getId(), item.getCart().getUser().getId());
+        }
     }
 
     // Update existing cart item quantity
@@ -346,7 +371,7 @@ public class CartServiceImpl implements CartService {
         // Generate reference number for this transaction
         String referenceNumber = "CART_UPDATE_" + existingItem.getId() + "_" + System.currentTimeMillis();
 
-        boolean reserved = inventoryService.reserveStock(existingItem.getSize().getId(), quantityDiff, referenceNumber);
+        boolean reserved = inventoryService.reserveStock(existingItem.getSize().getId(), quantityDiff, referenceNumber, existingItem.getCart().getUser());
 
         // If reservation fails due to insufficient stock
         if (!reserved) {
@@ -376,7 +401,7 @@ public class CartServiceImpl implements CartService {
         } catch (Exception e) {
             // Rollback reserved stock if error occurs
             inventoryService.releaseReservedStock(
-                    existingItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK"
+                    existingItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK", existingItem.getCart().getUser()
             );
             throw e;
         }

@@ -16,10 +16,7 @@ import vn.edu.iuh.fit.dtos.request.StockAdjustmentRequest;
 import vn.edu.iuh.fit.dtos.response.InventoryResponse;
 import vn.edu.iuh.fit.dtos.response.InventoryStatsResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
-import vn.edu.iuh.fit.entities.Inventory;
-import vn.edu.iuh.fit.entities.Size;
-import vn.edu.iuh.fit.entities.StockTransaction;
-import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.StockTransactionType;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
@@ -60,7 +57,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final SizeRepository sizeRepository;
 
     @Override
-    public boolean reserveStock(Long sizeId, int quantity, String referenceNumber) {
+    public boolean reserveStock(Long sizeId, int quantity, String referenceNumber, User user) {
         // Find inventory with pessimistic lock
         Optional<Inventory> inventoryOpt = inventoryRepository.findBySizeIdWithLock(sizeId);
 
@@ -91,6 +88,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .quantity(quantity)
                 .referenceNumber(referenceNumber)
                 .notes("Reserved for cart item")
+                .createdBy(user)
                 .build();
 
         stockTransactionRepository.save(transaction);
@@ -101,7 +99,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public void releaseReservedStock(Long sizeId, int quantity, String referenceNumber) {
+    public void releaseReservedStock(Long sizeId, int quantity, String referenceNumber, User user) {
         // Find inventory with pessimistic lock
         Optional<Inventory> inventoryOpt = inventoryRepository.findBySizeIdWithLock(sizeId);
 
@@ -121,6 +119,7 @@ public class InventoryServiceImpl implements InventoryService {
                     .quantity(quantity)
                     .referenceNumber(referenceNumber)
                     .notes("Released from cart item")
+                    .createdBy(user)
                     .build();
 
             stockTransactionRepository.save(transaction);
@@ -395,6 +394,56 @@ public class InventoryServiceImpl implements InventoryService {
                 sizeId, quantity, availableQuantity, isAvailable);
 
         return isAvailable;
+    }
+
+    @Override
+    public void confirmReservedStock(Long sizeId, int quantity, String referenceNumber, User user, Order order) {
+        Optional<Inventory> inventoryOpt = inventoryRepository.findBySizeIdWithLock(sizeId);
+        if (inventoryOpt.isEmpty()) {
+            log.warn("Inventory not found for size ID: {}", sizeId);
+            return;
+        }
+
+        Inventory inventory = inventoryOpt.get();
+
+        // Trừ thật khỏi stock và giảm reserved
+        if (inventory.getReservedQuantity() < quantity) {
+            log.warn("Reserved quantity insufficient to confirm for sizeId={}, ref={}", sizeId, referenceNumber);
+            quantity = inventory.getReservedQuantity(); // fallback
+        }
+
+        int oldStock = inventory.getQuantityInStock();
+        inventory.setQuantityInStock(Math.max(0, inventory.getQuantityInStock() - quantity));
+        inventory.setReservedQuantity(Math.max(0, inventory.getReservedQuantity() - quantity));
+
+        inventoryRepository.save(inventory);
+
+        StockTransaction transaction = StockTransaction.builder()
+                .inventory(inventory)
+                .transactionType(StockTransactionType.OUTBOUND) // Trừ kho thực
+                .quantity(quantity)
+                .orderId(order != null ? order.getId() : null)
+                .referenceNumber(referenceNumber)
+                .notes("Confirmed stock for paid order")
+                .createdBy(user)
+                .build();
+
+        stockTransactionRepository.save(transaction);
+
+        log.info("Confirmed and deducted {} items for size ID: {}, ref={}, oldStock={}, newStock={}",
+                quantity, sizeId, referenceNumber, oldStock, inventory.getQuantityInStock());
+    }
+
+    @Override
+    public void releaseReservedStockByOrder(String orderNumber) {
+        List<StockTransaction> reservedTransactions =
+                stockTransactionRepository.findByReferenceNumberStartingWith("ORD-" + orderNumber);
+
+        for (StockTransaction t : reservedTransactions) {
+            releaseReservedStock(t.getInventory().getSize().getId(), t.getQuantity(), t.getReferenceNumber(), null);
+        }
+
+        log.info("Released reserved stock for order {}", orderNumber);
     }
 
     // Helper method to create a new inventory record for a size

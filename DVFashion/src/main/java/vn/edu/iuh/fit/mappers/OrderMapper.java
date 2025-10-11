@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.enums.PaymentMethod;
+import vn.edu.iuh.fit.enums.PaymentStatus;
 
 import java.math.BigDecimal;
 
@@ -46,7 +48,9 @@ public class OrderMapper {
                 order.getDeliveredDate(),
                 orderItemMapper.mapOrderItemResponses(order.getItems(), language),
                 paymentMapper.mapPaymentResponse(order.getPayment()),
-                order.getPromotion() != null ? promotionMapper.mapPromotionOrderResponse(order.getPromotion(), language) : null
+                order.getPromotion() != null ? promotionMapper.mapPromotionOrderResponse(order.getPromotion(), language) : null,
+                order.getPayment().getPaymentMethod() == PaymentMethod.PAYPAL
+                        && order.getPayment().getPaymentStatus() == PaymentStatus.PENDING ? order.getPayment().getApprovalUrl() : null
         );
     }
 
