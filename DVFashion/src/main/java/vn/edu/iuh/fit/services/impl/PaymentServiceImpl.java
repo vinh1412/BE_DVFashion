@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import vn.edu.iuh.fit.dtos.response.PayPalCreateResponse;
 import vn.edu.iuh.fit.entities.Order;
 import vn.edu.iuh.fit.entities.Payment;
 import vn.edu.iuh.fit.enums.PaymentMethod;
@@ -42,8 +43,9 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         if (paymentMethod == PaymentMethod.PAYPAL) {
-            String approvalUrl = payPalService.createPayment(totalAmount, order.getOrderNumber());
-            payment.setApprovalUrl(approvalUrl);
+            PayPalCreateResponse approvalUrl = payPalService.createPayment(totalAmount, order.getOrderNumber());
+            payment.setPaypalPaymentId(approvalUrl.paypalPaymentId()); // Assuming approvalUrl is used as PayPal payment ID for simplicity
+            payment.setApprovalUrl(approvalUrl.approvalUrl());
         }
 
         return payment;

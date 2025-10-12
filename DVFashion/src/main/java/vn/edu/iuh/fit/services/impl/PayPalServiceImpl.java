@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import vn.edu.iuh.fit.config.PayPalClient;
+import vn.edu.iuh.fit.dtos.response.PayPalCreateResponse;
+import vn.edu.iuh.fit.exceptions.PaypalException;
 import vn.edu.iuh.fit.services.PayPalService;
 
 import java.math.BigDecimal;
@@ -47,7 +49,7 @@ public class PayPalServiceImpl implements PayPalService {
     private String cancelUrl;
 
     @Override
-    public String createPayment(BigDecimal total, String orderNumber) {
+    public PayPalCreateResponse createPayment(BigDecimal total, String orderNumber) {
         // Get access token from PayPal
         String accessToken = payPalClient.getAccessToken();
 
@@ -82,22 +84,35 @@ public class PayPalServiceImpl implements PayPalService {
                 (Class<Map<String, Object>>) (Class<?>) Map.class
         );
 
-        // Extract approval URL from response
+        // Extract id, approval URL from response
         Map<String, Object> responseBody = response.getBody();
 
         // Validate response body
-        if (responseBody == null || !responseBody.containsKey("links")) {
-            throw new RuntimeException("Invalid response from PayPal API: missing 'links'");
+        if (responseBody == null) {
+            throw new PaypalException("Invalid response from PayPal API: body is null");
         }
 
+        // Validate response body contains 'id'
+        if (!responseBody.containsKey("id")) {
+            throw new PaypalException("Invalid response from PayPal API: missing 'id'");
+        }
+
+        // Validate response body contains 'links'
+        if (!responseBody.containsKey("links")) {
+            throw new PaypalException("Invalid response from PayPal API: missing 'links'");
+        }
+
+        // Get order ID and approval URL
+        String payPalOrderId = responseBody.get("id").toString();
         List<Map<String, Object>> links = (List<Map<String, Object>>) responseBody.get("links");
 
-        // Return approval URL directly (no temp variable)
-        return links.stream()
+        String approvalUrl= links.stream()
                 .filter(link -> "approve".equals(link.get("rel")))
                 .findFirst()
                 .map(link -> link.get("href").toString())
                 .orElseThrow(() -> new RuntimeException("Approval URL not found"));
+
+        return new PayPalCreateResponse(payPalOrderId, approvalUrl);
     }
 
     @Override

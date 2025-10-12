@@ -143,4 +143,18 @@ public class GlobalExceptionHandler  {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
     }
+
+    @ExceptionHandler(OrderException.class)
+    public ResponseEntity<ApiResponse<Object>> handleOrderException(OrderException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(PaypalException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePaypalException(PaypalException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
 }

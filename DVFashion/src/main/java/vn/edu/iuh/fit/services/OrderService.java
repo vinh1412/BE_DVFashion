@@ -6,7 +6,9 @@
 
 package vn.edu.iuh.fit.services;
 
+import vn.edu.iuh.fit.dtos.request.AdminUpdateOrderRequest;
 import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
 
 /*
@@ -40,4 +42,22 @@ public interface OrderService {
      * @return a message indicating the cancellation status
      */
     String cancelPayPalPayment(String orderNumber);
+
+    /**
+     * Update an order by the user.
+     *
+     * @param orderNumber the order number to update
+     * @param request     the update order request containing updated details
+     * @return the updated order response
+     */
+    OrderResponse updateOrderByUser(String orderNumber, UpdateOrderByUserRequest request);
+
+    /**
+     * Update an order by an admin or staff member.
+     *
+     * @param orderNumber the order number to update
+     * @param request     the admin update order request containing updated details
+     * @return the updated order response
+     */
+    OrderResponse adminUpdateOrder(String orderNumber, AdminUpdateOrderRequest request);
 }

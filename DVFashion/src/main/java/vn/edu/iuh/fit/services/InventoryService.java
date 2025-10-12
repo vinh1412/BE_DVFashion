@@ -139,4 +139,11 @@ public interface InventoryService {
      * @param orderNumber the unique order number
      */
     void releaseReservedStockByOrder(String orderNumber);
+
+    /**
+     * Process return stock for a given order
+     *
+     * @param order the order for which to process return stock
+     */
+    void processReturnStock(Order order);
 }

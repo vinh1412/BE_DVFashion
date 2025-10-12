@@ -446,6 +446,66 @@ public class InventoryServiceImpl implements InventoryService {
         log.info("Released reserved stock for order {}", orderNumber);
     }
 
+    @Override
+    public void processReturnStock(Order order) {
+        log.info("Processing stock return for Order #{}", order.getOrderNumber());
+
+        // Validate the order and its items
+        if (order == null || order.getItems() == null || order.getItems().isEmpty()) {
+            log.warn("Order or its items are null/empty. Cannot process stock return.");
+            return;
+        }
+
+        // Get the user performing the action (likely an admin/staff)
+        User currentUser = userRepository.findById(userService.getCurrentUser().getId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Iterate through each item in the returned order
+        for (OrderItem item : order.getItems()) {
+            if (item.getSize() == null) {
+                log.warn("Skipping order item with ID {} because it has no size information.", item.getId());
+                continue;
+            }
+
+            Long sizeId = item.getSize().getId();
+            int returnedQuantity = item.getQuantity();
+
+            // Find the inventory for the item's size with a pessimistic lock to prevent race conditions
+            Optional<Inventory> inventoryOpt = inventoryRepository.findBySizeIdWithLock(sizeId);
+
+            if (inventoryOpt.isEmpty()) {
+                // This is a critical issue, as a product that was sold must have had an inventory record.
+                log.error("CRITICAL: Inventory not found for returned size ID: {}. Cannot process return for this item in order {}", sizeId, order.getOrderNumber());
+                continue; // Skip this item and proceed with the next
+            }
+
+            Inventory inventory = inventoryOpt.get();
+            int oldQuantity = inventory.getQuantityInStock();
+
+            // Increase the stock quantity
+            inventory.setQuantityInStock(oldQuantity + returnedQuantity);
+            inventoryRepository.save(inventory);
+
+            // Create a stock transaction log for auditing purposes
+            StockTransaction transaction = StockTransaction.builder()
+                    .inventory(inventory)
+                    .transactionType(StockTransactionType.RETURN)
+                    .quantity(returnedQuantity)
+                    .orderId(order.getId())
+                    .referenceNumber("RET-" + order.getOrderNumber())
+                    .notes("Stock returned from order " + order.getOrderNumber())
+                    .createdBy(currentUser)
+                    .build();
+
+            stockTransactionRepository.save(transaction);
+
+            log.info("Returned {} units to stock for size ID {}. Old stock: {}, New stock: {}",
+                    returnedQuantity, sizeId, oldQuantity, inventory.getQuantityInStock());
+        }
+
+        log.info("Finished processing stock return for Order #{}", order.getOrderNumber());
+    }
+
     // Helper method to create a new inventory record for a size
     private Inventory createInventoryForSize(Size size) {
         return Inventory.builder()

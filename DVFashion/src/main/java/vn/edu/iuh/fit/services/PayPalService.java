@@ -6,6 +6,8 @@
 
 package vn.edu.iuh.fit.services;
 
+import vn.edu.iuh.fit.dtos.response.PayPalCreateResponse;
+
 import java.math.BigDecimal;
 
 /*
@@ -22,7 +24,7 @@ public interface PayPalService {
      * @param orderNumber the unique order number associated with the payment
      * @return the approval URL for the PayPal payment
      */
-    String createPayment(BigDecimal total, String orderNumber);
+    PayPalCreateResponse createPayment(BigDecimal total, String orderNumber);
 
     /**
      * Capture a PayPal payment for the given order ID (PayPal transaction ID) after the user approves the payment.
