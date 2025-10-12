@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /*
- * @description:
+ * @description: Implementation of OrderItemService for managing order items
  * @author: Tran Hien Vinh
  * @date:   28/09/2025
  * @version:    1.0
@@ -33,7 +33,7 @@ public class OrderItemServiceImpl implements OrderItemService {
                     .order(order)
                     .size(cartItem.getSize())
                     .quantity(cartItem.getQuantity())
-                    .unitPrice(calculateUnitPrice(cartItem))
+                    .unitPrice(cartItem.getUnitPrice())
                     .discount(calculateDiscount(cartItem, order.getPromotion()))
                     .build();
 
@@ -42,7 +42,7 @@ public class OrderItemServiceImpl implements OrderItemService {
     }
 
     private BigDecimal calculateUnitPrice(CartItem cartItem) {
-        BigDecimal basePrice = cartItem.getProductVariant().getProduct().getPrice();
+        BigDecimal basePrice = cartItem.getUnitPrice();
         BigDecimal additionalPrice = cartItem.getProductVariant().getAddtionalPrice() != null
                 ? cartItem.getProductVariant().getAddtionalPrice()
                 : BigDecimal.ZERO;
@@ -52,7 +52,8 @@ public class OrderItemServiceImpl implements OrderItemService {
     private BigDecimal calculateDiscount(CartItem cartItem, Promotion promotion) {
         if (promotion == null) return BigDecimal.ZERO;
 
-        BigDecimal unitPrice = calculateUnitPrice(cartItem);
+//        BigDecimal unitPrice = calculateUnitPrice(cartItem);
+        BigDecimal unitPrice = cartItem.getUnitPrice();
         return switch (promotion.getType()) {
             case PERCENTAGE -> unitPrice.multiply(promotion.getValue()).divide(BigDecimal.valueOf(100));
             case FIXED_AMOUNT -> promotion.getValue();

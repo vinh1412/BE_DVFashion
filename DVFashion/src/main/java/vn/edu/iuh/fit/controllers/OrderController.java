@@ -9,11 +9,12 @@ package vn.edu.iuh.fit.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import vn.edu.iuh.fit.constants.RoleConstant;
+import vn.edu.iuh.fit.dtos.request.AdminUpdateOrderRequest;
 import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
 import vn.edu.iuh.fit.services.OrderService;
@@ -34,5 +35,25 @@ public class OrderController {
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         OrderResponse orderResponse = orderService.createOrder(request);
         return ResponseEntity.ok(ApiResponse.success(orderResponse));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
+    @PutMapping("/{orderNumber}/user")
+    public ResponseEntity<ApiResponse<OrderResponse>> updateOrderByUser(
+            @PathVariable String orderNumber,
+            @Valid @RequestBody UpdateOrderByUserRequest request
+    ) {
+        OrderResponse response = orderService.updateOrderByUser(orderNumber, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Order updated"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @PutMapping("/{orderNumber}")
+    public ResponseEntity<ApiResponse<OrderResponse>> adminUpdateOrder(
+            @PathVariable String orderNumber,
+            @Valid @RequestBody AdminUpdateOrderRequest request
+    ) {
+        OrderResponse response = orderService.adminUpdateOrder(orderNumber, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Order updated"));
     }
 }

@@ -8,10 +8,12 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import vn.edu.iuh.fit.dtos.response.PayPalCreateResponse;
 import vn.edu.iuh.fit.entities.Order;
 import vn.edu.iuh.fit.entities.Payment;
 import vn.edu.iuh.fit.enums.PaymentMethod;
 import vn.edu.iuh.fit.enums.PaymentStatus;
+import vn.edu.iuh.fit.services.PayPalService;
 import vn.edu.iuh.fit.services.PaymentService;
 import vn.edu.iuh.fit.utils.OrderUtils;
 
@@ -26,18 +28,27 @@ import java.math.BigDecimal;
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
+    private final PayPalService payPalService;
 
     @Override
     public Payment createPayment(Order order, PaymentMethod paymentMethod) {
         BigDecimal totalAmount = calculateOrderTotal(order);
 
-        return Payment.builder()
+        Payment payment = Payment.builder()
                 .transactionId(OrderUtils.generateTransactionId())
                 .amount(totalAmount)
                 .paymentMethod(paymentMethod)
                 .paymentStatus(PaymentStatus.PENDING)
                 .order(order)
                 .build();
+
+        if (paymentMethod == PaymentMethod.PAYPAL) {
+            PayPalCreateResponse approvalUrl = payPalService.createPayment(totalAmount, order.getOrderNumber());
+            payment.setPaypalPaymentId(approvalUrl.paypalPaymentId()); // Assuming approvalUrl is used as PayPal payment ID for simplicity
+            payment.setApprovalUrl(approvalUrl.approvalUrl());
+        }
+
+        return payment;
     }
 
     private BigDecimal calculateOrderTotal(Order order) {
