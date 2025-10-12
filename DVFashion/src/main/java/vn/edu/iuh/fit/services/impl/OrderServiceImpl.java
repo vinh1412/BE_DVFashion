@@ -9,6 +9,8 @@ package vn.edu.iuh.fit.services.impl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.*;
@@ -320,6 +322,38 @@ public class OrderServiceImpl implements OrderService {
                         LanguageUtils.getCurrentLanguage()
                 ))
                 .toList();
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getOrdersByCurrentCustomerPaging(Pageable pageable) {
+        UserResponse currentUser = userService.getCurrentUser();
+
+        Page<Order> orders = orderRepository.findByCustomerId(currentUser.getId(), pageable);
+
+        Page<OrderResponse> orderResponsePage = orders.map(order -> orderMapper.mapToOrderResponse(
+                order,
+                currentUser.getEmail(),
+                LanguageUtils.getCurrentLanguage()
+        ));
+
+        return PageResponse.from(orderResponsePage);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getOrdersByCustomerIdPaging(Long customerId, Pageable pageable) {
+        // Verify customer exists
+        User customer = userRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer not found with ID: " + customerId));
+
+        Page<Order> orders = orderRepository.findByCustomerId(customerId, pageable);
+
+        Page<OrderResponse> orderResponsePage = orders.map(order -> orderMapper.mapToOrderResponse(
+                order,
+                customer.getEmail(),
+                LanguageUtils.getCurrentLanguage()
+        ));
+
+        return PageResponse.from(orderResponsePage);
     }
 
     // Validate cart items belong to user and check reserve stock
