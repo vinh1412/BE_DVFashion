@@ -290,6 +290,38 @@ public class OrderServiceImpl implements OrderService {
         );
     }
 
+    @Override
+    public List<OrderResponse> getOrdersByCurrentCustomer() {
+        UserResponse currentUser = userService.getCurrentUser();
+
+        List<Order> orders = orderRepository.findByCustomerIdOrderByOrderDateDesc(currentUser.getId());
+
+        return orders.stream()
+                .map(order -> orderMapper.mapToOrderResponse(
+                        order,
+                        currentUser.getEmail(),
+                        LanguageUtils.getCurrentLanguage()
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<OrderResponse> getOrdersByCustomerId(Long customerId) {
+        // Verify customer exists
+        User customer = userRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer not found with ID: " + customerId));
+
+        List<Order> orders = orderRepository.findByCustomerIdOrderByOrderDateDesc(customerId);
+
+        return orders.stream()
+                .map(order -> orderMapper.mapToOrderResponse(
+                        order,
+                        customer.getEmail(),
+                        LanguageUtils.getCurrentLanguage()
+                ))
+                .toList();
+    }
+
     // Validate cart items belong to user and check reserve stock
     private List<CartItem> validateReserveStock(List<OrderItemRequest> orderItems, User customer) {
         List<CartItem> cartItems = new ArrayList<>();

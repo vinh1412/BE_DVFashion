@@ -19,6 +19,8 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
 import vn.edu.iuh.fit.services.OrderService;
 
+import java.util.List;
+
 /*
  * @description: Controller for handling order-related endpoints
  * @author: Tran Hien Vinh
@@ -62,4 +64,19 @@ public class OrderController {
         OrderResponse orderResponse = orderService.getOrderByOrderNumber(orderNumber);
         return ResponseEntity.ok(ApiResponse.success(orderResponse, "Order retrieved"));
     }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
+    @GetMapping("/my-orders")
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getMyOrders() {
+        List<OrderResponse> orders = orderService.getOrdersByCurrentCustomer();
+        return ResponseEntity.ok(ApiResponse.success(orders, "Orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getOrdersByCustomerId(@PathVariable Long customerId) {
+        List<OrderResponse> orders = orderService.getOrdersByCustomerId(customerId);
+        return ResponseEntity.ok(ApiResponse.success(orders, "Customer orders retrieved"));
+    }
+
 }

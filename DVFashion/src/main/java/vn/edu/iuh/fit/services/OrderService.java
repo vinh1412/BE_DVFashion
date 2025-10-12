@@ -11,6 +11,8 @@ import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
 
+import java.util.List;
+
 /*
  * @description: Service interface for managing orders
  * @author: Tran Hien Vinh
@@ -68,4 +70,20 @@ public interface OrderService {
      * @return the order response if found
      */
     OrderResponse getOrderByOrderNumber(String orderNumber);
+
+    /**
+     * Get all orders for the current customer.
+     *
+     * @return list of order responses for the current customer
+     */
+    List<OrderResponse> getOrdersByCurrentCustomer();
+
+    /**
+     * Get all orders for a specific customer (admin/staff only).
+     *
+     * @param customerId the customer ID to retrieve orders for
+     * @return list of order responses for the specified customer
+     */
+    List<OrderResponse> getOrdersByCustomerId(Long customerId);
+
 }
