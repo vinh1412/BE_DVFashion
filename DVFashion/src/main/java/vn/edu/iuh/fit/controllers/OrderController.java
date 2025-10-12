@@ -56,4 +56,10 @@ public class OrderController {
         OrderResponse response = orderService.adminUpdateOrder(orderNumber, request);
         return ResponseEntity.ok(ApiResponse.success(response, "Order updated"));
     }
+
+    @GetMapping("/{orderNumber}")
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderByOrderNumber(@PathVariable String orderNumber) {
+        OrderResponse orderResponse = orderService.getOrderByOrderNumber(orderNumber);
+        return ResponseEntity.ok(ApiResponse.success(orderResponse, "Order retrieved"));
+    }
 }

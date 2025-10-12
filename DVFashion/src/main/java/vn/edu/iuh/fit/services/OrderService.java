@@ -60,4 +60,12 @@ public interface OrderService {
      * @return the updated order response
      */
     OrderResponse adminUpdateOrder(String orderNumber, AdminUpdateOrderRequest request);
+
+    /**
+     * Retrieve an order by its order number.
+     *
+     * @param orderNumber the unique order number
+     * @return the order response if found
+     */
+    OrderResponse getOrderByOrderNumber(String orderNumber);
 }

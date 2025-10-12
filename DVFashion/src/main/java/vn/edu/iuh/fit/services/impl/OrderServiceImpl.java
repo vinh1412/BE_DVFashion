@@ -13,11 +13,7 @@ import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
-import vn.edu.iuh.fit.entities.embedded.ShippingInfo;
-import vn.edu.iuh.fit.enums.Language;
-import vn.edu.iuh.fit.enums.OrderStatus;
-import vn.edu.iuh.fit.enums.PaymentMethod;
-import vn.edu.iuh.fit.enums.PaymentStatus;
+import vn.edu.iuh.fit.enums.*;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.exceptions.OrderException;
@@ -270,6 +266,26 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.mapToOrderResponse(
                 order,
                 order.getCustomer().getEmail(),
+                LanguageUtils.getCurrentLanguage()
+        );
+    }
+
+    @Override
+    public OrderResponse getOrderByOrderNumber(String orderNumber) {
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new NotFoundException("Order not found with order number: " + orderNumber));
+
+        // Get current user to check ownership (for customers) or allow all access (for admin/staff)
+        UserResponse currentUser = userService.getCurrentUser();
+
+        // If user is customer, check ownership
+        if (currentUser.getRoles().contains("ROLE_CUSTOMER")  && !Objects.equals(order.getCustomer().getId(), currentUser.getId())) {
+            throw new UnauthorizedException("You are not allowed to view this order");
+        }
+
+        return orderMapper.mapToOrderResponse(
+                order,
+                currentUser.getEmail(),
                 LanguageUtils.getCurrentLanguage()
         );
     }
