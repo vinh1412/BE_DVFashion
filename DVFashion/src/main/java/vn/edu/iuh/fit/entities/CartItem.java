@@ -56,7 +56,7 @@ public class CartItem {
     @PrePersist
     public void prePersist() {
         this.addedAt = LocalDateTime.now();
-        this.reservedUntil = LocalDateTime.now().plusMinutes(30);
+        this.reservedUntil = LocalDateTime.now().plusMinutes(30); // Example: reserve for 30 minutes
     }
 
 }

@@ -6,6 +6,8 @@
 
 package vn.edu.iuh.fit.dtos.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
 import vn.edu.iuh.fit.enums.OrderStatus;
 
 import java.math.BigDecimal;
@@ -18,6 +20,8 @@ import java.util.List;
  * @date:   22/09/2025
  * @version:    1.0
  */
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record OrderResponse(
          Long id,
 
@@ -51,5 +55,7 @@ public record OrderResponse(
 
          PaymentResponse payment,
 
-         PromotionOrderResponse promotion
+         PromotionOrderResponse promotion,
+
+         String paypalApprovalUrl
 ) {}
