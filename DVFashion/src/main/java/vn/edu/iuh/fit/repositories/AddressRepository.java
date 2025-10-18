@@ -49,6 +49,7 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     @Query("""
         select (count(a) > 0) from Address a
         where a.user.id = :userId
+          and a.id != :excludeId
           and a.isDeleted = false
           and a.shippingInfo.phone = :phone
           and lower(a.shippingInfo.country) = lower(:country)
@@ -57,7 +58,7 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
           and lower(a.shippingInfo.ward) = lower(:ward)
           and lower(a.shippingInfo.street) = lower(:street)
         """)
-    boolean existsDuplicate(Long userId, String phone, String country, String city, String district, String ward, String street);
+    boolean existsDuplicate(Long userId, Long excludeId, String phone, String country, String city, String district, String ward, String street);
 
     /**
      * Finds an address by its ID and the associated user's ID.
