@@ -36,6 +36,9 @@ public class ReviewTranslation {
     @Column(columnDefinition = "TEXT")
     private String comment;
 
+    @Column(name = "admin_comment", columnDefinition = "TEXT")
+    private String adminComment;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id", nullable = false)
     private Review review;

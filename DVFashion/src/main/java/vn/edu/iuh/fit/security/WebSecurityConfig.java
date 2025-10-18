@@ -130,6 +130,7 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, path("/product-variants/*/images/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/product-variants/*/sizes/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/cart/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/reviews/product/**")).permitAll()
                         .requestMatchers(HttpMethod.POST, path("/cart/**")).permitAll()
 
 
