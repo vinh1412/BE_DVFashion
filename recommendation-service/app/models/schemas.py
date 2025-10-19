@@ -11,5 +11,4 @@ class ProductRecommendation(BaseModel):
     similarity_score: float
     name: str
     category: str
-    brand: str
     price: Optional[float]

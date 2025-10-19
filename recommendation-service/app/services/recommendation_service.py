@@ -22,7 +22,6 @@ class RecommendationEngine:
             self.products_df['description'].fillna('') + ' ' +
             self.products_df['material'].fillna('') + ' ' +
             self.products_df['category_name'].fillna('') + ' ' +
-            self.products_df['brand_name'].fillna('') + ' ' +
             self.products_df['color'].fillna('')
         )
 
@@ -69,7 +68,6 @@ class RecommendationEngine:
                 'similarity_score': float(cosine_similarities[idx]),
                 'name': product['name'],
                 'category': product['category_name'],
-                'brand': product['brand_name'],
                 'price': float(product['price']) if product['price'] else None
             })
 
