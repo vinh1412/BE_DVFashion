@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+from enum import Enum
 
 # Schema for recommendation request and response
 class RecommendationRequest(BaseModel):
@@ -12,3 +13,10 @@ class ProductRecommendation(BaseModel):
     name: str
     category: str
     price: Optional[float]
+    recommendation_type: str
+
+class HybridRecommendationRequest(BaseModel):
+    user_id: Optional[int] = None
+    product_id: Optional[int] = None
+    num_recommendations: int = 10
+    use_collaborative: bool = True

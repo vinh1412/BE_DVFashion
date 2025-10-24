@@ -3,6 +3,7 @@ from app.db.database import get_db_connection
 
 # Function to fetch products from the database
 def fetch_products():
+    """Get all active products with their translations and variants"""
     query = """
     SELECT 
         p.id,

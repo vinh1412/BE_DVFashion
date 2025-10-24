@@ -15,14 +15,18 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import vn.edu.iuh.fit.dtos.request.HybridRecommendationRequest;
 import vn.edu.iuh.fit.dtos.request.RecommendationRequest;
+import vn.edu.iuh.fit.dtos.request.UserInteractionRequest;
 import vn.edu.iuh.fit.dtos.response.ProductRecommendationResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
 import vn.edu.iuh.fit.entities.Product;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.repositories.ProductRepository;
 import vn.edu.iuh.fit.services.ProductService;
 import vn.edu.iuh.fit.services.RecommendationService;
+import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 
 import java.util.Collections;
@@ -47,6 +51,8 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final ProductService productService;
 
     private final ProductRepository productRepository;
+
+    private final UserService userService;
 
     @Override
     public List<ProductResponse> getRecommendations(Long productId, int numRecommendations) {
@@ -85,7 +91,47 @@ public class RecommendationServiceImpl implements RecommendationService {
         }
     }
 
-    // Fallback method to get recommendations based on category and brand
+    @Override
+    public List<ProductResponse> getHybridRecommendations(Long userId, Long productId, int numRecommendations) {
+        if (userId != null) {
+            // Verify user exists
+            userService.findById(userId);
+        }
+
+       if (productId != null) {
+            // Verify product exists
+            productRepository.findById(productId)
+                    .orElseThrow(() -> new NotFoundException("Product not found with id: " + productId));
+        }
+        try {
+            HybridRecommendationRequest request = HybridRecommendationRequest.builder()
+                    .userId(userId) // can be null
+                    .productId(productId)
+                    .numRecommendations(numRecommendations)
+                    .useCollaborative(true)
+                    .build();
+
+            ResponseEntity<List<ProductRecommendationResponse>> response = restTemplate.exchange(
+                    recommendationServiceUrl + "/recommendations",
+                    HttpMethod.POST,
+                    new HttpEntity<>(request),
+                    new ParameterizedTypeReference<List<ProductRecommendationResponse>>() {}
+            );
+
+            List<ProductRecommendationResponse> recommendations = response.getBody();
+            Language language = LanguageUtils.getCurrentLanguage();
+
+            return recommendations.stream()
+                    .map(rec -> productService.getProductById(rec.productId(), language))
+                    .toList();
+
+        } catch (Exception e) {
+            log.error("Error getting hybrid recommendations: {}", e.getMessage());
+            return getFallbackRecommendations(productId, numRecommendations);
+        }
+    }
+
+    // Fallback method to get recommendations based on category
     private List<ProductResponse> getFallbackRecommendations(Long productId, int numRecommendations) {
         try {
             // Get the original product to find similar products

@@ -6,8 +6,6 @@
 
 package vn.edu.iuh.fit.controllers;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseToken;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -21,14 +19,11 @@ import vn.edu.iuh.fit.dtos.response.SignInResponse;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.User;
-import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
-import vn.edu.iuh.fit.exceptions.MissingTokenException;
 import vn.edu.iuh.fit.services.AuthService;
 import vn.edu.iuh.fit.services.EmailService;
 import vn.edu.iuh.fit.services.OtpAuthService;
 import vn.edu.iuh.fit.services.UserService;
 
-import java.util.Map;
 
 /*
  * @description: Controller for handling authentication requests

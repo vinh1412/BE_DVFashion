@@ -27,12 +27,18 @@ import java.util.List;
 public class RecommendationController {
     private final RecommendationService recommendationService;
 
-    @GetMapping("/products/{productId}")
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getProductRecommendations(
-            @PathVariable Long productId,
+    @GetMapping("/products")
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> getHybridRecommendations(
+            @RequestParam(required = false) Long userId,
+            @RequestParam Long productId,
             @RequestParam(defaultValue = "5") int limit) {
 
-        List<ProductResponse> recommendations = recommendationService.getRecommendations(productId, limit);
-        return ResponseEntity.ok(ApiResponse.success(recommendations, "Recommendations retrieved successfully"));
+
+        List<ProductResponse> recommendations = recommendationService
+                .getHybridRecommendations(userId, productId, limit);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(recommendations, "Hybrid recommendations retrieved successfully")
+        );
     }
 }
