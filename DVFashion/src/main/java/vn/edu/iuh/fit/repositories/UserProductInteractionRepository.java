@@ -7,10 +7,13 @@
 package vn.edu.iuh.fit.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.UserProductInteraction;
 import vn.edu.iuh.fit.enums.InteractionType;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /*
@@ -33,5 +36,52 @@ public interface UserProductInteractionRepository extends JpaRepository<UserProd
             Long userId,
             Long productId,
             InteractionType interactionType
+    );
+
+    /**
+     * Counts the number of distinct user-product interactions of a specific type
+     * that occurred after a recommendation was made, since a given date.
+     *
+     * @param interactionType The type of interaction to count.
+     * @param fromDate        The date from which to start counting.
+     * @return The count of distinct interactions.
+     */
+    @Query("""
+        SELECT COUNT(DISTINCT upi.id)
+        FROM UserProductInteraction upi
+        WHERE upi.interactionType = :interactionType
+        AND upi.createdAt >= :fromDate
+        AND EXISTS (
+            SELECT 1 FROM RecommendationLog rl 
+            WHERE rl.recommendedProductId = upi.product.id 
+            AND rl.userId = upi.user.id
+            AND rl.createdAt <= upi.createdAt
+        )
+        """)
+    Long countInteractionsByTypeAfterRecommendation(
+            @Param("interactionType") InteractionType interactionType,
+            @Param("fromDate") LocalDateTime fromDate
+    );
+
+    /**
+     * Counts the number of distinct user-product interactions of a specific type
+     * that occurred after a recommendation was made, for all time.
+     *
+     * @param interactionType The type of interaction to count.
+     * @return The count of distinct interactions.
+     */
+    @Query("""
+        SELECT COUNT(DISTINCT upi.id)
+        FROM UserProductInteraction upi
+        WHERE upi.interactionType = :interactionType
+        AND EXISTS (
+            SELECT 1 FROM RecommendationLog rl 
+            WHERE rl.recommendedProductId = upi.product.id 
+            AND rl.userId = upi.user.id
+            AND rl.createdAt <= upi.createdAt
+        )
+        """)
+    Long countInteractionsByTypeAfterRecommendationAllTime(
+            @Param("interactionType") InteractionType interactionType
     );
 }

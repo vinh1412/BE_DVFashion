@@ -6,11 +6,12 @@
 
 package vn.edu.iuh.fit.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import vn.edu.iuh.fit.dtos.response.ApiResponse;
-import vn.edu.iuh.fit.dtos.response.ProductResponse;
+import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.services.RecommendationService;
 
 import java.util.List;
@@ -41,4 +42,38 @@ public class RecommendationController {
                 ApiResponse.success(recommendations, "Hybrid recommendations retrieved successfully")
         );
     }
+
+    @GetMapping("/stats/top-products")
+    public ResponseEntity<ApiResponse<List<TopRecommendedProductResponse>>> getTopRecommendedProducts(
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false) Integer days
+    ) {
+        List<TopRecommendedProductResponse> topProducts = recommendationService.getTopRecommendedProducts(limit, days);
+        return ResponseEntity.ok(
+                ApiResponse.success(topProducts, "Top recommended products retrieved successfully")
+        );
+    }
+
+    @GetMapping("/stats/analytics")
+    public ResponseEntity<ApiResponse<RecommendationAnalyticsResponse>> getRecommendationAnalytics(
+            @RequestParam(required = false) Integer days
+    ) {
+        RecommendationAnalyticsResponse analytics = recommendationService.getRecommendationAnalytics(days);
+        return ResponseEntity.ok(
+                ApiResponse.success(analytics, "Recommendation analytics retrieved successfully")
+        );
+    }
+
+    @GetMapping("/stats/products")
+    public ResponseEntity<ApiResponse<List<ProductRecommendationStatsResponse>>> getProductRecommendationStats(
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false) Integer days
+    ) {
+        List<ProductRecommendationStatsResponse> stats =
+                recommendationService.getProductRecommendationStats(limit, days);
+        return ResponseEntity.ok(
+                ApiResponse.success(stats, "Product recommendation statistics retrieved successfully")
+        );
+    }
+
 }
