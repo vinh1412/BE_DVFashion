@@ -15,6 +15,12 @@ async def startup_event():
     recommendation_engine.load_data()
     print("✅ Data loaded successfully.")
 
+# Endpoint to reload configuration
+@router.post("/reload-config")
+async def reload_config():
+    recommendation_engine.load_config()
+    return {"message": "Configuration reloaded successfully"}
+
 # Endpoint to reload data    
 @router.post("/reload-data")
 async def reload_data():
