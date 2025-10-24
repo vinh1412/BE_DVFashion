@@ -65,6 +65,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final PayPalService payPalService;
 
+    private final UserInteractionService userInteractionService;
+
     @Override
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -106,6 +108,20 @@ public class OrderServiceImpl implements OrderService {
 
         // Save order
         Order savedOrder = orderRepository.save(order);
+
+        // Track PURCHASE interactions for each item
+        try {
+            for (OrderItem item : savedOrder.getItems()) {
+                userInteractionService.trackInteraction(
+                        customer.getId(),
+                        item.getProductVariant().getProduct().getId(),
+                        InteractionType.PURCHASE,
+                        null
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Could not track PURCHASE interactions: {}", e.getMessage());
+        }
 
         // Clear processed cart items
         cartItemRepository.deleteAll(cartItems);

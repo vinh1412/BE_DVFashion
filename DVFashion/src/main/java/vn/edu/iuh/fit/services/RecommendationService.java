@@ -7,7 +7,6 @@
 package vn.edu.iuh.fit.services;
 
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
-
 import java.util.List;
 
 /*
@@ -25,4 +24,14 @@ public interface RecommendationService {
      * @return A list of recommended products.
      */
     List<ProductResponse> getRecommendations(Long productId, int numRecommendations);
+
+    /**
+     * Get hybrid product recommendations based on user ID and/or product ID.
+     *
+     * @param userId             The ID of the user (optional).
+     * @param productId          The ID of the product (optional).
+     * @param numRecommendations The number of recommendations to retrieve.
+     * @return A list of recommended products.
+     */
+    List<ProductResponse> getHybridRecommendations(Long userId, Long productId, int numRecommendations);
 }

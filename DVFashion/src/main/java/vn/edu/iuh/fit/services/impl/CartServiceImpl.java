@@ -17,6 +17,7 @@ import vn.edu.iuh.fit.dtos.response.CartItemResponse;
 import vn.edu.iuh.fit.dtos.response.CartResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.*;
+import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.exceptions.CartLimitExceededException;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
@@ -26,6 +27,7 @@ import vn.edu.iuh.fit.mappers.ShoppingCartMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.CartService;
 import vn.edu.iuh.fit.services.InventoryService;
+import vn.edu.iuh.fit.services.UserInteractionService;
 import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 
@@ -61,6 +63,8 @@ public class CartServiceImpl implements CartService {
     private final UserService userService;
 
     private final ShoppingCartMapper shoppingCartMapper;
+
+    private final UserInteractionService userInteractionService;
 
     private static final int MAX_QUANTITY_PER_ITEM = 20;
     private static final int MAX_DIFFERENT_ITEMS_IN_CART = 70;
@@ -137,6 +141,13 @@ public class CartServiceImpl implements CartService {
 
             log.info("Added {} items of size {} to cart for user {}",
                     request.quantity(), size.getSizeName(), user.getId());
+
+            // Track user interaction
+            userInteractionService.trackInteraction(
+                    user.getId(),
+                    productVariant.getProduct().getId(),
+                    InteractionType.ADD_TO_CART,
+                    null);
 
             Language currentLanguage = LanguageUtils.getCurrentLanguage();
             return shoppingCartMapper.buildCartResponse(cart, currentLanguage);

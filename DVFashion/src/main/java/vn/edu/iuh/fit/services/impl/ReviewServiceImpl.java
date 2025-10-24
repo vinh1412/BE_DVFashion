@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
+import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.OrderStatus;
 import vn.edu.iuh.fit.enums.ReviewStatus;
@@ -26,6 +28,7 @@ import vn.edu.iuh.fit.services.*;
 import vn.edu.iuh.fit.specifications.ReviewSpecification;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -37,6 +40,7 @@ import java.util.*;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
 
@@ -55,6 +59,8 @@ public class ReviewServiceImpl implements ReviewService {
     private final ContentModerationService contentModerationService;
 
     private final ReviewMapper reviewMapper;
+
+    private final UserInteractionService userInteractionService;
 
     @Override
     @Transactional
@@ -160,6 +166,18 @@ public class ReviewServiceImpl implements ReviewService {
 
         // Save the complete review with translations and images
         review = reviewRepository.save(review);
+
+        // Track REVIEW interaction
+        try {
+            userInteractionService.trackInteraction(
+                    user.getId(),
+                    productVariant.getProduct().getId(),
+                    InteractionType.REVIEW,
+                    BigDecimal.valueOf(review.getRating())
+            );
+        } catch (Exception e) {
+            log.warn("Could not track REVIEW interaction: {}", e.getMessage());
+        }
 
         // Auto-moderate review with AI
         ReviewStatus autoModeratedStatus = autoModerateReview(review, review.getTranslations());
