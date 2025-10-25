@@ -8,7 +8,9 @@ package vn.edu.iuh.fit.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.RecommendationConfigResponse;
 import vn.edu.iuh.fit.services.RecommendationConfigService;
@@ -27,12 +29,14 @@ import java.util.List;
 public class RecommendationConfigController {
     private final RecommendationConfigService configService;
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping
     public ResponseEntity<ApiResponse<List<RecommendationConfigResponse>>> getAllConfigs() {
         List<RecommendationConfigResponse> configs = configService.getAllConfigs();
         return ResponseEntity.ok(ApiResponse.success(configs, "Recommendation configs retrieved successfully"));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PutMapping("/{key}")
     public ResponseEntity<ApiResponse<RecommendationConfigResponse>> updateConfig(
             @PathVariable String key,

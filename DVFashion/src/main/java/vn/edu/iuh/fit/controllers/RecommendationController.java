@@ -10,7 +10,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.services.RecommendationService;
 
@@ -43,6 +45,7 @@ public class RecommendationController {
         );
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/stats/top-products")
     public ResponseEntity<ApiResponse<List<TopRecommendedProductResponse>>> getTopRecommendedProducts(
             @RequestParam(defaultValue = "10") int limit,
@@ -54,6 +57,7 @@ public class RecommendationController {
         );
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/stats/analytics")
     public ResponseEntity<ApiResponse<RecommendationAnalyticsResponse>> getRecommendationAnalytics(
             @RequestParam(required = false) Integer days
@@ -64,6 +68,7 @@ public class RecommendationController {
         );
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/stats/products")
     public ResponseEntity<ApiResponse<List<ProductRecommendationStatsResponse>>> getProductRecommendationStats(
             @RequestParam(defaultValue = "10") int limit,

@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -23,7 +24,7 @@ import java.util.Optional;
  * @version:    1.0
  */
 @Repository
-public interface UserProductInteractionRepository extends JpaRepository<UserProductInteraction, Long> {
+public interface UserProductInteractionRepository extends JpaRepository<UserProductInteraction, Long>, JpaSpecificationExecutor<UserProductInteraction> {
     /**
      * Finds a user-product interaction by user ID, product ID, and interaction type.
      *

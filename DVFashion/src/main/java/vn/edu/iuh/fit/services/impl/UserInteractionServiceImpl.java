@@ -8,8 +8,15 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.edu.iuh.fit.dtos.response.PageResponse;
+import vn.edu.iuh.fit.dtos.response.UserProductInteractionResponse;
 import vn.edu.iuh.fit.entities.Product;
 import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.entities.UserProductInteraction;
@@ -19,8 +26,10 @@ import vn.edu.iuh.fit.repositories.ProductRepository;
 import vn.edu.iuh.fit.repositories.UserProductInteractionRepository;
 import vn.edu.iuh.fit.repositories.UserRepository;
 import vn.edu.iuh.fit.services.UserInteractionService;
+import vn.edu.iuh.fit.specifications.UserProductInteractionSpecification;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -84,5 +93,45 @@ public class UserInteractionServiceImpl implements UserInteractionService {
             log.info("Created new interaction: userId={}, productId={}, type={}",
                     userId, productId, interactionType);
         }
+    }
+
+    @Override
+    public PageResponse<UserProductInteractionResponse> findAllWithFilters(Long userId, Long productId, InteractionType interactionType, LocalDate fromDate, LocalDate toDate, int page, int size) {
+        LocalDateTime fromDateTime = null;
+        LocalDateTime toDateTime = null;
+
+        if (fromDate != null) {
+            fromDateTime = fromDate.atStartOfDay();
+        }
+
+        if (toDate != null) {
+            toDateTime = toDate.atTime(23, 59, 59);
+        }
+
+        Specification<UserProductInteraction> spec = UserProductInteractionSpecification
+                .filterBy(userId, productId, interactionType, fromDateTime, toDateTime);
+
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<UserProductInteraction> interactions = interactionRepository.findAll(spec, pageable);
+
+        Page<UserProductInteractionResponse> responsePage = interactions.map(this::mapToResponse);
+
+        return PageResponse.from(responsePage);
+    }
+
+
+    // Maps a UserProductInteraction entity to a UserProductInteractionResponse DTO.
+    private UserProductInteractionResponse mapToResponse(UserProductInteraction interaction) {
+        return new UserProductInteractionResponse(
+                interaction.getId(),
+                interaction.getUser().getId(),
+                interaction.getProduct().getId(),
+                interaction.getInteractionType().toString(),
+                interaction.getRating() != null ? interaction.getRating().toString() : null,
+                interaction.getInteractionCount(),
+                interaction.getCreatedAt().toString()
+        );
     }
 }
