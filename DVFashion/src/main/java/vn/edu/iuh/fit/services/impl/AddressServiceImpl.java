@@ -59,7 +59,7 @@ public class AddressServiceImpl implements AddressService {
         String street = request.street().trim();
 
         // Duplicate check (normalize by trimming)
-        if (addressRepository.existsDuplicate(userEntity.getId(), phone, country, city, district, ward, street)) {
+        if (addressRepository.existsDuplicate(userEntity.getId(), -1L, phone, country, city, district, ward, street)) {
             throw new DuplicateAddressException("Address with this phone already exists.");
         }
 
@@ -120,6 +120,7 @@ public class AddressServiceImpl implements AddressService {
         // Check for duplicates
         if (addressRepository.existsDuplicate(
                 userEntity.getId(),
+                id,
                 request.phone(),
                 request.country(),
                 request.city(),
@@ -170,11 +171,14 @@ public class AddressServiceImpl implements AddressService {
     @Override
     @Transactional(readOnly = true)
     public AddressResponse getAddressById(Long id) {
+        // Get current authenticated user
         UserResponse current = userService.getCurrentUser();
 
+        // Fetch the address by ID and user ID
         Address address = addressRepository.findByIdAndUserId(id, current.getId())
                 .orElseThrow(() -> new NotFoundException("Address not found with id: " + id));
 
+        // Check if the address is soft-deleted
         if (address.isDeleted()) {
             throw new NotFoundException("Address not found with id: " + id);
         }
@@ -186,6 +190,7 @@ public class AddressServiceImpl implements AddressService {
     public List<AddressResponse> getAddresses() {
         UserResponse current = userService.getCurrentUser();
 
+        // Retrieve all non-deleted addresses for the current user, sorted by creation date descending
         List<Address> addresses = addressRepository.findAllByUserIdAndIsDeletedFalse(
                 current.getId(),
                 Sort.by(Sort.Direction.DESC, "createAt")
@@ -200,28 +205,17 @@ public class AddressServiceImpl implements AddressService {
     public void softDeleteAddress(Long id) {
         UserResponse current = userService.getCurrentUser();
 
+        // Fetch the address by ID and user ID
         Address address = addressRepository.findByIdAndUserId(id, current.getId())
                 .orElseThrow(() -> new NotFoundException("Address not found with id: " + id));
 
+        // If already deleted, do nothing
         if (address.isDeleted()) return;
 
-//        boolean wasDefault = address.isDefault();
         address.setDeleted(true);
         address.setDeletedAt(LocalDateTime.now());
         address.setDefault(false);
 
         addressRepository.save(address);
-
-//        // Optionally promote another address if default removed
-//        if (wasDefault) {
-//            addressRepository.findAllByUserIdAndIsDeletedFalse(current.getId(),
-//                            Sort.by(Sort.Direction.DESC, "createAt"))
-//                    .stream()
-//                    .findFirst()
-//                    .ifPresent(a -> {
-//                        a.setDefault(true);
-//                        addressRepository.save(a);
-//                    });
-//        }
     }
 }

@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.request.ProductVariantRequest;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
+import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -33,6 +35,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
 
@@ -51,6 +54,10 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 
     private final PromotionService promotionService;
+
+    private final UserService userService;
+
+    private final UserInteractionService userInteractionService;
 
     @Transactional
     @Override
@@ -166,6 +173,19 @@ public class ProductServiceImpl implements ProductService {
         // Find existing product
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product not found with id: " + productId));
+
+        // Track user interaction
+        try {
+            Long currentUserId = userService.getCurrentUser().getId();
+            if (currentUserId != null) {
+                userInteractionService.trackInteraction(currentUserId, productId, InteractionType.VIEW, null);
+            } else {
+                // If no user logged in, skip tracking or handle as guest
+                log.info("Guest viewed product {}, not tracking to DB yet", productId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to track interaction for product {}: {}", productId, e.getMessage());
+        }
 
         // Map to ProductResponse
         return toResponse(product, language);

@@ -82,7 +82,7 @@ public class WebSecurityConfig {
                 path("/oauth2/**"),
                 path("/oauth2/authorization/**"),
                 path("/login/oauth2/code/**"),
-                path("/recommendations/**"),
+                path("/recommendations/products"),
                 path("/payments/paypal/success"),
                 path("/payments/paypal/cancel"),
                 "/oauth2/**",
@@ -130,7 +130,11 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, path("/product-variants/*/images/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/product-variants/*/sizes/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/cart/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/reviews/product/**")).permitAll()
                         .requestMatchers(HttpMethod.POST, path("/cart/**")).permitAll()
+                        .requestMatchers( "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html").permitAll()
 
 
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()

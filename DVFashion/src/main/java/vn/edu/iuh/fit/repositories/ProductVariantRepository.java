@@ -26,4 +26,12 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
      * @return true if a matching product variant exists, false otherwise.
      */
     boolean existsByProductIdAndColorIgnoreCase(Long productId, String color);
+
+    /**
+     * Checks if any product variant exists for the specified product ID.
+     *
+     * @param productId The ID of the product.
+     * @return true if any product variant exists for the product ID, false otherwise.
+     */
+    boolean existsByProductId(Long productId);
 }
