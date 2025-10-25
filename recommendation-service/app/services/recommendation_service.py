@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from typing import List, Dict
 from app.repositories.product_repository import fetch_products
 from app.repositories.interaction_repository import fetch_user_interactions
+from app.repositories.config_repository import fetch_recommendation_config
 
 class HybridRecommendationEngine:
     # Khởi tạo các biến cần thiết
@@ -19,6 +20,11 @@ class HybridRecommendationEngine:
         self.user_item_matrix = None # Ma trận user-item cho collaborative filtering
         self.knn_model = None # Mô hình KNN cho collaborative filtering
         
+        # Cấu hình mặc định
+        self.content_weight = 0.4
+        self.collaborative_weight = 0.6
+        self.min_interaction_count = 2
+        
         # Trọng số cho các loại tương tác
         self.interaction_weights = {
             'VIEW': 1.0,
@@ -27,9 +33,27 @@ class HybridRecommendationEngine:
             'REVIEW': 3.0
         }
 
+    def load_config(self):
+        """Đọc cấu hình mô hình từ DB"""
+        try:
+            config = fetch_recommendation_config()
+            self.content_weight = float(config.get('content_weight', 0.4))
+            self.collaborative_weight = float(config.get('collaborative_weight', 0.6))
+            self.min_interaction_count = int(config.get('min_interaction_count', 2))
+
+            print(f"Loaded config: content_weight={self.content_weight}, "
+                  f"collab_weight={self.collaborative_weight}, "
+                  f"min_interaction={self.min_interaction_count}")
+        except Exception as e:
+            print("Could not load config from DB, using defaults:", e)
+
     # Tải dữ liệu sản phẩm và tương tác
     def load_data(self):
         """Load dữ liệu sản phẩm và tương tác"""
+        
+        # Load config trước khi train mô hình
+        self.load_config()
+        
         self.products_df = fetch_products()  # Đổ vào self.products_df
         self.interactions_df = fetch_user_interactions() # Đổ vào self.interactions_df
         
@@ -241,10 +265,16 @@ class HybridRecommendationEngine:
     ) -> List[Dict]:
         """Kết hợp Content-based và Collaborative Filtering"""
         
+        # Đảm bảo cấu hình mới nhất được tải
+        self.load_config()
+        
         content_recs = []
         collab_recs = []
         
+        print(f"Hybrid weights: content={self.content_weight}, collab={self.collaborative_weight}, min_interaction={self.min_interaction_count}")
+        
         print("Lấy gợi ý hybrid cho user_id:", user_id, "và product_id:", product_id)
+        
         # Lấy gợi ý từ content-based
         if product_id:
             content_recs = self.get_content_based_recommendations(
@@ -254,11 +284,22 @@ class HybridRecommendationEngine:
         
         # Lấy gợi ý từ collaborative filtering
         if user_id:
-            collab_recs = self.get_collaborative_recommendations(
-                user_id, 
-                num_recommendations * 2
-            )
-        # 🔧 Chuẩn hoá cả hai nguồn điểm trước khi trộn
+            user_interactions = self.interactions_df[self.interactions_df['user_id'] == user_id]
+            interaction_count = len(user_interactions)
+            print(f"User {user_id} có {interaction_count} tương tác và min_interaction_count={self.min_interaction_count}")
+
+            # Chỉ dùng CF nếu người dùng có đủ tương tác
+            if interaction_count >= self.min_interaction_count:
+                print(f"User {user_id} có {interaction_count} tương tác → dùng Collaborative Filtering")
+                collab_recs = self.get_collaborative_recommendations(
+                    user_id,
+                    num_recommendations * 2
+                )
+            else:
+                print(f"User {user_id} chỉ có {interaction_count} tương tác (< {self.min_interaction_count}) → bỏ qua CF")
+                collab_recs = []
+                
+        # Chuẩn hoá cả hai nguồn điểm trước khi trộn
         content_recs = self.normalize_recommendations(content_recs)
         collab_recs = self.normalize_recommendations(collab_recs)
         
@@ -269,19 +310,19 @@ class HybridRecommendationEngine:
             pid = rec['product_id']
             all_recommendations[pid] = {
                 **rec,
-                'similarity_score': rec['similarity_score'] * 0.6,
+                'similarity_score': rec['similarity_score'] * self.collaborative_weight,
                 'recommendation_type': 'COLLABORATIVE'
             }
         
         for rec in content_recs:
             pid = rec['product_id']
             if pid in all_recommendations:
-                all_recommendations[pid]['similarity_score'] += rec['similarity_score'] * 0.4
+                all_recommendations[pid]['similarity_score'] += rec['similarity_score'] * self.content_weight
                 all_recommendations[pid]['recommendation_type'] = 'HYBRID'
             else:
                 all_recommendations[pid] = {
                     **rec,
-                    'similarity_score': rec['similarity_score'] * 0.4
+                    'similarity_score': rec['similarity_score'] * self.content_weight
                 }
         
         # Sắp xếp và trả về top N

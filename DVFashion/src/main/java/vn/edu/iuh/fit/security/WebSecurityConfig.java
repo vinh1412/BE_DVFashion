@@ -82,7 +82,7 @@ public class WebSecurityConfig {
                 path("/oauth2/**"),
                 path("/oauth2/authorization/**"),
                 path("/login/oauth2/code/**"),
-                path("/recommendations/**"),
+                path("/recommendations/products"),
                 path("/payments/paypal/success"),
                 path("/payments/paypal/cancel"),
                 "/oauth2/**",
