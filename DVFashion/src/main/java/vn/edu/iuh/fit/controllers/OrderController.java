@@ -102,4 +102,19 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orders, "Customer orders retrieved"));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getAllOrdersPaging(
+            @PageableDefault(page = 0, size = 10, sort = "orderDate", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        PageResponse<OrderResponse> orders = orderService.getAllOrdersPaging(pageable);
+        return ResponseEntity.ok(ApiResponse.success(orders, "All orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders() {
+        List<OrderResponse> orders = orderService.getAllOrders();
+        return ResponseEntity.ok(ApiResponse.success(orders, "All orders retrieved"));
+    }
 }
