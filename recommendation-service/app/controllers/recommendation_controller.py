@@ -5,6 +5,9 @@ from app.models.schemas import (
     HybridRecommendationRequest,
 )
 from app.services.recommendation_service import recommendation_engine
+from app.services.model_evaluation_service import evaluate_model, evaluate_model_split, evaluate_weight_grid
+from app.db.database import get_db_connection
+import pandas as pd
 
 router = APIRouter()
 
@@ -126,3 +129,49 @@ async def get_collaborative_recommendations(request: HybridRecommendationRequest
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/evaluate")
+async def evaluate_current_model(payload: dict):
+    """
+    Đánh giá mô hình hiện tại và lưu version mới.
+    Body:
+    {
+      "model_name": "hybrid_v3"
+    }
+    """
+    model_name = payload.get("model_name", "hybrid_unknown")
+    # result = evaluate_model(model_name=model_name)
+    result = evaluate_model_split(model_name=model_name)
+    if not result:
+        return {"message": "No evaluation data available"}
+    return {"message": "Model evaluated successfully", "metrics": result}
+
+@router.get("/models")
+async def get_all_model_versions():
+    """Lấy danh sách tất cả các phiên bản mô hình"""
+    conn = get_db_connection()
+    df = pd.read_sql("SELECT * FROM recommendation_model_versions ORDER BY created_at DESC", conn)
+    conn.close()
+    return df.to_dict(orient="records")
+
+@router.post("/evaluate-split")
+async def evaluate_model_split_api(payload: dict):
+    """
+    Đánh giá mô hình bằng cách chia 80% train / 20% test cho mỗi user
+    Body:
+    {
+        "model_name": "hybrid_v_test",
+        "k": 10
+    }
+    """
+    model_name = payload.get("model_name", "hybrid_unknown")
+    k = int(payload.get("k", 10))
+
+    result = evaluate_model_split(model_name=model_name, k=k)
+    if not result:
+        raise HTTPException(status_code=400, detail="Not enough data for evaluation")
+
+    return {
+        "message": f"Evaluation for model {model_name} complete",
+        "metrics": result
+    }

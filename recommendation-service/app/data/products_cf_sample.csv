@@ -1,0 +1,31 @@
+id,category_id,price,sale_price,name,description,material,category_name,color
+1,1,120000,100000,Áo sơ mi nam,Thời trang nam cao cấp,Cotton,Áo,Trắng
+2,1,150000,140000,Quần jeans,Thoải mái,Jean,Quần,Xanh
+3,1,180000,160000,Áo khoác da,Phong cách hiện đại,Da,Áo,Đen
+4,2,200000,180000,Áo thun basic,Thiết kế trẻ trung,Cotton,Áo,Trắng
+5,2,220000,200000,Giày thể thao,Chất lượng cao,Da tổng hợp,Giày,Xám
+6,2,250000,230000,Túi xách nữ,Phụ kiện sang trọng,Vải,Phụ kiện,Nâu
+7,3,270000,250000,Kính râm thời trang,Dành cho cả nam và nữ,Kim loại,Phụ kiện,Đen
+8,3,290000,270000,Đồng hồ nam,Đẳng cấp và sang trọng,Thép không gỉ,Phụ kiện,Bạc
+9,3,300000,280000,Áo hoodie unisex,Phong cách năng động,Nỉ,Áo,Xám
+10,4,310000,300000,Áo len mùa đông,Giữ ấm thoải mái,Len,Áo,Đỏ
+11,4,330000,310000,Váy maxi nữ,Thích hợp dạo phố,Vải voan,Váy,Hồng
+12,4,340000,320000,Áo polo nam,Cotton mềm mại,Cotton,Áo,Xanh navy
+13,5,350000,330000,Giày lười da bò,"Thoải mái, dễ phối đồ",Da bò,Giày,Đen
+14,5,360000,340000,Giày sandal nữ,Phù hợp đi chơi,Vải mềm,Giày,Be
+15,5,370000,350000,Balo laptop,Vải chống nước,Vải,Phụ kiện,Xanh rêu
+16,6,380000,360000,Tai nghe bluetooth,Âm thanh sống động,Nhựa ABS,Thiết bị điện tử,Đen
+17,6,390000,370000,Điện thoại thông minh,Hiệu năng mạnh,Kính cường lực,Thiết bị điện tử,Trắng
+18,6,400000,380000,Ốp điện thoại,Bảo vệ điện thoại,Silicone,Phụ kiện,Xanh
+19,7,410000,390000,Chuột gaming,Dành cho game thủ,Nhựa ABS,Thiết bị điện tử,Đỏ
+20,7,420000,400000,Bàn phím cơ,Phím RGB đẹp,Kim loại,Thiết bị điện tử,Bạc
+21,7,430000,410000,Loa bluetooth,Âm thanh mạnh mẽ,Nhựa,Thiết bị điện tử,Đen
+22,8,440000,420000,Tivi thông minh,Hình ảnh sắc nét,Nhựa,Thiết bị điện tử,Đen
+23,8,450000,430000,Laptop văn phòng,Phục vụ công việc,Hợp kim,Máy tính,Bạc
+24,8,460000,440000,Máy ảnh du lịch,Lưu giữ khoảnh khắc,Nhôm,Máy ảnh,Đen
+25,9,470000,450000,Nón thời trang,Phụ kiện giới trẻ,Vải kaki,Phụ kiện,Nâu
+26,9,480000,460000,Váy công sở nữ,Thanh lịch,Vải,Trang phục,Hồng
+27,9,490000,470000,Áo blazer nam,Công sở sang trọng,Vải dày,Áo,Xanh đen
+28,9,500000,480000,Giày da cao cấp,Phong cách lịch lãm,Da,Giày,Đen
+29,9,510000,490000,Áo khoác gió,Chống thấm tốt,Vải dù,Áo,Xanh
+30,9,520000,500000,Quần short nam,Mát mẻ mùa hè,Kaki,Quần,Be

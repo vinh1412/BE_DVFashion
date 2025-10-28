@@ -372,6 +372,32 @@ public class OrderServiceImpl implements OrderService {
         return PageResponse.from(orderResponsePage);
     }
 
+    @Override
+    public PageResponse<OrderResponse> getAllOrdersPaging(Pageable pageable) {
+        Page<Order> orders = orderRepository.findAll(pageable);
+
+        Page<OrderResponse> orderResponsePage = orders.map(order -> orderMapper.mapToOrderResponse(
+                order,
+                order.getCustomer().getEmail(),
+                LanguageUtils.getCurrentLanguage()
+        ));
+
+        return PageResponse.from(orderResponsePage);
+    }
+
+    @Override
+    public List<OrderResponse> getAllOrders() {
+        List<Order> orders = orderRepository.findAll();
+
+        return orders.stream()
+                .map(order -> orderMapper.mapToOrderResponse(
+                        order,
+                        order.getCustomer().getEmail(),
+                        LanguageUtils.getCurrentLanguage()
+                ))
+                .toList();
+    }
+
     // Validate cart items belong to user and check reserve stock
     private List<CartItem> validateReserveStock(List<OrderItemRequest> orderItems, User customer) {
         List<CartItem> cartItems = new ArrayList<>();

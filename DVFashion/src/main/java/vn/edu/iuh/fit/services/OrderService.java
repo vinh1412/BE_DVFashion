@@ -104,4 +104,19 @@ public interface OrderService {
      * @return page response of order responses for the specified customer
      */
     PageResponse<OrderResponse> getOrdersByCustomerIdPaging(Long customerId, Pageable pageable);
+
+    /**
+     * Get all orders with pagination (admin/staff only).
+     *
+     * @param pageable pagination information
+     * @return page response of all order responses
+     */
+    PageResponse<OrderResponse> getAllOrdersPaging(Pageable pageable);
+
+    /**
+     * Get all orders (admin/staff only).
+     *
+     * @return list of all order responses
+     */
+    List<OrderResponse> getAllOrders();
 }
