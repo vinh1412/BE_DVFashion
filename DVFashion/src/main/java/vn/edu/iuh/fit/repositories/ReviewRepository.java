@@ -153,4 +153,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long>, JpaSpecif
             @Param("productId") Long productId,
             @Param("statuses") List<ReviewStatus> statuses
     );
+
+    /**
+     * Retrieves a list of reviews submitted by a specific user, ordered by creation date in descending order.
+     *
+     * @param userId the ID of the user
+     * @return a list of reviews by the user
+     */
+    List<Review> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

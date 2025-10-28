@@ -108,4 +108,10 @@ public class ReviewController {
 
         return ResponseEntity.ok(ApiResponse.success(response, "All reviews retrieved successfully"));
     }
+
+    @GetMapping("/my-reviews")
+    public ResponseEntity<ApiResponse<List<ReviewResponse>>> getMyReviews() {
+        List<ReviewResponse> responses = reviewService.getAllReviewsForCustomer();
+        return ResponseEntity.ok(ApiResponse.success(responses, "My reviews retrieved successfully"));
+    }
 }
