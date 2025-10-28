@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -555,6 +556,24 @@ public class ReviewServiceImpl implements ReviewService {
         ProductReviewStatistics statistics = getProductReviewStatistics(productId, allowedStatuses);
 
         return new ProductReviewsResponse(reviewResponses, statistics);
+    }
+
+    @Override
+    public List<ReviewResponse> getAllReviewsForCustomer() {
+        // Get current user
+        Long currentUserId = userService.getCurrentUser().getId();
+
+        // Validate user exists
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Get all reviews belonging to the current user
+        List<Review> reviews = reviewRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+
+        // Map to response DTOs
+        return reviews.stream()
+                .map(reviewMapper::mapToResponse)
+                .toList();
     }
 
     // Get product review statistics

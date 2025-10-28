@@ -89,4 +89,11 @@ public interface ReviewService {
      * @return the product reviews response with filtered reviews
      */
     ProductReviewsResponse getProductReviews(Long productId, ProductReviewFilterRequest filterRequest);
+
+    /**
+     * Retrieves all reviews for the current customer.
+     *
+     * @return a list of review responses for the current customer
+     */
+    List<ReviewResponse> getAllReviewsForCustomer();
 }
