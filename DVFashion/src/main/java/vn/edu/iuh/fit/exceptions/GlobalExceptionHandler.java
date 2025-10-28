@@ -164,4 +164,11 @@ public class GlobalExceptionHandler  {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
     }
+
+    @ExceptionHandler(NotActiveException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNotActiveException(NotActiveException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
 }
