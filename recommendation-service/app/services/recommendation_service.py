@@ -36,7 +36,9 @@ class HybridRecommendationEngine:
     def load_config(self):
         """Đọc cấu hình mô hình từ DB"""
         try:
+            print("Reloading config from DB...")
             config = fetch_recommendation_config()
+            print(f"Loaded config: {config}")
             self.content_weight = float(config.get('content_weight', 0.4))
             self.collaborative_weight = float(config.get('collaborative_weight', 0.6))
             self.min_interaction_count = int(config.get('min_interaction_count', 2))
@@ -150,25 +152,34 @@ class HybridRecommendationEngine:
         num_recommendations: int
     ) -> List[Dict]:
         """Gợi ý dựa trên nội dung sản phẩm"""
+        
+        # Xác định index của sản phẩm đầu vào lấy chỉ số hàng
         product_indices = self.products_df[self.products_df['id'] == product_id].index
         
         print("Gợi ý dựa trên nội dung sản phẩm cho product_id:", product_id)
         
+        # Nếu không tìm thấy sản phẩm này trong DataFrame sản phẩm thì trả về lỗi 404
         if product_indices.empty:
             raise HTTPException(
                 status_code=404, 
                 detail=f"Product {product_id} not found"
             )
         
+        # Vị trí hàng của sản phẩm trong ma trận TF-IDF
         product_idx = product_indices[0]
+        
+        # Tính độ tương đồng cosine giữa sản phẩm gốc và tất cả sản phẩm
         cosine_similarities = cosine_similarity(
             self.tfidf_matrix[product_idx:product_idx+1], 
             self.tfidf_matrix
         ).flatten()
         
+        # Lấy các chỉ số của sản phẩm tương tự, bỏ qua chính nó
         similar_indices = cosine_similarities.argsort()[::-1][1:num_recommendations+1]
         
         recommendations = []
+        
+        # Tạo danh sách gợi ý
         for idx in similar_indices:
             product = self.products_df.iloc[idx]
             recommendations.append({
@@ -180,13 +191,15 @@ class HybridRecommendationEngine:
                 'recommendation_type': 'CONTENT'
             })
         
+        # In ra thông tin gợi ý
         return self.normalize_recommendations(recommendations)
 
     # Gợi ý dựa trên Collaborative Filtering
     def get_collaborative_recommendations(
         self, 
         user_id: int, 
-        num_recommendations: int
+        num_recommendations: int,
+        exclude_items: set = None
     ) -> List[Dict]:
         """Gợi ý dựa trên hành vi người dùng tương tự"""
         if self.user_item_matrix is None:
@@ -212,6 +225,10 @@ class HybridRecommendationEngine:
             n_neighbors=k
         )
         
+        print("Checking product IDs overlap...")
+        print("Products in interactions:", self.interactions_df['product_id'].unique())
+        print("Products in products_df:", self.products_df['id'].unique())
+        
         # Lấy sản phẩm từ người dùng tương tự
         similar_users_indices = indices.flatten()[1:]
         user_products = set(
@@ -229,9 +246,13 @@ class HybridRecommendationEngine:
             
             for _, row in similar_user_products.iterrows():
                 prod_id = row['product_id']
-                if prod_id not in user_products:
-                    score = row['score']
-                    product_scores[prod_id] = product_scores.get(prod_id, 0) + score
+                # if prod_id not in user_products:
+                # if not allow_seen_items and prod_id in user_products:
+                #     continue
+                if exclude_items and prod_id in exclude_items:
+                    continue
+                score = row['score']
+                product_scores[prod_id] = product_scores.get(prod_id, 0) + score
         
         # Sắp xếp và lấy top N
         top_products = sorted(
@@ -253,7 +274,8 @@ class HybridRecommendationEngine:
                     'price': float(product['price']) if product['price'] else None,
                     'recommendation_type': 'COLLABORATIVE'
                 })
-        
+
+        print(f"User {user_id} → {len(recommendations)} CF recommendations: {[r['product_id'] for r in recommendations]}")
         return self.normalize_recommendations(recommendations)
     
     # Gợi ý dựa trên Hybrid (Kết hợp Content-based và Collaborative Filtering)
@@ -261,7 +283,8 @@ class HybridRecommendationEngine:
         self,
         user_id: int = None,
         product_id: int = None,
-        num_recommendations: int = 10
+        num_recommendations: int = 10,
+        exclude_items: set = None
     ) -> List[Dict]:
         """Kết hợp Content-based và Collaborative Filtering"""
         
@@ -281,20 +304,26 @@ class HybridRecommendationEngine:
                 product_id, 
                 num_recommendations * 2
             )
+            print(f"\nTop {len(content_recs)} Content-Based Recs for product {product_id}:")
+            for rec in content_recs[:5]:
+                print(f"   - {rec['product_id']} | {rec['name']} | score={rec['similarity_score']:.4f}")
         
         # Lấy gợi ý từ collaborative filtering
         if user_id:
             user_interactions = self.interactions_df[self.interactions_df['user_id'] == user_id]
             interaction_count = len(user_interactions)
-            print(f"User {user_id} có {interaction_count} tương tác và min_interaction_count={self.min_interaction_count}")
 
             # Chỉ dùng CF nếu người dùng có đủ tương tác
             if interaction_count >= self.min_interaction_count:
                 print(f"User {user_id} có {interaction_count} tương tác → dùng Collaborative Filtering")
                 collab_recs = self.get_collaborative_recommendations(
                     user_id,
-                    num_recommendations * 2
+                    num_recommendations * 2,
+                    exclude_items=exclude_items
                 )
+                print(f"\nTop {len(collab_recs)} Collaborative Recs for user {user_id}:")
+                for rec in collab_recs[:5]:
+                    print(f"   - {rec['product_id']} | {rec['name']} | score={rec['similarity_score']:.4f}")
             else:
                 print(f"User {user_id} chỉ có {interaction_count} tương tác (< {self.min_interaction_count}) → bỏ qua CF")
                 collab_recs = []
@@ -331,8 +360,11 @@ class HybridRecommendationEngine:
             key=lambda x: x['similarity_score'],
             reverse=True
         )[:num_recommendations]
-        
+        print("\nTop Hybrid Results (combined & sorted):")
+        for rec in final_recommendations:
+            print(f"   - {rec['product_id']} | {rec['name']} | {rec['recommendation_type']} | final_score={rec['similarity_score']:.4f}")
+
+        print("=" * 80 + "\n")
         return final_recommendations
-
-
+       
 recommendation_engine = HybridRecommendationEngine()
