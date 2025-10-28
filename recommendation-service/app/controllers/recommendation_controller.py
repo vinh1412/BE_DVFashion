@@ -5,7 +5,7 @@ from app.models.schemas import (
     HybridRecommendationRequest,
 )
 from app.services.recommendation_service import recommendation_engine
-from app.services.model_evaluation_service import evaluate_model, evaluate_model_split, evaluate_weight_grid
+from app.services.model_evaluation_service import evaluate_model, evaluate_model_split
 from app.db.database import get_db_connection
 import pandas as pd
 

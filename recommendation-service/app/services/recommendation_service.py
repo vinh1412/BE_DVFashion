@@ -106,10 +106,14 @@ class HybridRecommendationEngine:
         
         # Chuyển sang sparse matrix
         self.user_item_matrix = csr_matrix(user_item_df.values)
+        
         self.user_ids = user_item_df.index.tolist()
         self.product_ids = user_item_df.columns.tolist()
         
+        # Đếm tổng số người dùng đang có trong dữ liệu
         n_users = user_item_df.shape[0]
+        
+        # Nếu không đủ người dùng, bỏ qua CF
         if n_users < 2:
             # không đủ dữ liệu để CF
             self.user_item_matrix = None
@@ -120,10 +124,12 @@ class HybridRecommendationEngine:
         
         # Train KNN model
         self.knn_model = NearestNeighbors(
-            metric='cosine',
-            algorithm='brute',
+            metric='cosine', # Dùng cosine similarity
+            algorithm='brute', # Dùng brute-force
             n_neighbors=n_neighbors
         )
+        
+        # Fit mô hình với ma trận user-item
         self.knn_model.fit(self.user_item_matrix)
 
     # Chuẩn hoá điểm similarity_score
@@ -202,6 +208,8 @@ class HybridRecommendationEngine:
         exclude_items: set = None
     ) -> List[Dict]:
         """Gợi ý dựa trên hành vi người dùng tương tự"""
+        
+        # Kiểm tra nếu user_item_matrix chưa được tạo thì trả về rỗng
         if self.user_item_matrix is None:
             return []
         
@@ -213,9 +221,14 @@ class HybridRecommendationEngine:
         
         if self.knn_model is None or self.user_item_matrix is None:
             return []
-
+        
+        # Lấy tổng số người dùng đã có trong ma trận
         n_users = self.user_item_matrix.shape[0]
+        
+        # Chọn k láng giềng
         k = min(11, n_users)
+        
+        # Nếu không đủ người dùng để tìm láng giềng thì trả về rỗng
         if k < 2:
             return [] 
         
