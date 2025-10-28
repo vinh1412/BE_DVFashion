@@ -99,7 +99,7 @@ public class ReviewController {
         return ResponseEntity.ok(ApiResponse.success(response, "Review moderated successfully"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/admin/all")
     public ResponseEntity<ApiResponse<AdminReviewsResponse>> getAllReviewsForAdmin(
             @Valid AdminReviewFilterRequest filterRequest) {

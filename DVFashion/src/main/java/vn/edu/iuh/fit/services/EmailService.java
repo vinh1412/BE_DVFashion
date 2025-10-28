@@ -8,7 +8,9 @@ package vn.edu.iuh.fit.services;
 
 import vn.edu.iuh.fit.dtos.request.ForgotPasswordRequest;
 import vn.edu.iuh.fit.dtos.request.ResetPasswordMailRequest;
+import vn.edu.iuh.fit.dtos.response.OrderResponse;
 import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.enums.OrderStatus;
 
 /*
  * @description: Service interface for handling email-related operations
@@ -47,4 +49,14 @@ public interface EmailService {
      * @param verificationCode the verification code to be sent
      */
     void sendVerificationCode(String email, String fullName, String password, String verificationCode);
+
+    /**
+     * Send order confirmation email to customer
+     */
+    void sendOrderConfirmationEmail(OrderResponse orderResponse, String customerEmail);
+
+    /**
+     * Send order status update email to customer
+     */
+    void sendOrderStatusUpdateEmail(OrderResponse orderResponse, String customerEmail, OrderStatus oldStatus, OrderStatus newStatus);
 }

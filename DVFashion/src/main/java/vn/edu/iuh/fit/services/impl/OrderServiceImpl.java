@@ -31,6 +31,7 @@ import vn.edu.iuh.fit.utils.OrderUtils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /*
  * @description: Implementation of OrderService for managing orders
@@ -66,6 +67,8 @@ public class OrderServiceImpl implements OrderService {
     private final PayPalService payPalService;
 
     private final UserInteractionService userInteractionService;
+
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -109,32 +112,50 @@ public class OrderServiceImpl implements OrderService {
         // Save order
         Order savedOrder = orderRepository.save(order);
 
-        // Track PURCHASE interactions for each item
-        try {
-            for (OrderItem item : savedOrder.getItems()) {
-                userInteractionService.trackInteraction(
-                        customer.getId(),
-                        item.getProductVariant().getProduct().getId(),
-                        InteractionType.PURCHASE,
-                        null
-                );
-            }
-        } catch (Exception e) {
-            log.warn("Could not track PURCHASE interactions: {}", e.getMessage());
-        }
+        log.info("Order created successfully with ID: {}", savedOrder.getId());
 
-        // Clear processed cart items
-        cartItemRepository.deleteAll(cartItems);
+        // Create order response
+        OrderResponse orderResponse = orderMapper.mapToOrderResponse(
+                savedOrder,
+                currentUserResponse.getEmail(),
+                LanguageUtils.getCurrentLanguage()
+        );
 
         log.info("Order created successfully with ID: {}", savedOrder.getId());
 
         // For Cash on Delivery, return order details directly
         if (method == PaymentMethod.CASH_ON_DELIVERY) {
+            // Clear cart items only for COD
+            cartItemRepository.deleteAll(cartItems);
+
+            // Track interactions
+            try {
+                for (OrderItem item : savedOrder.getItems()) {
+                    userInteractionService.trackInteraction(
+                            customer.getId(),
+                            item.getProductVariant().getProduct().getId(),
+                            InteractionType.PURCHASE,
+                            null
+                    );
+                }
+            } catch (Exception e) {
+                log.warn("Could not track PURCHASE interactions: {}", e.getMessage());
+            }
+
+            // Send order confirmation email (async to avoid blocking)
+            try {
+                log.info("Sending order confirmation email to {}", customer.getEmail());
+                emailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send order confirmation email: {}", e.getMessage());
+            }
+
             return orderMapper.mapToOrderResponse(savedOrder, currentUserResponse.getEmail(), LanguageUtils.getCurrentLanguage());
         }
 
         // For PayPal, create PayPal order and get approval URL
         if (method == PaymentMethod.PAYPAL) {
+            log.info("PayPal order created, email will be sent after payment confirmation");
             return OrderResponse.builder()
                     .orderNumber(savedOrder.getOrderNumber())
                     .paypalApprovalUrl(payment.getApprovalUrl())
@@ -165,6 +186,18 @@ public class OrderServiceImpl implements OrderService {
         // Save order
         orderRepository.save(order);
 
+        // NOW clear cart items after successful payment
+        List<CartItem> cartItems = cartItemRepository.findByCartUserId(order.getCustomer().getId());
+        List<CartItem> orderCartItems = cartItems.stream()
+                .filter(cartItem -> order.getItems().stream()
+                        .anyMatch(orderItem ->
+                                orderItem.getSize().getId().equals(cartItem.getSize().getId()) &&
+                                        orderItem.getProductVariant().getId().equals(cartItem.getProductVariant().getId())
+                        ))
+                .collect(Collectors.toList());
+
+        cartItemRepository.deleteAll(orderCartItems);
+
         // Confirmation of deduction of physical goods in stock
         order.getItems().forEach(item ->
                 inventoryService.confirmReservedStock(
@@ -176,12 +209,36 @@ public class OrderServiceImpl implements OrderService {
                 )
         );
 
+        // Track purchase interactions
+        try {
+            for (OrderItem item : order.getItems()) {
+                userInteractionService.trackInteraction(
+                        order.getCustomer().getId(),
+                        item.getProductVariant().getProduct().getId(),
+                        InteractionType.PURCHASE,
+                        null
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Could not track PURCHASE interactions: {}", e.getMessage());
+        }
+
         // Map to response
-        return orderMapper.mapToOrderResponse(
+        OrderResponse orderResponse = orderMapper.mapToOrderResponse(
                 order,
                 order.getCustomer().getEmail(),
                 LanguageUtils.getCurrentLanguage()
         );
+
+        // Send order confirmation email AFTER successful PayPal payment
+        try {
+            log.info("Sending order confirmation email to {} for successful PayPal payment", order.getCustomer().getEmail());
+            emailService.sendOrderConfirmationEmail(orderResponse, order.getCustomer().getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send order confirmation email for PayPal payment: {}", e.getMessage());
+        }
+
+        return orderResponse;
     }
 
     @Transactional
@@ -437,6 +494,8 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderException("Invalid order status transition: " + current + " -> " + target);
         }
 
+        // Store old status for email notification
+        OrderStatus oldStatus = order.getStatus();
         order.setStatus(target);
 
         if (target == OrderStatus.CONFIRMED) {
@@ -450,6 +509,24 @@ public class OrderServiceImpl implements OrderService {
                             order
                     )
             );
+
+            // For PayPal orders that are being confirmed manually by admin,
+            // send confirmation email if not already sent
+            if (order.getPayment().getPaymentMethod() == PaymentMethod.PAYPAL &&
+                    oldStatus == OrderStatus.PENDING) {
+                try {
+                    OrderResponse orderResponse = orderMapper.mapToOrderResponse(
+                            order,
+                            order.getCustomer().getEmail(),
+                            LanguageUtils.getCurrentLanguage()
+                    );
+                    log.info("Sending order confirmation email for admin-confirmed PayPal order");
+                    emailService.sendOrderConfirmationEmail(orderResponse, order.getCustomer().getEmail());
+                    return; // Don't send status update email since we sent confirmation email
+                } catch (Exception e) {
+                    log.error("Failed to send order confirmation email for admin confirmation: {}", e.getMessage());
+                }
+            }
         }
 
         // When the order is CANCELED, if payment is still PENDING, mark it CANCELED too
@@ -466,6 +543,26 @@ public class OrderServiceImpl implements OrderService {
         if (target == OrderStatus.RETURNED) {
             // Process stock return
            inventoryService.processReturnStock(order);
+        }
+
+        // Send status update email notification (async) - but only if not PENDING to CONFIRMED for PayPal
+        if (!(oldStatus == OrderStatus.PENDING && target == OrderStatus.CONFIRMED &&
+                order.getPayment().getPaymentMethod() == PaymentMethod.PAYPAL)) {
+            try {
+                OrderResponse orderResponse = orderMapper.mapToOrderResponse(
+                        order,
+                        order.getCustomer().getEmail(),
+                        LanguageUtils.getCurrentLanguage()
+                );
+                emailService.sendOrderStatusUpdateEmail(
+                        orderResponse,
+                        order.getCustomer().getEmail(),
+                        oldStatus,
+                        target
+                );
+            } catch (Exception e) {
+                log.error("Failed to send order status update email: {}", e.getMessage());
+            }
         }
     }
 
@@ -499,6 +596,39 @@ public class OrderServiceImpl implements OrderService {
             }
         } else {
             throw new OrderException("Payment status is terminal and cannot be changed");
+        }
+    }
+
+    /**
+     * Clear cart items associated with an order after successful payment
+     */
+    private void clearCartItemsFromOrder(Order order) {
+        try {
+            // Extract cart item IDs from order notes
+            String notes = order.getNotes();
+            if (notes != null && notes.contains("CART_ITEMS:")) {
+                String cartItemIdsStr = notes.substring(notes.indexOf("CART_ITEMS:") + 11);
+                // Remove any additional notes after cart items
+                if (cartItemIdsStr.contains(" | ")) {
+                    cartItemIdsStr = cartItemIdsStr.substring(0, cartItemIdsStr.indexOf(" | "));
+                }
+
+                String[] cartItemIds = cartItemIdsStr.split(",");
+                List<Long> ids = Arrays.stream(cartItemIds)
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .map(Long::parseLong)
+                        .toList();
+
+                if (!ids.isEmpty()) {
+                    List<CartItem> cartItems = cartItemRepository.findAllById(ids);
+                    cartItemRepository.deleteAll(cartItems);
+                    log.info("Cleared {} cart items after successful PayPal payment", cartItems.size());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error clearing cart items from order {}: {}", order.getOrderNumber(), e.getMessage());
+            // Don't throw exception as payment is already successful
         }
     }
 }

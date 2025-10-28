@@ -34,14 +34,14 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_CUSTOMER)
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> getUserById(@PathVariable("id") Long id) {
         UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success(user, "User retrieved successfully"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_CUSTOMER)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> updateUser(
             @PathVariable("id") Long id,
@@ -58,7 +58,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(users, "Users retrieved successfully"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_CUSTOMER)
     @PutMapping("/change-password")
     public ResponseEntity<ApiResponse<?>> changePassword(
             @Valid @RequestBody ChangePasswordRequest request) {
@@ -66,7 +66,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.noContent("Password changed successfully"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_STAFF_CUSTOMER)
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_CUSTOMER)
     @DeleteMapping("/delete-account")
     public ResponseEntity<ApiResponse<?>> deleteAccount() {
         userService.softDeleteAccount();
