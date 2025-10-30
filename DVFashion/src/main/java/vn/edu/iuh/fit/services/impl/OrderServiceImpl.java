@@ -70,6 +70,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final EmailService emailService;
 
+    private final ShippingService shippingService;
+
     @Override
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -80,12 +82,16 @@ public class OrderServiceImpl implements OrderService {
         User customer = userRepository.findById(currentUserResponse.getId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
+        // Calculate shipping fee and delivery time
+        ShippingCalculationResponse shippingCalculation = shippingService.calculateShipping(request);
+
         // Create order
         Order order = Order.builder()
                 .orderNumber(OrderUtils.generateOrderNumber())
                 .customer(customer)
                 .status(OrderStatus.PENDING)
-                .shippingFee(request.shippingFee() != null ? request.shippingFee() : BigDecimal.ZERO)
+                .shippingFee(shippingCalculation.shippingFee())
+                .estimatedDeliveryTime(shippingCalculation.estimatedDeliveryTime())
                 .shippingInfo(shippingInfoMapper.mapToShippingInfo(request.shippingInfo()))
                 .notes(request.notes())
                 .orderDate(LocalDateTime.now())

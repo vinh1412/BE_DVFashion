@@ -47,9 +47,8 @@ public record OrderResponse(
 
          LocalDateTime orderDate,
 
-         LocalDateTime shippedDate,
 
-         LocalDateTime deliveredDate,
+         LocalDateTime estimatedDeliveryTime,
 
          List<OrderItemResponse> items,
 

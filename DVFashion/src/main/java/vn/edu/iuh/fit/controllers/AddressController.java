@@ -12,9 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.dtos.request.CreateAddressRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateAddressRequest;
-import vn.edu.iuh.fit.dtos.response.AddressResponse;
-import vn.edu.iuh.fit.dtos.response.ApiResponse;
+import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.services.AddressService;
+import vn.edu.iuh.fit.services.GhnService;
 
 import java.util.List;
 
@@ -29,6 +29,8 @@ import java.util.List;
 @RequestMapping("${web.base-path}/addresses")
 public class AddressController {
      private final AddressService addressService;
+
+    private final GhnService ghnService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<AddressResponse>> createAddress(@Valid @RequestBody CreateAddressRequest request) {
@@ -57,5 +59,23 @@ public class AddressController {
     public ResponseEntity<ApiResponse<Void>> softDelete(@PathVariable Long id) {
         addressService.softDeleteAddress(id);
         return ResponseEntity.ok(ApiResponse.noContent("Address deleted successfully."));
+    }
+
+    @GetMapping("/provinces")
+    public ResponseEntity<List<ProvinceResponse>> getProvinces() {
+        List<ProvinceResponse> provinces = ghnService.getProvinces();
+        return ResponseEntity.ok(provinces);
+    }
+
+    @GetMapping("/provinces/{provinceId}/districts")
+    public ResponseEntity<List<DistrictResponse>> getDistrictsByProvinceId(@PathVariable("provinceId") Integer provinceId) {
+        List<DistrictResponse> districts = ghnService.getDistricts(provinceId);
+        return ResponseEntity.ok(districts);
+    }
+
+    @GetMapping("/provinces/{districtId}/wards")
+    public ResponseEntity<List<WardResponse>> getWardsByDistrictId(@PathVariable("districtId") Integer districtId) {
+        List<WardResponse> wards = ghnService.getWards(districtId);
+        return ResponseEntity.ok(wards);
     }
 }
