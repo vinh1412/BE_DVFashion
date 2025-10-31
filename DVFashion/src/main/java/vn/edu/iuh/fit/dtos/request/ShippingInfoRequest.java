@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.dtos.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 /*
  * @description: DTO for shipping information in an order request
@@ -34,6 +35,12 @@ public record ShippingInfoRequest(
         String ward,
 
         @NotBlank(message = "Street address is required")
-        String street
+        String street,
+
+        @NotNull(message = "To Province ID is required")
+        Integer toDistrictId,
+
+        @NotBlank(message = "To Ward Code is required")
+        String toWardCode
 ) {
 }

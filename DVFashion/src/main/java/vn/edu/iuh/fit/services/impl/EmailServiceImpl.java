@@ -9,6 +9,7 @@ package vn.edu.iuh.fit.services.impl;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -17,15 +18,23 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.ForgotPasswordRequest;
 import vn.edu.iuh.fit.dtos.request.ResetPasswordMailRequest;
+import vn.edu.iuh.fit.dtos.response.OrderItemResponse;
+import vn.edu.iuh.fit.dtos.response.OrderResponse;
+import vn.edu.iuh.fit.dtos.response.PaymentResponse;
+import vn.edu.iuh.fit.dtos.response.ShippingInfoResponse;
 import vn.edu.iuh.fit.entities.PasswordResetToken;
 import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.enums.OrderStatus;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.exceptions.TokenRefreshException;
 import vn.edu.iuh.fit.repositories.PasswordResetTokenRepository;
 import vn.edu.iuh.fit.repositories.UserRepository;
 import vn.edu.iuh.fit.services.EmailService;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 /*
@@ -36,6 +45,7 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailServiceImpl implements EmailService {
     private final UserRepository userRepository;
 
@@ -254,5 +264,365 @@ public class EmailServiceImpl implements EmailService {
         } catch (MessagingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void sendOrderConfirmationEmail(OrderResponse orderResponse, String customerEmail) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            String itemsHtml = buildOrderItemsHtml(orderResponse.items()); // Giữ nguyên helper method của bạn
+
+            String htmlContent = """
+                    <html>
+                      <head>
+                        <meta charset="UTF-8">
+                        <style>
+                          body {
+                            font-family: 'Segoe UI', Arial, sans-serif;
+                            background-color: #f4f6f8;
+                            margin: 0;
+                            padding: 0;
+                            font-size: 16px;
+                          }
+                          .container {
+                            max-width: 900px; /* tăng chiều ngang */
+                            background-color: #ffffff;
+                            margin: 40px auto;
+                            border-radius: 12px;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+                            overflow: hidden;
+                          }
+                          .header {
+                            background-color: #007bff;
+                            color: #ffffff;
+                            padding: 30px;
+                            text-align: center;
+                          }
+                          .header h2 {
+                            font-size: 28px;
+                            margin: 0;
+                          }
+                          .content {
+                            padding: 35px 45px;
+                            color: #333333;
+                            font-size: 17px;
+                          }
+                          .content h3 {
+                            color: #007bff;
+                            border-bottom: 2px solid #007bff30;
+                            padding-bottom: 10px;
+                            font-size: 22px;
+                          }
+                          .item {
+                            border-bottom: 1px solid #e9ecef;
+                            padding: 15px 0;
+                            font-size: 16px;
+                          }
+                          .total-summary {
+                            background-color: #f8f9fa;
+                            padding: 20px;
+                            border-radius: 8px;
+                            margin-top: 25px;
+                          }
+                          .total-summary p {
+                            margin: 8px 0;
+                          }
+                          .total {
+                            font-size: 22px;
+                            color: #007bff;
+                            font-weight: bold;
+                          }
+                          .footer {
+                            background-color: #f1f3f5;
+                            text-align: center;
+                            padding: 20px;
+                            font-size: 15px;
+                            color: #6c757d;
+                          }
+                          a {
+                            color: #007bff;
+                            text-decoration: none;
+                          }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="container">
+                          <div class="header">
+                            <h2>🛍️ Xác nhận đơn hàng #%s</h2>
+                          </div>
+                    
+                          <div class="content">
+                            <p>Xin chào <strong>%s</strong>,</p>
+                            <p>Cảm ơn bạn đã đặt hàng tại <strong>DVFashion</strong>! Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
+                    
+                            <h3>Thông tin đơn hàng</h3>
+                            <p><strong>Mã đơn hàng:</strong> %s</p>
+                            <p><strong>Ngày đặt:</strong> %s</p>
+                            <p><strong>Trạng thái:</strong> <span style="color: #28a745;">%s</span></p>
+                            <p><strong>Phương thức thanh toán:</strong> %s</p>
+                    
+                            <h3>Sản phẩm đã đặt</h3>
+                            %s
+                    
+                            <h3>Thông tin giao hàng</h3>
+                            <p><strong>Người nhận:</strong> %s</p>
+                            <p><strong>Số điện thoại:</strong> %s</p>
+                            <p><strong>Địa chỉ:</strong> %s</p>
+                    
+                            <div class="total-summary">
+                              <p><strong>Tổng tiền hàng:</strong> %s VND</p>
+                              <p><strong>Phí vận chuyển:</strong> %s VND</p>
+                              %s
+                              <hr>
+                              <p class="total">Tổng thanh toán: %s VND</p>
+                            </div>
+                    
+                            <div style="background-color: #e7f3ff; border-left: 5px solid #007bff; padding: 20px; margin-top: 35px; font-size: 17px;">
+                              <p><strong>📞 Cần hỗ trợ?</strong><br>
+                              Hotline: <strong>123456</strong><br>
+                              Email: <a href="mailto:test@gmail.com">test@gmail.com</a></p>
+                            </div>
+                          </div>
+                    
+                          <div class="footer">
+                            <p>© 2025 DVFashion — Cảm ơn bạn đã mua sắm cùng chúng tôi 💙</p>
+                          </div>
+                        </div>
+                      </body>
+                    </html>
+                    """.formatted(
+                    orderResponse.orderNumber(),
+                    orderResponse.customerName(),
+                    orderResponse.orderNumber(),
+                    orderResponse.orderDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                    getStatusDisplayName(orderResponse.status()),
+                    getPaymentMethodDisplayName(orderResponse.payment()),
+                    itemsHtml,
+                    orderResponse.shippingInfo().fullName(),
+                    orderResponse.shippingInfo().phone(),
+                    buildShippingAddress(orderResponse.shippingInfo()),
+                    formatCurrency(orderResponse.subtotal()),
+                    formatCurrency(orderResponse.shippingFee()),
+                    orderResponse.discountAmount() != null ?
+                            "<p><strong>Giảm giá:</strong> -" + formatCurrency(orderResponse.discountAmount()) + " VND</p>" : "",
+                    formatCurrency(orderResponse.totalAmount())
+            );
+
+            helper.setTo(customerEmail);
+            helper.setSubject("Xác nhận đơn hàng #" + orderResponse.orderNumber());
+            helper.setText(htmlContent, true);
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            log.error("Error sending order confirmation email: {}", e.getMessage());
+            throw new RuntimeException("Error while sending order confirmation email", e);
+        }
+    }
+
+    @Override
+    public void sendOrderStatusUpdateEmail(OrderResponse orderResponse, String customerEmail, OrderStatus oldStatus, OrderStatus newStatus) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            String statusMessage = getStatusUpdateMessage(newStatus);
+            String statusColor = getStatusColor(newStatus);
+
+            String htmlContent = """
+                    <html>
+                      <head>
+                        <meta charset="UTF-8">
+                        <style>
+                          body {
+                            font-family: 'Segoe UI', Arial, sans-serif;
+                            background-color: #f4f6f8;
+                            margin: 0;
+                            padding: 0;
+                            font-size: 16px;
+                          }
+                          .container {
+                            max-width: 900px;
+                            background-color: #ffffff;
+                            margin: 40px auto;
+                            border-radius: 12px;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+                            overflow: hidden;
+                          }
+                          .header {
+                            background-color: #007bff;
+                            color: #ffffff;
+                            padding: 30px;
+                            text-align: center;
+                          }
+                          .header h2 {
+                            font-size: 28px;
+                            margin: 0;
+                          }
+                          .content {
+                            padding: 35px 45px;
+                            color: #333333;
+                            font-size: 17px;
+                          }
+                          .status-box {
+                            background-color: #f8f9fa;
+                            border-radius: 8px;
+                            text-align: center;
+                            padding: 25px;
+                            margin: 25px 0;
+                            font-size: 17px;
+                          }
+                          .status-box p {
+                            margin: 8px 0;
+                          }
+                          .footer {
+                            background-color: #f1f3f5;
+                            text-align: center;
+                            padding: 20px;
+                            font-size: 15px;
+                            color: #6c757d;
+                          }
+                          a { color: #007bff; text-decoration: none; }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="container">
+                          <div class="header">
+                            <h2>🔔 Cập nhật đơn hàng #%s</h2>
+                          </div>
+                    
+                          <div class="content">
+                            <p>Xin chào <strong>%s</strong>,</p>
+                            <p>Đơn hàng của bạn đã có cập nhật mới:</p>
+                    
+                            <div class="status-box">
+                              <p><strong>Trạng thái cũ:</strong> <span style="color:#6c757d;">%s</span></p>
+                              <p style="font-size:28px;">↓</p>
+                              <p><strong>Trạng thái mới:</strong> <span style="color:%s; font-weight:bold;">%s</span></p>
+                            </div>
+                    
+                            <div style="background-color:#e7f3ff; padding:20px; border-radius:8px; font-size:17px;">
+                              <p><strong>📋 Mã đơn hàng:</strong> %s</p>
+                              <p><strong>Tổng tiền:</strong> %s VND</p>
+                              <p><strong>Ngày đặt:</strong> %s</p>
+                            </div>
+                    
+                            <div style="background-color:#fff3cd; padding:20px; border-radius:8px; margin-top:20px; font-size:17px;">
+                              <p><strong>📝 %s</strong></p>
+                            </div>
+                    
+                            <div style="background-color: #e7f3ff; border-left: 5px solid #007bff; padding: 20px; margin-top: 35px; font-size:17px;">
+                              <p><strong>📞 Cần hỗ trợ?</strong><br>
+                              Hotline: <strong>123456</strong><br>
+                              Email: <a href="mailto:test@gmail.com">test@gmail.com</a></p>
+                            </div>
+                          </div>
+                    
+                          <div class="footer">
+                            <p>© 2025 DVFashion — Cảm ơn bạn đã tin tưởng 💙</p>
+                          </div>
+                        </div>
+                      </body>
+                    </html>
+                    """.formatted(
+                    orderResponse.orderNumber(),
+                    orderResponse.customerName(),
+                    getStatusDisplayName(oldStatus),
+                    statusColor,
+                    getStatusDisplayName(newStatus),
+                    orderResponse.orderNumber(),
+                    formatCurrency(orderResponse.totalAmount()),
+                    orderResponse.orderDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                    statusMessage
+            );
+
+
+            helper.setTo(customerEmail);
+            helper.setSubject("Cập nhật đơn hàng #" + orderResponse.orderNumber() + " - " + getStatusDisplayName(newStatus));
+            helper.setText(htmlContent, true);
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            log.error("Error sending order status update email: {}", e.getMessage());
+            throw new RuntimeException("Error while sending order status update email", e);
+        }
+    }
+
+    // Helper methods
+    private String buildOrderItemsHtml(List<OrderItemResponse> items) {
+        StringBuilder html = new StringBuilder();
+        for (OrderItemResponse item : items) {
+            html.append(String.format("""
+                            <div class="item">
+                                <p><strong>%s - %s</strong></p>
+                                <p>Size: %s | Số lượng: %d | Đơn giá: %s VND</p>
+                                <p><strong>Thành tiền: %s VND</strong></p>
+                            </div>
+                            """,
+                    item.productName(),
+                    item.color(),
+                    item.sizeName(),
+                    item.quantity(),
+                    formatCurrency(item.unitPrice()),
+                    formatCurrency(item.totalPrice())
+            ));
+        }
+        return html.toString();
+    }
+
+    private String buildShippingAddress(ShippingInfoResponse shipping) {
+        return String.format("%s", shipping.fullAddress());
+    }
+
+    private String getStatusDisplayName(OrderStatus status) {
+        return switch (status) {
+            case PENDING -> "Chờ xác nhận";
+            case CONFIRMED -> "Đã xác nhận";
+            case PROCESSING -> "Đang xử lý";
+            case SHIPPED -> "Đang giao hàng";
+            case DELIVERED -> "Đã giao hàng";
+            case CANCELED -> "Đã hủy";
+            case RETURNED -> "Đã trả hàng";
+        };
+    }
+
+    private String getStatusColor(OrderStatus status) {
+        return switch (status) {
+            case PENDING -> "#ffc107";
+            case CONFIRMED -> "#007bff";
+            case PROCESSING -> "#17a2b8";
+            case SHIPPED -> "#fd7e14";
+            case DELIVERED -> "#28a745";
+            case CANCELED -> "#dc3545";
+            case RETURNED -> "#6c757d";
+        };
+    }
+
+    private String getStatusUpdateMessage(OrderStatus status) {
+        return switch (status) {
+            case CONFIRMED -> "Đơn hàng của bạn đã được xác nhận và sẽ được xử lý sớm nhất.";
+            case PROCESSING -> "Đơn hàng đang được chuẩn bị và đóng gói.";
+            case SHIPPED ->
+                    "Đơn hàng đã được giao cho đơn vị vận chuyển. Bạn sẽ sớm nhận được hàng.";
+            case DELIVERED -> "Đơn hàng đã được giao thành công. Cảm ơn bạn đã mua hàng!";
+            case CANCELED -> "Đơn hàng đã bị hủy. Nếu có thắc mắc, vui lòng liên hệ với chúng tôi.";
+            case RETURNED -> "Đơn hàng đã được trả lại. Chúng tôi sẽ xử lý hoàn tiền sớm nhất.";
+            default -> "Trạng thái đơn hàng đã được cập nhật.";
+        };
+    }
+
+    private String getPaymentMethodDisplayName(PaymentResponse payment) {
+        if (payment == null) return "Chưa xác định";
+        return switch (payment.paymentMethod()) {
+            case CASH_ON_DELIVERY -> "Thanh toán khi nhận hàng";
+            case PAYPAL -> "PayPal";
+            default -> payment.paymentMethod().toString();
+        };
+    }
+
+    private String formatCurrency(BigDecimal amount) {
+        if (amount == null) return "0";
+        return String.format("%,.0f", amount);
     }
 }

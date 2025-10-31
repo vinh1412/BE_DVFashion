@@ -68,17 +68,20 @@ public class Order {
     @Column(name = "order_date")
     private LocalDateTime orderDate;
 
-    @Column(name = "shipped_date")
-    private LocalDateTime shippedDate;
-
-    @Column(name = "delivered_date")
-    private LocalDateTime deliveredDate;
+//    @Column(name = "shipped_date")
+//    private LocalDateTime shippedDate;
+//
+//    @Column(name = "delivered_date")
+//    private LocalDateTime deliveredDate;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> items;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Payment payment;
+
+    @Column(name = "estimated_delivery_time")
+    private LocalDateTime estimatedDeliveryTime;
 
     @PrePersist
     public void prePersist() {

@@ -11,7 +11,6 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /*
@@ -34,7 +33,5 @@ public record CreateOrderRequest(
         @Pattern(regexp = "CASH_ON_DELIVERY|PAYPAL|BANK_TRANSFER", message = "Invalid payment method")
         String paymentMethod,
 
-        Long promotionId,
-
-        BigDecimal shippingFee
+        Long promotionId
 ) {}

@@ -53,7 +53,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(response, "Order updated"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PutMapping("/{orderNumber}")
     public ResponseEntity<ApiResponse<OrderResponse>> adminUpdateOrder(
             @PathVariable String orderNumber,
@@ -76,7 +76,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orders, "Orders retrieved"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getOrdersByCustomerId(@PathVariable Long customerId) {
         List<OrderResponse> orders = orderService.getOrdersByCustomerId(customerId);
@@ -92,7 +92,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orders, "Orders retrieved"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
     @GetMapping("/customer/{customerId}/paging")
     public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getOrdersByCustomerIdPaging(
             @PathVariable Long customerId,
@@ -102,7 +102,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orders, "Customer orders retrieved"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getAllOrdersPaging(
             @PageableDefault(page = 0, size = 10, sort = "orderDate", direction = Sort.Direction.DESC) Pageable pageable
@@ -111,7 +111,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orders, "All orders retrieved"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF)
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders() {
         List<OrderResponse> orders = orderService.getAllOrders();

@@ -75,7 +75,7 @@ public class AuthController {
         }
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_CUSTOMER)
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request,
                                                  HttpServletResponse response) {
@@ -84,7 +84,7 @@ public class AuthController {
 
     }
 
-    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER)
+    @PreAuthorize(RoleConstant.HAS_ANY_ROLE_ADMIN_CUSTOMER)
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<?>> getCurrentUser(){
         UserResponse user = userService.getCurrentUser();
