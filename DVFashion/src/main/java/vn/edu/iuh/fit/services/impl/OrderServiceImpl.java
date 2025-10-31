@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
+import vn.edu.iuh.fit.entities.embedded.ShippingInfo;
 import vn.edu.iuh.fit.enums.*;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -320,9 +321,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new NotFoundException("Order not found"));
 
-        if (request.fullName() != null || request.phone() != null || request.country() != null
-                || request.city() != null || request.ward() != null || request.district() != null
-                || request.street() != null) {
+        if (hasShippingInfoChanged(order, request)) {
             orderMapper.ensureShippingUpdatable(order.getStatus());
             orderMapper.applyShippingInfo(order, null, request);
         }
@@ -459,6 +458,18 @@ public class OrderServiceImpl implements OrderService {
                         LanguageUtils.getCurrentLanguage()
                 ))
                 .toList();
+    }
+
+    // Check if any shipping info fields have changed
+    private boolean hasShippingInfoChanged(Order order, AdminUpdateOrderRequest request) {
+        ShippingInfo info = order.getShippingInfo();
+        return (request.fullName() != null && !request.fullName().equals(info.getFullName())) ||
+                (request.phone() != null && !request.phone().equals(info.getPhone())) ||
+                (request.country() != null && !request.country().equals(info.getCountry())) ||
+                (request.city() != null && !request.city().equals(info.getCity())) ||
+                (request.district() != null && !request.district().equals(info.getDistrict())) ||
+                (request.ward() != null && !request.ward().equals(info.getWard())) ||
+                (request.street() != null && !request.street().equals(info.getStreet()));
     }
 
     // Validate cart items belong to user and check reserve stock
