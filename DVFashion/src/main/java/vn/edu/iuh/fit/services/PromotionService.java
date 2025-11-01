@@ -75,4 +75,28 @@ public interface PromotionService {
      * @param productId   The ID of the product to remove.
      */
     void removeProductFromPromotion(Long promotionId, Long productId);
+
+    /**
+     * Retrieves all active and valid promotions for customers.
+     *
+     * @param language The language for the promotion details.
+     * @return List of active promotion responses.
+     */
+    List<PromotionResponse> getActivePromotions(Language language);
+
+    /**
+     * Retrieves a paginated list of active and valid promotions for customers.
+     *
+     * @param pageable Pagination information.
+     * @param language The language for the promotion details.
+     * @return A paginated response containing active promotion responses.
+     */
+    PageResponse<PromotionResponse> getActivePromotionsPaging(Pageable pageable, Language language);
+
+    /**
+     * Deletes a promotion by its ID.
+     *
+     * @param promotionId The ID of the promotion to delete.
+     */
+    void deletePromotion(Long promotionId);
 }

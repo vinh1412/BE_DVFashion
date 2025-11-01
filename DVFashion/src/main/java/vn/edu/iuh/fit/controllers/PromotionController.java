@@ -67,6 +67,7 @@ public class PromotionController {
         return ResponseEntity.ok(ApiResponse.success(response, "Promotion retrieved successfully."));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<?>> getAllPromotionsNoPaging(
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
@@ -74,6 +75,7 @@ public class PromotionController {
         return ResponseEntity.ok(ApiResponse.success(promotions, "Promotions retrieved successfully."));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getPromotionsPaging(
             @PageableDefault(page = 0, size = 12) Pageable pageable,
@@ -89,6 +91,28 @@ public class PromotionController {
             @PathVariable Long promotionId,
             @PathVariable Long productId) {
         promotionService.removeProductFromPromotion(promotionId, productId);
-        return ResponseEntity.ok(ApiResponse.success(null, "Product removed from promotion successfully."));
+        return ResponseEntity.ok(ApiResponse.noContent("Product removed from promotion successfully."));
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<?>> getActivePromotions(
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        List<PromotionResponse> promotions = promotionService.getActivePromotions(language);
+        return ResponseEntity.ok(ApiResponse.success(promotions, "Active promotions retrieved successfully."));
+    }
+
+    @GetMapping("/active/paging")
+    public ResponseEntity<ApiResponse<?>> getActivePromotionsPaging(
+            @PageableDefault(page = 0, size = 12) Pageable pageable,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        PageResponse<PromotionResponse> promotions = promotionService.getActivePromotionsPaging(pageable, language);
+        return ResponseEntity.ok(ApiResponse.success(promotions, "Active promotions retrieved successfully with pagination."));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @DeleteMapping("/{promotionId}")
+    public ResponseEntity<ApiResponse<?>> deletePromotion(@PathVariable Long promotionId) {
+        promotionService.deletePromotion(promotionId);
+        return ResponseEntity.ok(ApiResponse.noContent("Promotion deleted successfully."));
     }
 }

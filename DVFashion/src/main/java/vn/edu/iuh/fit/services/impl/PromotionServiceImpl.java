@@ -23,6 +23,7 @@ import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.PromotionType;
 import vn.edu.iuh.fit.exceptions.BadRequestException;
+import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.exceptions.ResourceNotFoundException;
 import vn.edu.iuh.fit.mappers.PromotionMapper;
 import vn.edu.iuh.fit.repositories.ProductRepository;
@@ -34,6 +35,7 @@ import vn.edu.iuh.fit.services.TranslationService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -268,6 +270,56 @@ public class PromotionServiceImpl implements PromotionService {
 
         // Save the updated promotion
         promotionRepository.save(promotion);
+    }
+
+    @Override
+    public List<PromotionResponse> getActivePromotions(Language language) {
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Promotion> activePromotions = promotionRepository.findActivePromotions(now);
+
+        return activePromotions.stream()
+                .map(promotion -> promotionMapper.mapToPromotionResponse(promotion, language))
+                .toList();
+    }
+
+    @Override
+    public PageResponse<PromotionResponse> getActivePromotionsPaging(Pageable pageable, Language language) {
+        LocalDateTime now = LocalDateTime.now();
+
+        Page<Promotion> activePromotions = promotionRepository.findActivePromotions(now, pageable);
+
+        Page<PromotionResponse> dtoPage = activePromotions.map(promotion ->
+                promotionMapper.mapToPromotionResponse(promotion, language));
+
+        return PageResponse.from(dtoPage);
+    }
+
+    @Override
+    public void deletePromotion(Long promotionId) {
+        // Find existing promotion
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new NotFoundException("Promotion not found with ID: " + promotionId));
+
+        // Check if promotion is currently active
+        LocalDateTime now = LocalDateTime.now();
+        if (promotion.isActive() &&
+                promotion.getStartDate().isBefore(now) &&
+                promotion.getEndDate().isAfter(now)) {
+            throw new BadRequestException("Cannot delete an active promotion that is currently running");
+        }
+
+        // Clear all promotion products first (to avoid constraint issues)
+        promotion.getPromotionProducts().clear();
+
+        // Clear all translations
+        promotion.getTranslations().clear();
+
+        // Save to flush changes
+        promotionRepository.save(promotion);
+
+        // Delete the promotion (this will cascade delete remaining relationships)
+        promotionRepository.delete(promotion);
     }
 
     // Helper method to build PromotionTranslation
