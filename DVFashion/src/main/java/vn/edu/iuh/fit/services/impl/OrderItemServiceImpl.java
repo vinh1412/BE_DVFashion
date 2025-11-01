@@ -55,8 +55,8 @@ public class OrderItemServiceImpl implements OrderItemService {
 //        BigDecimal unitPrice = calculateUnitPrice(cartItem);
         BigDecimal unitPrice = cartItem.getUnitPrice();
         return switch (promotion.getType()) {
-            case PERCENTAGE -> unitPrice.multiply(promotion.getValue()).divide(BigDecimal.valueOf(100));
-            case FIXED_AMOUNT -> promotion.getValue();
+//            case PERCENTAGE -> unitPrice.multiply(promotion.getValue()).divide(BigDecimal.valueOf(100));
+//            case FIXED_AMOUNT -> promotion.getValue();
             default -> BigDecimal.ZERO;
         };
     }

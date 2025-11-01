@@ -25,6 +25,7 @@ import vn.edu.iuh.fit.mappers.ProductMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /*
@@ -220,14 +221,7 @@ public class ProductServiceImpl implements ProductService {
         CategoryResponse categoryResponse = categoryService.getCategoryById(product.getCategory().getId(), inputLang);
         String categoryName = categoryResponse != null ? categoryResponse.name() : "Unknown";
 
-        // Find promotion name if exists
-        String promotionName = null;
-        if (product.getPromotion() != null) {
-            PromotionResponse promotionResponse = promotionService.getPromotionById(product.getPromotion().getId(), inputLang);
-            promotionName = promotionResponse != null ? promotionResponse.name() : null;
-        }
-
         // Map to ProductResponse
-        return productMapper.toResponse(product, translation, categoryName, promotionName);
+        return productMapper.toResponse(product, translation, categoryName);
     }
 }

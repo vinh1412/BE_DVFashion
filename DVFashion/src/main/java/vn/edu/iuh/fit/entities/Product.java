@@ -67,6 +67,9 @@ public class Product {
     @JoinColumn(name = "promotion_id")
     private Promotion promotion;
 
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    private List<PromotionProduct> promotionProducts = new ArrayList<>();
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductVariant> variants = new ArrayList<>();
 

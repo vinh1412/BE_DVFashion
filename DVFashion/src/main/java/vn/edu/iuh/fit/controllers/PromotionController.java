@@ -12,8 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.constants.RoleConstant;
-import vn.edu.iuh.fit.dtos.request.PromotionRequest;
+import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.enums.Language;
@@ -37,34 +38,35 @@ public class PromotionController {
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @PostMapping
     public ResponseEntity<ApiResponse<?>> createPromotion(
-            @Validated(ValidationGroups.Create.class) @RequestBody PromotionRequest promotionRequest,
-            @RequestParam(defaultValue = "VI") Language inputLang) {
-        PromotionResponse response = promotionService.createPromotion(promotionRequest, inputLang);
+            @Valid  @RequestPart("promotion") CreatePromotionRequest createPromotionRequest,
+            @RequestParam(defaultValue = "VI") Language inputLang,
+            @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
+        PromotionResponse response = promotionService.createPromotion(createPromotionRequest, inputLang, bannerFile);
         return ResponseEntity.ok(ApiResponse.created(response, "Promotion created successfully."));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<?>> getPromotionById(
-            @PathVariable Long id,
-            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
-        PromotionResponse response = promotionService.getPromotionById(id, language);
-        return ResponseEntity.ok(ApiResponse.success(response, "Promotion retrieved successfully."));
-    }
-
-    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<?>> updatePromotion(
-            @Validated(ValidationGroups.Update.class) @RequestBody PromotionRequest promotionRequest,
-            @PathVariable Long id,
-            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
-        PromotionResponse response = promotionService.updatePromotion(promotionRequest, id, language);
-        return ResponseEntity.ok(ApiResponse.success(response, "Promotion updated successfully."));
-    }
-
-    @GetMapping("/all")
-    public ResponseEntity<ApiResponse<?>> getAllPromotionsNoPaging(
-            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
-        List<PromotionResponse> promotions = promotionService.getAllPromotions(language);
-        return ResponseEntity.ok(ApiResponse.success(promotions, "Promotions retrieved successfully."));
-    }
+//    @GetMapping("/{id}")
+//    public ResponseEntity<ApiResponse<?>> getPromotionById(
+//            @PathVariable Long id,
+//            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+//        PromotionResponse response = promotionService.getPromotionById(id, language);
+//        return ResponseEntity.ok(ApiResponse.success(response, "Promotion retrieved successfully."));
+//    }
+//
+//    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+//    @PutMapping("/{id}")
+//    public ResponseEntity<ApiResponse<?>> updatePromotion(
+//            @Validated(ValidationGroups.Update.class) @RequestBody CreatePromotionRequest createPromotionRequest,
+//            @PathVariable Long id,
+//            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+//        PromotionResponse response = promotionService.updatePromotion(createPromotionRequest, id, language);
+//        return ResponseEntity.ok(ApiResponse.success(response, "Promotion updated successfully."));
+//    }
+//
+//    @GetMapping("/all")
+//    public ResponseEntity<ApiResponse<?>> getAllPromotionsNoPaging(
+//            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+//        List<PromotionResponse> promotions = promotionService.getAllPromotions(language);
+//        return ResponseEntity.ok(ApiResponse.success(promotions, "Promotions retrieved successfully."));
+//    }
 }

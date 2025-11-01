@@ -102,10 +102,10 @@ public class OrderServiceImpl implements OrderService {
         List<CartItem> cartItems = validateReserveStock(request.orderItems(), customer);
 
         // Apply promotion if provided
-        if (request.promotionId() != null) {
-            Promotion promotion = promotionService.validatePromotion(request.promotionId());
-            order.setPromotion(promotion);
-        }
+//        if (request.promotionId() != null) {
+//            Promotion promotion = promotionService.validatePromotion(request.promotionId());
+//            order.setPromotion(promotion);
+//        }
 
         // Create order items
         List<OrderItem> orderItems = orderItemService.createOrderItems(cartItems, order);

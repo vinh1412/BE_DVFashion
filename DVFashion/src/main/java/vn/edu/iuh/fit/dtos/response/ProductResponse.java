@@ -31,6 +31,8 @@ public record ProductResponse(
 
         boolean onSale,
 
+        BigDecimal currentPrice,
+
         String status,
 
         String categoryName,

@@ -23,6 +23,7 @@ import vn.edu.iuh.fit.exceptions.CartLimitExceededException;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.mappers.CartItemMapper;
+import vn.edu.iuh.fit.mappers.ProductMapper;
 import vn.edu.iuh.fit.mappers.ShoppingCartMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.CartService;
@@ -66,6 +67,12 @@ public class CartServiceImpl implements CartService {
 
     private final UserInteractionService userInteractionService;
 
+    private final ProductMapper productMapper;
+
+    private final PromotionProductRepository promotionProductRepository;
+
+    private final OrderItemRepository orderItemRepository;
+
     private static final int MAX_QUANTITY_PER_ITEM = 20;
     private static final int MAX_DIFFERENT_ITEMS_IN_CART = 70;
 
@@ -93,6 +100,9 @@ public class CartServiceImpl implements CartService {
         if (!size.getProductVariant().getId().equals(productVariant.getId())) {
             throw new NotFoundException("Size does not belong to the specified product variant");
         }
+
+        // Check promotion constraints
+        validatePromotionConstraints(productVariant.getProduct(), user.getId(), request.quantity());
 
         // Get or create shopping cart for user
         ShoppingCart cart = getOrCreateCart(user);
@@ -222,6 +232,12 @@ public class CartServiceImpl implements CartService {
 
         // Calculate quantity difference
         int quantityDiff = newQuantity - currentQuantity;
+
+        if (quantityDiff > 0) {
+            ProductVariant variant = cartItem.getProductVariant();
+            Product product = variant.getProduct();
+            validatePromotionConstraints(product, user.getId(), quantityDiff);
+        }
 
         String referenceNumber = "CART_UPDATE_QTY_" + cartItemId + "_" + System.currentTimeMillis();
 
@@ -368,6 +384,46 @@ public class CartServiceImpl implements CartService {
         }
     }
 
+    // Validate promotion constraints when adding/updating cart items
+    private void validatePromotionConstraints(Product product, Long userId, int requestedQuantity) {
+        // Check if product has active promotion
+        Optional<PromotionProduct> activePromotion = promotionProductRepository
+                .findActivePromotionForProduct(product.getId());
+
+        if (activePromotion.isPresent()) {
+            PromotionProduct promotionProduct = activePromotion.get();
+
+            // Check promotion stock availability
+            int availablePromotionStock = promotionProduct.getStockQuantity() - promotionProduct.getSoldQuantity();
+            if (availablePromotionStock < requestedQuantity) {
+                throw new InsufficientStockException(
+                        String.format("Insufficient promotion stock. Available: %d, Requested: %d",
+                                availablePromotionStock, requestedQuantity));
+            }
+
+            // Check max quantity per user constraint
+            if (promotionProduct.getMaxQuantityPerUser() != null) {
+                int userPurchasedQuantity = getUserPromotionPurchasedQuantity(userId, product.getId());
+                int totalUserQuantity = userPurchasedQuantity + requestedQuantity;
+
+                if (totalUserQuantity > promotionProduct.getMaxQuantityPerUser()) {
+                    throw new CartLimitExceededException(
+                            String.format("Maximum %d items per user for this promotion. You have already purchased %d",
+                                    promotionProduct.getMaxQuantityPerUser(), userPurchasedQuantity));
+                }
+            }
+        }
+    }
+
+    // Get total quantity user has purchased for product in current active promotion
+    private int getUserPromotionPurchasedQuantity(Long userId, Long productId) {
+        // Get user's purchased quantity for this product in current active promotion
+        // This should check both cart items and completed orders
+        int cartQuantity = cartItemRepository.sumQuantityByUserAndProduct(userId, productId);
+        int orderedQuantity = orderItemRepository.sumQuantityByUserAndProductInActivePromotion(userId, productId);
+        return cartQuantity + orderedQuantity;
+    }
+
     // Update existing cart item quantity
     private CartResponse updateCartItem(CartItem existingItem, int additionalQuantity) {
         // Get current quantity
@@ -378,6 +434,15 @@ public class CartServiceImpl implements CartService {
 
         // Quantity diff need to reserve more
         int quantityDiff = additionalQuantity;
+
+        // Validate promotion constraints khi tăng số lượng
+        if (quantityDiff > 0) {
+            ProductVariant productVariant = existingItem.getProductVariant();
+            Product product = productVariant.getProduct();
+            Long userId = existingItem.getCart().getUser().getId();
+
+            validatePromotionConstraints(product, userId, quantityDiff);
+        }
 
         // Generate reference number for this transaction
         String referenceNumber = "CART_UPDATE_" + existingItem.getId() + "_" + System.currentTimeMillis();
@@ -435,9 +500,7 @@ public class CartServiceImpl implements CartService {
         Product product = productVariant.getProduct();
 
         // Base price is sale price if on sale, otherwise regular price
-        BigDecimal basePrice = product.isOnSale() && product.getSalePrice() != null
-                ? product.getSalePrice()
-                : product.getPrice();
+        BigDecimal basePrice = productMapper.calculateCurrentPrice(product);
 
         // Add additional price from variant if any
         BigDecimal additionalPrice = productVariant.getAddtionalPrice() != null

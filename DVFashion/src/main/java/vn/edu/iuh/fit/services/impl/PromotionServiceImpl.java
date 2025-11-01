@@ -1,253 +1,223 @@
 /*
- * @ {#} PromotionServiceImpl.java   1.0     03/09/2025
+ * @ {#} PromotionServiceImpl.java   1.0     01/11/2025
  *
  * Copyright (c) 2025 IUH. All rights reserved.
  */
-
+      
 package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import vn.edu.iuh.fit.dtos.request.PromotionRequest;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
+import vn.edu.iuh.fit.dtos.request.PromotionProductRequest;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
-import vn.edu.iuh.fit.entities.Promotion;
-import vn.edu.iuh.fit.entities.PromotionTranslation;
+import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.PromotionType;
-import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
-import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.exceptions.BadRequestException;
+import vn.edu.iuh.fit.exceptions.ResourceNotFoundException;
 import vn.edu.iuh.fit.mappers.PromotionMapper;
+import vn.edu.iuh.fit.repositories.ProductRepository;
 import vn.edu.iuh.fit.repositories.PromotionRepository;
-import vn.edu.iuh.fit.repositories.PromotionTranslationRepository;
+import vn.edu.iuh.fit.services.CloudinaryService;
 import vn.edu.iuh.fit.services.PromotionService;
 import vn.edu.iuh.fit.services.TranslationService;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /*
- * @description: Implementation of PromotionService interface for managing promotions.
+ * @description: Service implementation for managing promotions.
  * @author: Tran Hien Vinh
- * @date:   03/09/2025
+ * @date:   01/11/2025
  * @version:    1.0
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PromotionServiceImpl implements PromotionService {
     private final PromotionRepository promotionRepository;
 
-    private final PromotionTranslationRepository translationRepository;
-
-    private final TranslationService translationService;
+    private final ProductRepository productRepository;
 
     private final PromotionMapper promotionMapper;
 
+    private final TranslationService translationService;
+
+    private final CloudinaryService cloudinaryService;
+
+    @Transactional
     @Override
-    public PromotionResponse createPromotion(PromotionRequest promotionRequest, Language inputLang) {
-        // Check if promotion with same name already exists
-        if(translationRepository.existsByNameIgnoreCaseAndLanguage(promotionRequest.name().toLowerCase(), inputLang)) {
-            throw new AlreadyExistsException("Promotion with name '" + promotionRequest.name() + "' already exists.");
-        }
+    public PromotionResponse createPromotion(CreatePromotionRequest request, Language inputLang, MultipartFile bannerFile) {
+        // Validate dates
+        validatePromotionDates(request.startDate(), request.endDate());
 
-        // Parse and validate promotion type
-        PromotionType type = PromotionType.fromString(promotionRequest.type());
+        // Validate products exist
+        validateProductsExist(request.promotionProducts());
 
-        // Parse and validate dates
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-        LocalDate startDate = LocalDate.parse(promotionRequest.startDate(), formatter);
-        LocalDate endDate = LocalDate.parse(promotionRequest.endDate(), formatter);
-
-        LocalDateTime startDateTime = startDate.atStartOfDay(); // 2025-09-05T00:00:00
-        LocalDateTime endDateTime = endDate.atTime(23, 59, 59); // 2025-09-10T23:59:59
-
-        if (endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("End date must be after start date.");
+        // Handle banner file upload if provided (omitted for brevity)
+        String bannerUrl = null;
+        if (bannerFile != null && !bannerFile.isEmpty()) {
+            bannerUrl = cloudinaryService.uploadImage(bannerFile);
         }
 
         // Create promotion entity
         Promotion promotion = Promotion.builder()
-                .type(type)
-                .value(promotionRequest.value())
-                .minOrderAmount(promotionRequest.minOrderAmount())
-                .maxUsages(promotionRequest.maxUsages() != null ? promotionRequest.maxUsages() : 0)
-                .currentUsages(0)
-                .startDate(startDateTime)
-                .endDate(endDateTime)
-                .active(promotionRequest.active() == null || promotionRequest.active())
+                .type(PromotionType.valueOf(request.type()))
+                .bannerUrl(bannerUrl)
+                .startDate(LocalDate.parse(request.startDate()).atStartOfDay())
+                .endDate(LocalDate.parse(request.endDate()).atTime(23, 59, 59))
+                .active(request.active() != null ? request.active() : true)
+                .promotionProducts(new ArrayList<>())
+                .translations(new ArrayList<>())
                 .build();
-        promotionRepository.save(promotion);
 
-        // Description for input language
-        String descInput;
-        if (promotionRequest.description() != null) {
-            descInput = promotionRequest.description();
-        } else {
-            descInput = (inputLang == Language.VI) ? "Không có mô tả" : "No description";
-        }
+        // Save promotion first to get ID
+        promotion = promotionRepository.save(promotion);
 
-        // Save input language translation
-        PromotionTranslation inputTranslation = PromotionTranslation.builder()
-                .promotion(promotion)
-                .language(inputLang)
-                .name(promotionRequest.name())
-                .description(descInput)
-                .build();
-        translationRepository.save(inputTranslation);
+        promotion.getTranslations().add(buildTranslation(promotion, inputLang, request.name(), request.description()));
 
-        // Determine target language for translation
+        // Determine the target language
         Language targetLang = (inputLang == Language.VI) ? Language.EN : Language.VI;
 
-        // Description for target language
-        String descTarget;
-        if (promotionRequest.description() != null) {
-            descTarget = translationService.translate(promotionRequest.description(), targetLang.name());
-        } else {
-            descTarget = (targetLang == Language.VI) ? "Không có mô tả" : "No description";
+        // Use TranslationService to translate name & description
+        String translatedName = translationService.translate(request.name(), targetLang.name());
+        String translatedDescription = (request.description() != null)
+                ? translationService.translate(request.description(), targetLang.name())
+                : null;
+
+        promotion.getTranslations().add(buildTranslation(promotion, targetLang, translatedName, translatedDescription));
+
+        // Create promotion products
+        for (PromotionProductRequest productRequest : request.promotionProducts()) {
+            Product product = productRepository.findById(productRequest.productId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productRequest.productId()));
+
+            BigDecimal originalPrice = (product.getSalePrice() != null && product.isOnSale())
+                    ? product.getSalePrice()
+                    : product.getPrice();
+            BigDecimal promotionPrice = productRequest.promotionPrice();
+            BigDecimal discountPercentage = productRequest.discountPercentage();
+
+            // Validate that at least one of promotionPrice or discountPercentage is provided
+            if (promotionPrice == null && discountPercentage == null) {
+                throw new BadRequestException("Either promotionPrice or discountPercentage must be provided");
+            }
+
+            // If you only enter discountPercentage → automatically calculate promotionPrice
+            if (promotionPrice == null && discountPercentage != null) {
+                if (discountPercentage.compareTo(BigDecimal.ZERO) < 0 || discountPercentage.compareTo(BigDecimal.valueOf(100)) > 0) {
+                    throw new BadRequestException("Discount percentage must be between 0 and 100");
+                }
+                promotionPrice = originalPrice
+                        .multiply(BigDecimal.ONE.subtract(discountPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)))
+                        .setScale(2, RoundingMode.HALF_UP);
+            }
+
+            // If you only enter promotionPrice → automatically calculate discountPercentage
+            else if (promotionPrice != null && discountPercentage == null) {
+                if (promotionPrice.compareTo(originalPrice) >= 0) {
+                    throw new BadRequestException("Promotion price must be less than original price");
+                }
+                discountPercentage = calculateDiscountPercentage(originalPrice, promotionPrice);
+            }
+
+            // If you enter both → check if they match
+            else if (promotionPrice != null && discountPercentage != null) {
+                BigDecimal expectedDiscount = calculateDiscountPercentage(originalPrice, promotionPrice);
+                if (expectedDiscount.subtract(discountPercentage).abs().compareTo(BigDecimal.valueOf(1)) > 0) {
+                    log.warn("Discount percentage and promotion price mismatch for product {}", productRequest.productId());
+                }
+            }
+
+            PromotionProduct promotionProduct = PromotionProduct.builder()
+                    .promotion(promotion)
+                    .product(product)
+                    .originalPrice(originalPrice)
+                    .promotionPrice(promotionPrice)
+                    .discountPercentage(discountPercentage)
+                    .stockQuantity(productRequest.stockQuantity())
+                    .soldQuantity(0)
+                    .maxQuantityPerUser(productRequest.maxQuantityPerUser())
+                    .active(true)
+                    .build();
+
+            promotion.getPromotionProducts().add(promotionProduct);
         }
 
-        // Translate and save target language translation
-        PromotionTranslation translatedTranslation = PromotionTranslation.builder()
+        // Save final promotion with all relationships
+        promotion = promotionRepository.save(promotion);
+
+        return promotionMapper.mapToPromotionResponse(promotion, inputLang);
+    }
+
+    // Helper method to build PromotionTranslation
+    private PromotionTranslation buildTranslation(Promotion promotion, Language lang, String name, String description) {
+        return PromotionTranslation.builder()
                 .promotion(promotion)
-                .language(targetLang)
-                .name(translationService.translate(promotionRequest.name(), targetLang.name()))
-                .description(descTarget)
+                .language(lang)
+                .name(name)
+                .description(description)
                 .build();
-        translationRepository.save(translatedTranslation);
-
-        return promotionMapper.toResponse(promotion, inputLang);
     }
 
-    @Override
-    public PromotionResponse getPromotionById(Long id, Language language) {
-        Promotion promotion = promotionRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Promotion not found with id: " + id));
+    // Validate promotion start and end dates
+    private void validatePromotionDates(String startDateStr, String endDateStr) {
+        LocalDate startDate = LocalDate.parse(startDateStr);
+        LocalDate endDate = LocalDate.parse(endDateStr);
+        LocalDate today = LocalDate.now();
 
-        return promotionMapper.toResponse(promotion, language);
+        if (startDate.isBefore(today)) {
+            throw new BadRequestException("Start date cannot be in the past");
+        }
+
+        if (endDate.isBefore(startDate)) {
+            throw new BadRequestException("End date must be after start date");
+        }
     }
 
-    @Override
-    public PromotionResponse updatePromotion(PromotionRequest promotionRequest, Long id, Language inputLang) {
-        Promotion promotion = promotionRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Promotion not found with id: " + id));
+    // Validate that all products in the request exist
+    private void validateProductsExist(List<PromotionProductRequest> productRequests) {
+        List<Long> productIds = new ArrayList<>(
+                productRequests.stream()
+                        .map(PromotionProductRequest::productId)
+                        .toList()
+        );
 
-        // Update fields if provided
-        if (promotionRequest.type() != null && !promotionRequest.type().isBlank()) {
-            promotion.setType(PromotionType.fromString(promotionRequest.type()));
-        }
-
-        if (promotionRequest.value() != null) {
-            promotion.setValue(promotionRequest.value());
-        }
-
-        if (promotionRequest.minOrderAmount() != null) {
-            promotion.setMinOrderAmount(promotionRequest.minOrderAmount());
-        }
-
-        if (promotionRequest.maxUsages() != null) {
-            promotion.setMaxUsages(promotionRequest.maxUsages());
-        }
-
-        // Parse and validate dates if provided
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        if (promotionRequest.startDate() != null) {
-            LocalDate startDate = LocalDate.parse(promotionRequest.startDate(), formatter);
-            LocalDateTime startDateTime = startDate.atStartOfDay();
-            promotion.setStartDate(startDateTime);
-        }
-
-        if (promotionRequest.endDate() != null) {
-            LocalDate endDate = LocalDate.parse(promotionRequest.endDate(), formatter);
-            LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
-            promotion.setEndDate(endDateTime);
-        }
-
-        if (promotion.getStartDate() != null && promotion.getEndDate() != null) {
-            if (promotion.getEndDate().isBefore(promotion.getStartDate())) {
-                throw new IllegalArgumentException("End date must be after start date.");
+        // Check for duplicate product IDs
+        Set<Long> uniqueIds = new HashSet<>();
+        for (Long id : productIds) {
+            if (!uniqueIds.add(id)) {
+                throw new BadRequestException("Duplicate productId found: " + id);
             }
         }
 
 
-        if (promotionRequest.active() != null) {
-            promotion.setActive(promotionRequest.active());
+        List<Long> existingProductIds = productRepository.findExistingProductIds(productIds);
+
+        if (existingProductIds.size() != productIds.size()) {
+            productIds.removeAll(existingProductIds);
+            throw new ResourceNotFoundException("Products not found with IDs: " + productIds);
         }
-
-        // Update or create translation for the input language
-        updateOrCreateTranslation(promotion, inputLang, promotionRequest.name(), promotionRequest.description());
-
-        // Determine the other language
-        Language otherLang = (inputLang == Language.EN) ? Language.VI : Language.EN;
-
-        String otherName = promotionRequest.name() != null
-                ? translationService.translate(promotionRequest.name(), otherLang.name())
-                : null;
-
-        String otherDesc = promotionRequest.description() != null
-                ? translationService.translate(promotionRequest.description(), otherLang.name())
-                : null;
-
-        // Update translations for the other language
-        updateOrCreateTranslation(promotion, otherLang, otherName, otherDesc);
-
-        // Save the updated promotion
-        promotionRepository.save(promotion);
-
-        return promotionMapper.toResponse(promotion, inputLang);
     }
 
-    @Override
-    public List<PromotionResponse> getAllPromotions(Language language) {
-        List<Promotion> promotions = promotionRepository.findAll();
-
-        return promotions.stream()
-                .map(promotion -> promotionMapper.toResponse(promotion, language))
-                .toList();
-    }
-
-    @Override
-    public Promotion validatePromotion(Long promotionId) {
-        Promotion dbPromotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new NotFoundException("Promotion not found with id: " + promotionId));
-
-        if (!dbPromotion.isActive()) {
-            throw new IllegalArgumentException("Promotion is not active");
+    // Calculate discount percentage based on original and promotion prices
+    private BigDecimal calculateDiscountPercentage(BigDecimal originalPrice, BigDecimal promotionPrice) {
+        if (originalPrice.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        if (dbPromotion.getStartDate().isAfter(now) || dbPromotion.getEndDate().isBefore(now)) {
-            throw new IllegalArgumentException("Promotion is not valid for current date");
-        }
-
-        if (dbPromotion.getCurrentUsages() >= dbPromotion.getMaxUsages()) {
-            throw new IllegalArgumentException("Promotion usage limit exceeded");
-        }
-        return dbPromotion;
-    }
-
-    // Helper method to update or create a translation
-    private void updateOrCreateTranslation(Promotion promotion, Language lang, String name, String description) {
-        // Find existing translation or create a new one
-        PromotionTranslation translation = promotion.getTranslations().stream()
-                .filter(t -> t.getLanguage() == lang)
-                .findFirst()
-                .orElseGet(() -> {
-                    PromotionTranslation t = PromotionTranslation.builder()
-                            .language(lang)
-                            .promotion(promotion)
-                            .build();
-                    promotion.getTranslations().add(t);
-                    return t;
-                });
-
-        // Update fields if new values are provided
-        if (name != null && !name.isBlank()) {
-            translation.setName(name);
-        }
-        if (description != null && !description.isBlank()) {
-            translation.setDescription(description);
-        }
+        BigDecimal discount = originalPrice.subtract(promotionPrice);
+        return discount.divide(originalPrice, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 }
