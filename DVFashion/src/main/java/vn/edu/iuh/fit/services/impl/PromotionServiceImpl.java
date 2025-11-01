@@ -8,6 +8,8 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +17,7 @@ import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
 import vn.edu.iuh.fit.dtos.request.PromotionProductRequest;
 import vn.edu.iuh.fit.dtos.request.UpdatePromotionProductRequest;
 import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
+import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
@@ -219,6 +222,33 @@ public class PromotionServiceImpl implements PromotionService {
         existingPromotion = promotionRepository.save(existingPromotion);
 
         return promotionMapper.mapToPromotionResponse(existingPromotion, inputLang);
+    }
+
+    @Override
+    public PromotionResponse getPromotionById(Long id, Language language) {
+        Promotion promotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with ID: " + id));
+
+        return promotionMapper.mapToPromotionResponse(promotion, language);
+    }
+
+    @Override
+    public List<PromotionResponse> getAllPromotions(Language language) {
+        List<Promotion> promotions = promotionRepository.findAll();
+
+        return promotions.stream()
+                .map(promotion -> promotionMapper.mapToPromotionResponse(promotion, language))
+                .toList();
+    }
+
+    @Override
+    public PageResponse<PromotionResponse> getPromotionsPaging(Pageable pageable, Language language) {
+        Page<Promotion> promotions = promotionRepository.findAll(pageable);
+
+        Page<PromotionResponse> dtoPage = promotions.map(promotion ->
+                promotionMapper.mapToPromotionResponse(promotion, language));
+
+        return PageResponse.from(dtoPage);
     }
 
     // Helper method to build PromotionTranslation

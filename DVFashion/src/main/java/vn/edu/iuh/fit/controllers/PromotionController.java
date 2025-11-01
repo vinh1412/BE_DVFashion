@@ -8,6 +8,9 @@ package vn.edu.iuh.fit.controllers;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +21,7 @@ import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
 import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
+import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.services.PromotionService;
@@ -56,6 +60,30 @@ public class PromotionController {
             @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
         PromotionResponse response = promotionService.updatePromotion(updatePromotionRequest, id, inputLang, bannerFile);
         return ResponseEntity.ok(ApiResponse.success(response, "Promotion updated successfully."));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<?>> getPromotionById(
+            @PathVariable Long id,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        PromotionResponse response = promotionService.getPromotionById(id, language);
+        return ResponseEntity.ok(ApiResponse.success(response, "Promotion retrieved successfully."));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<?>> getAllPromotionsNoPaging(
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        List<PromotionResponse> promotions = promotionService.getAllPromotions(language);
+        return ResponseEntity.ok(ApiResponse.success(promotions, "Promotions retrieved successfully."));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<?>> getPromotionsPaging(
+            @PageableDefault(page = 0, size = 12) Pageable pageable,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+
+        PageResponse<PromotionResponse> response = promotionService.getPromotionsPaging(pageable, language);
+        return ResponseEntity.ok(ApiResponse.success(response, "Promotions retrieved successfully."));
     }
 
 //    @GetMapping("/{id}")
