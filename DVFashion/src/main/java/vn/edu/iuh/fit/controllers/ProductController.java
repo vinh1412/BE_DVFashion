@@ -86,4 +86,38 @@ public class ProductController {
         PageResponse<ProductResponse> products = productService.getProductsPaging(pageable, language);
         return ResponseEntity.ok(ApiResponse.success(products, "Brands retrieved successfully."));
     }
+
+    @GetMapping("/promotion/{promotionId}")
+    public ResponseEntity<ApiResponse<?>> getProductsByPromotionId(
+            @PathVariable Long promotionId,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        List<ProductResponse> products = productService.getProductsByPromotionId(promotionId, language);
+        return ResponseEntity.ok(ApiResponse.success(products, "Products from promotion retrieved successfully."));
+    }
+
+    @GetMapping("/promotion/{promotionId}/paging")
+    public ResponseEntity<ApiResponse<?>> getProductsByPromotionIdPaging(
+            @PathVariable Long promotionId,
+            @PageableDefault(page = 0, size = 12) Pageable pageable,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        PageResponse<ProductResponse> products = productService.getProductsByPromotionIdPaging(promotionId, pageable, language);
+        return ResponseEntity.ok(ApiResponse.success(products, "Products from promotion retrieved successfully with pagination."));
+    }
+
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<ApiResponse<?>> getProductsByCategoryId(
+            @PathVariable Long categoryId,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        List<ProductResponse> products = productService.getProductsByCategoryId(categoryId, language);
+        return ResponseEntity.ok(ApiResponse.success(products, "Products from category retrieved successfully."));
+    }
+
+    @GetMapping("/category/{categoryId}/paging")
+    public ResponseEntity<ApiResponse<?>> getProductsByCategoryIdPaging(
+            @PathVariable Long categoryId,
+            @PageableDefault(page = 0, size = 12, sort = "id", direction = Sort.Direction.ASC) Pageable pageable,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        PageResponse<ProductResponse> products = productService.getProductsByCategoryIdPaging(categoryId, pageable, language);
+        return ResponseEntity.ok(ApiResponse.success(products, "Products from category retrieved successfully with pagination."));
+    }
 }

@@ -8,8 +8,8 @@ package vn.edu.iuh.fit.dtos.response;
 
 import vn.edu.iuh.fit.enums.PromotionType;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /*
  * @description: Response DTO for promotion details
@@ -26,17 +26,13 @@ public record PromotionResponse(
 
         PromotionType type,
 
-        BigDecimal value,
-
-        BigDecimal minOrderAmount,
-
-        Integer maxUsages,
-
-        Integer currentUsages,
-
         LocalDateTime startDate,
 
         LocalDateTime endDate,
 
-        Boolean active
+        String bannerUrl,
+
+        Boolean active,
+
+        List<PromotionProductResponse> promotionProducts
 ) {}

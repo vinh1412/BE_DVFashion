@@ -67,4 +67,16 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
      */
     @Query("SELECT ci FROM CartItem ci WHERE ci.reservedUntil < :dateTime AND ci.cart IS NOT NULL")
     List<CartItem> findByReservedUntilBefore(LocalDateTime dateTime);
+
+    /**
+     * Sums the quantity of cart items for a specific user and product.
+     *
+     * @param userId    the ID of the user
+     * @param productId the ID of the product
+     * @return the total quantity of the specified product in the user's cart
+     */
+    @Query("SELECT COALESCE(SUM(ci.quantity), 0) FROM CartItem ci " +
+            "WHERE ci.cart.user.id = :userId " +
+            "AND ci.productVariant.product.id = :productId")
+    int sumQuantityByUserAndProduct(@Param("userId") Long userId, @Param("productId") Long productId);
 }
