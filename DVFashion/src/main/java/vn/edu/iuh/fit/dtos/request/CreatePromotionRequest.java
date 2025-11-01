@@ -25,6 +25,7 @@ public record CreatePromotionRequest(
 
         String description,
 
+        @Pattern(regexp = "NEW_CUSTOMER_DISCOUNT|FLASH_SALE|SEASONAL_EVENT|CLEARANCE_SALE|HOLIDAY_PROMOTION|GENERAL_DISCOUNT", message = "Invalid promotion type")
         String type,
 
         @NotBlank(message = "Start date is required")

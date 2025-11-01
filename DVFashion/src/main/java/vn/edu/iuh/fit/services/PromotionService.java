@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.services;
 
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
+import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.entities.Promotion;
 import vn.edu.iuh.fit.enums.Language;
@@ -30,6 +31,15 @@ public interface PromotionService {
      */
     PromotionResponse createPromotion(CreatePromotionRequest createPromotionRequest, Language inputLang, MultipartFile bannerFile);
 
+    /*
+     * Updates an existing promotion identified by its ID with the provided request and language.
+     *
+     * @param updatePromotionRequest The request object containing updated promotion details.
+     * @param id The ID of the promotion to update.
+     * @param inputLang The language for the promotion.
+     * @return The updated PromotionResponse object.
+     */
+    PromotionResponse updatePromotion(UpdatePromotionRequest updatePromotionRequest, Long id, Language inputLang, MultipartFile bannerFile);
 //    /*
 //     * Retrieves a promotion by its ID and language.
 //     *

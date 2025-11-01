@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.controllers;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
+import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.enums.Language;
@@ -36,13 +38,24 @@ public class PromotionController {
     private final PromotionService promotionService;
 
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> createPromotion(
             @Valid  @RequestPart("promotion") CreatePromotionRequest createPromotionRequest,
             @RequestParam(defaultValue = "VI") Language inputLang,
             @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
         PromotionResponse response = promotionService.createPromotion(createPromotionRequest, inputLang, bannerFile);
         return ResponseEntity.ok(ApiResponse.created(response, "Promotion created successfully."));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @PutMapping(value = "/{id}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<?>> updatePromotion(
+            @Valid @RequestPart("promotion") UpdatePromotionRequest updatePromotionRequest,
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "VI") Language inputLang,
+            @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
+        PromotionResponse response = promotionService.updatePromotion(updatePromotionRequest, id, inputLang, bannerFile);
+        return ResponseEntity.ok(ApiResponse.success(response, "Promotion updated successfully."));
     }
 
 //    @GetMapping("/{id}")

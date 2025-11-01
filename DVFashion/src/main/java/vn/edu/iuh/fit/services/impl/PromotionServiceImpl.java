@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
 import vn.edu.iuh.fit.dtos.request.PromotionProductRequest;
+import vn.edu.iuh.fit.dtos.request.UpdatePromotionProductRequest;
+import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
@@ -29,10 +31,9 @@ import vn.edu.iuh.fit.services.TranslationService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /*
  * @description: Service implementation for managing promotions.
@@ -159,6 +160,67 @@ public class PromotionServiceImpl implements PromotionService {
         return promotionMapper.mapToPromotionResponse(promotion, inputLang);
     }
 
+    @Transactional
+    @Override
+    public PromotionResponse updatePromotion(UpdatePromotionRequest request, Long id, Language inputLang, MultipartFile bannerFile) {
+        // Find existing promotion
+        Promotion existingPromotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with ID: " + id));
+
+        // Validate dates
+        if (request.startDate() != null && request.endDate() != null) {
+            validatePromotionDates(request.startDate(), request.endDate());
+        }
+
+        // Validate products exist
+        if (request.promotionProducts() != null && !request.promotionProducts().isEmpty()) {
+            validateProductsExistForUpdate(request.promotionProducts());
+        }
+
+        // Handle banner file upload if provided
+        if (bannerFile != null && !bannerFile.isEmpty()) {
+            String bannerUrl = cloudinaryService.uploadImage(bannerFile);
+            existingPromotion.setBannerUrl(bannerUrl);
+        }
+
+        // Update promotion basic fields
+        if (request.type() != null) {
+            existingPromotion.setType(PromotionType.valueOf(request.type()));
+        }
+
+        if (request.startDate() != null) {
+            existingPromotion.setStartDate(LocalDate.parse(request.startDate()).atStartOfDay());
+        }
+
+        if (request.endDate() != null) {
+            existingPromotion.setEndDate(LocalDate.parse(request.endDate()).atTime(23, 59, 59));
+        }
+
+        if (request.active() != null) {
+            existingPromotion.setActive(request.active());
+
+            if (!request.active()) {
+                existingPromotion.getPromotionProducts()
+                        .forEach(p -> p.setActive(false));
+            }
+        }
+
+        // Update translations
+        if (request.name() != null || request.description() != null) {
+            updatePromotionTranslations(existingPromotion, inputLang, request.name(), request.description());
+        }
+
+        // Update promotion products
+        if (request.promotionProducts() != null && !request.promotionProducts().isEmpty()) {
+            updatePromotionProducts(existingPromotion, request.promotionProducts());
+        }
+
+        // Save updated promotion
+        existingPromotion = promotionRepository.save(existingPromotion);
+
+        return promotionMapper.mapToPromotionResponse(existingPromotion, inputLang);
+    }
+
     // Helper method to build PromotionTranslation
     private PromotionTranslation buildTranslation(Promotion promotion, Language lang, String name, String description) {
         return PromotionTranslation.builder()
@@ -200,7 +262,7 @@ public class PromotionServiceImpl implements PromotionService {
             }
         }
 
-
+        // Check existence in DB
         List<Long> existingProductIds = productRepository.findExistingProductIds(productIds);
 
         if (existingProductIds.size() != productIds.size()) {
@@ -219,5 +281,202 @@ public class PromotionServiceImpl implements PromotionService {
         return discount.divide(originalPrice, 4, RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    // Update promotion translations based on input language
+    private void updatePromotionTranslations(Promotion promotion, Language inputLang, String name, String description) {
+        if (name == null && description == null) return;
+        // Update existing translation or create new one
+        PromotionTranslation existingTranslation = promotion.getTranslations().stream()
+                .filter(t -> t.getLanguage() == inputLang)
+                .findFirst()
+                .orElse(null);
+
+        if (existingTranslation != null) {
+            if (name != null) existingTranslation.setName(name);
+            if (description != null) existingTranslation.setDescription(description);
+        } else {
+            promotion.getTranslations().add(buildTranslation(promotion, inputLang, name, description));
+        }
+
+        // Update or create translation for target language
+        Language targetLang = (inputLang == Language.VI) ? Language.EN : Language.VI;
+        String translatedName = (name != null) ? translationService.translate(name, targetLang.name()) : null;
+        String translatedDescription = (description != null)
+                ? translationService.translate(description, targetLang.name())
+                : null;
+
+        PromotionTranslation targetTranslation = promotion.getTranslations().stream()
+                .filter(t -> t.getLanguage() == targetLang)
+                .findFirst()
+                .orElse(null);
+
+        if (targetTranslation != null) {
+            if (translatedName != null) targetTranslation.setName(translatedName);
+            if (translatedDescription != null) targetTranslation.setDescription(translatedDescription);
+        } else {
+            promotion.getTranslations().add(buildTranslation(promotion, targetLang, translatedName, translatedDescription));
+        }
+    }
+
+    // Update promotion products based on the provided requests
+    private void updatePromotionProducts(Promotion promotion, List<UpdatePromotionProductRequest> productRequests) {
+        // Get existing promotion products
+        List<PromotionProduct> existingProducts = new ArrayList<>(promotion.getPromotionProducts());
+
+        // Create maps for easy lookup
+        Map<Long, PromotionProduct> existingById = existingProducts.stream()
+                .filter(p -> p.getId() != null)
+                .collect(Collectors.toMap(PromotionProduct::getId, Function.identity()));
+
+        // Create map by productId
+        Map<Long, PromotionProduct> existingByProductId = existingProducts.stream()
+                .filter(p -> p.getProduct() != null)
+                .collect(Collectors.toMap(p -> p.getProduct().getId(), Function.identity()));
+
+        // Prepare list for updated products
+        List<PromotionProduct> updatedProducts = new ArrayList<>();
+
+        for (UpdatePromotionProductRequest req : productRequests) {
+            // Find product
+            Product product = productRepository.findById(req.productId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + req.productId()));
+
+            // Determine original price
+            BigDecimal originalPrice = (product.getSalePrice() != null && product.isOnSale())
+                    ? product.getSalePrice()
+                    : product.getPrice();
+
+            // Get promotionPrice and discountPercentage from request
+            BigDecimal promotionPrice = req.promotionPrice();
+            BigDecimal discountPercentage = req.discountPercentage();
+
+            PromotionProduct promotionProduct;
+
+            // === (1) If ID exists, check existence and update ===
+            if (req.id() != null) {
+                // Check if PromotionProduct with given ID exists
+                promotionProduct = existingById.get(req.id());
+                if (promotionProduct == null) {
+                    throw new ResourceNotFoundException("PromotionProduct not found with ID: " + req.id());
+                }
+
+                // Ensure the productId matches the existing PromotionProduct
+                if (!promotionProduct.getProduct().getId().equals(req.productId())) {
+                    throw new BadRequestException("Product ID: "+promotionProduct.getProduct().getId()+" does not match PromotionProductId: " + req.id());
+                }
+
+                // Update fields if provided
+                if (promotionPrice != null || discountPercentage != null) {
+                    if (promotionPrice == null) {
+                        if (discountPercentage.compareTo(BigDecimal.ZERO) < 0 ||
+                                discountPercentage.compareTo(BigDecimal.valueOf(100)) > 0) {
+                            throw new BadRequestException("Discount percentage must be between 0 and 100");
+                        }
+                        promotionPrice = originalPrice
+                                .multiply(BigDecimal.ONE.subtract(discountPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)))
+                                .setScale(2, RoundingMode.HALF_UP);
+                    } else if (discountPercentage == null) {
+                        if (promotionPrice.compareTo(originalPrice) >= 0) {
+                            throw new BadRequestException("Promotion price must be less than original price");
+                        }
+                        discountPercentage = calculateDiscountPercentage(originalPrice, promotionPrice);
+                    }
+
+                    promotionProduct.setPromotionPrice(promotionPrice);
+                    promotionProduct.setDiscountPercentage(discountPercentage);
+                }
+
+                promotionProduct.setOriginalPrice(originalPrice);
+
+                if (req.stockQuantity() != null) {
+                    promotionProduct.setStockQuantity(req.stockQuantity());
+                }
+
+                if (req.maxQuantityPerUser() != null) {
+                    promotionProduct.setMaxQuantityPerUser(req.maxQuantityPerUser());
+                }
+
+                if (req.active() != null) {
+                    promotionProduct.setActive(req.active());
+                }
+
+            }
+            // === (2) If there is no ID, check for duplicate products ===
+            else if (existingByProductId.containsKey(req.productId())) {
+                throw new BadRequestException("Product with ID " + req.productId() + " already exists in this promotion");
+            }
+            // === (3) If it is a new product => create new ===
+            else {
+                // Validate that at least one of promotionPrice or discountPercentage is provided
+                if (promotionPrice == null && discountPercentage == null) {
+                    throw new BadRequestException("Either promotionPrice or discountPercentage must be provided");
+                }
+
+                // Validate required fields for new promotion product
+                if(req.stockQuantity() == null) {
+                    throw new BadRequestException("Stock quantity is required for new promotion product");
+                }
+
+                if (req.maxQuantityPerUser() == null) {
+                    throw new BadRequestException("Max quantity per user is required for new promotion product");
+                }
+
+                // If you only enter discountPercentage → automatically calculate promotionPrice
+                if (promotionPrice == null) {
+                    if (discountPercentage.compareTo(BigDecimal.ZERO) < 0 ||
+                            discountPercentage.compareTo(BigDecimal.valueOf(100)) > 0) {
+                        throw new BadRequestException("Discount percentage must be between 0 and 100");
+                    }
+                    promotionPrice = originalPrice
+                            .multiply(BigDecimal.ONE.subtract(discountPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)))
+                            .setScale(2, RoundingMode.HALF_UP);
+                } else if (discountPercentage == null) {
+                    if (promotionPrice.compareTo(originalPrice) >= 0) {
+                        throw new BadRequestException("Promotion price must be less than original price");
+                    }
+                    discountPercentage = calculateDiscountPercentage(originalPrice, promotionPrice);
+                }
+
+                promotionProduct = PromotionProduct.builder()
+                        .promotion(promotion)
+                        .product(product)
+                        .originalPrice(originalPrice)
+                        .promotionPrice(promotionPrice)
+                        .discountPercentage(discountPercentage)
+                        .stockQuantity(req.stockQuantity())
+                        .soldQuantity(0)
+                        .maxQuantityPerUser(req.maxQuantityPerUser())
+                        .active(req.active() != null ? req.active() : true)
+                        .build();
+            }
+
+            updatedProducts.add(promotionProduct);
+        }
+
+        promotion.getPromotionProducts().addAll(updatedProducts);
+    }
+
+    // Validate that all products in the update request exist
+    private void validateProductsExistForUpdate(List<UpdatePromotionProductRequest> productRequests) {
+        List<Long> productIds = new ArrayList<>(
+                productRequests.stream()
+                        .map(UpdatePromotionProductRequest::productId)
+                        .toList());
+
+        // Check for duplicate product IDs
+        Set<Long> uniqueIds = new HashSet<>();
+        for (Long id : productIds) {
+            if (!uniqueIds.add(id)) {
+                throw new BadRequestException("Duplicate productId found: " + id);
+            }
+        }
+
+        List<Long> existingProductIds = productRepository.findExistingProductIds(productIds);
+
+        if (existingProductIds.size() != productIds.size()) {
+            productIds.removeAll(existingProductIds);
+            throw new ResourceNotFoundException("Products not found with IDs: " + productIds);
+        }
     }
 }

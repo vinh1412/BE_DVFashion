@@ -3,10 +3,12 @@ package vn.edu.iuh.fit.enums;
 import vn.edu.iuh.fit.exceptions.NotFoundEnumValueException;
 
 public enum PromotionType {
-    PERCENTAGE("Percentage Discount"),
-    FIXED_AMOUNT("Fixed Amount Discount"),
-    FREE_SHIPPING("Free Shipping"),
-    BUY_ONE_GET_ONE("Buy One Get One Free");
+    NEW_CUSTOMER_DISCOUNT("New Customer Discount"),
+    FLASH_SALE("Flash Sale"),
+    SEASONAL_EVENT("Seasonal Event Promotion"),
+    CLEARANCE_SALE("Clearance Sale Promotion"),
+    HOLIDAY_PROMOTION("Holiday Promotion"),
+    GENERAL_DISCOUNT("General Discount Promotion");
 
     private final String description;
 
