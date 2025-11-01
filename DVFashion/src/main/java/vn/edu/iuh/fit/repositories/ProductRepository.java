@@ -6,6 +6,8 @@
 
 package vn.edu.iuh.fit.repositories;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -77,4 +79,31 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("productId") Long productId,
             @Param("currentTime") LocalDateTime currentTime
     );
+
+    /**
+     * Finds products associated with a specific promotion ID with pagination.
+     *
+     * @param promotionId the ID of the promotion
+     * @param pageable    pagination information
+     * @return a page of products associated with the given promotion ID
+     */
+    @Query("SELECT pp.product FROM PromotionProduct pp WHERE pp.promotion.id = :promotionId")
+    Page<Product> findProductsByPromotionId(@Param("promotionId") Long promotionId, Pageable pageable);
+
+    /**
+     * Finds products by category ID.
+     *
+     * @param categoryId the ID of the category
+     * @return a list of products in the specified category
+     */
+    List<Product> findByCategoryId(Long categoryId);
+
+    /**
+     * Finds products by category ID with pagination.
+     *
+     * @param categoryId the ID of the category
+     * @param pageable   pagination information
+     * @return a page of products in the specified category
+     */
+    Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 }

@@ -21,6 +21,7 @@ import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.exceptions.ResourceNotFoundException;
 import vn.edu.iuh.fit.mappers.ProductMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.*;
@@ -207,6 +208,68 @@ public class ProductServiceImpl implements ProductService {
         Page<Product> productPage = productRepository.findAll(pageable);
 
         Page<ProductResponse> productResponses = productPage.map(product -> toResponse(product, language));
+
+        return PageResponse.from(productResponses);
+    }
+
+    @Override
+    public List<ProductResponse> getProductsByPromotionId(Long promotionId, Language language) {
+        // Check if promotion exists
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with ID: " + promotionId));
+
+        // Get all products from promotion products
+        List<Product> products = promotion.getPromotionProducts().stream()
+                .map(PromotionProduct::getProduct)
+                .toList();
+
+        // Map each product to ProductResponse
+        return products.stream()
+                .map(product -> toResponse(product, language))
+                .toList();
+    }
+
+    @Override
+    public PageResponse<ProductResponse> getProductsByPromotionIdPaging(Long promotionId, Pageable pageable, Language language) {
+        // Check if promotion exists
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with ID: " + promotionId));
+
+        // Get products with pagination through PromotionProduct relationship
+        Page<Product> products = productRepository.findProductsByPromotionId(promotion.getId(), pageable);
+
+        // Map each product to ProductResponse
+        Page<ProductResponse> productResponses = products.map(product -> toResponse(product, language));
+
+        return PageResponse.from(productResponses);
+    }
+
+    @Override
+    public List<ProductResponse> getProductsByCategoryId(Long categoryId, Language language) {
+        // Check if category exists
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
+
+        // Get all products by category
+        List<Product> products = productRepository.findByCategoryId(category.getId());
+
+        // Map each product to ProductResponse
+        return products.stream()
+                .map(product -> toResponse(product, language))
+                .toList();
+    }
+
+    @Override
+    public PageResponse<ProductResponse> getProductsByCategoryIdPaging(Long categoryId, Pageable pageable, Language language) {
+        // Check if category exists
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
+
+        // Get products with pagination by category
+        Page<Product> products = productRepository.findByCategoryId(category.getId(), pageable);
+
+        // Map each product to ProductResponse
+        Page<ProductResponse> productResponses = products.map(product -> toResponse(product, language));
 
         return PageResponse.from(productResponses);
     }

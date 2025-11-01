@@ -35,17 +35,6 @@ public class Promotion {
 
     @Enumerated(EnumType.STRING)
     private PromotionType type;
-//
-//    private BigDecimal value;
-//
-//    @Column(name = "min_order_amount")
-//    private BigDecimal minOrderAmount;
-//
-//    @Column(name = "max_usages")
-//    private int maxUsages;
-//
-//    @Column(name = "current_usages", columnDefinition = "int default 0")
-//    private int currentUsages;
 
     @Column(name = "start_date")
     private LocalDateTime startDate;
@@ -59,16 +48,10 @@ public class Promotion {
     @Column(columnDefinition = "boolean default true")
     private boolean active;
 
-//    @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-//    private List<Product> applicableProducts= new ArrayList<>();
-
     @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PromotionProduct> promotionProducts = new ArrayList<>();
 
     @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PromotionTranslation> translations = new ArrayList<>();
-
-//    @OneToMany(mappedBy = "promotion")
-//    private List<Order> orders = new ArrayList<>();
 }
 

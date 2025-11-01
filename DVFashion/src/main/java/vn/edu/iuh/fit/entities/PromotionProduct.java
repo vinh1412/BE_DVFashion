@@ -40,22 +40,22 @@ public class PromotionProduct {
     private Product product;
 
     @Column(name = "original_price", precision = 10, scale = 2)
-    private BigDecimal originalPrice; // Giá gốc
+    private BigDecimal originalPrice; // Original price of the product
 
     @Column(name = "promotion_price", precision = 10, scale = 2)
-    private BigDecimal promotionPrice; // Giá khuyến mãi
+    private BigDecimal promotionPrice; // Promotion price
 
     @Column(name = "discount_percentage", precision = 5, scale = 2)
-    private BigDecimal discountPercentage; // % giảm giá
+    private BigDecimal discountPercentage; // % Discount percentage
 
     @Column(name = "stock_quantity")
-    private Integer stockQuantity; // Số lượng hàng cho khuyến mãi
+    private Integer stockQuantity; // Quantity allocated for the promotion
 
     @Column(name = "sold_quantity", columnDefinition = "int default 0")
-    private int soldQuantity; // Số lượng đã bán trong khuyến mãi
+    private int soldQuantity; // Quantity sold under the promotion
 
     @Column(name = "max_quantity_per_user")
-    private Integer maxQuantityPerUser; // Giới hạn mua tối đa mỗi user
+    private Integer maxQuantityPerUser; // Max quantity a single user can purchase under this promotion
 
     @Column(columnDefinition = "boolean default true")
     private boolean active;

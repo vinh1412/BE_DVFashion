@@ -67,4 +67,42 @@ public interface ProductService {
      * @return A paginated response containing product responses.
      */
     PageResponse<ProductResponse> getProductsPaging(Pageable pageable, Language language);
+
+    /**
+     * Retrieves products associated with a specific promotion ID in the specified language.
+     *
+     * @param promotionId The ID of the promotion.
+     * @param language    The language for the product details.
+     * @return List of product responses associated with the promotion.
+     */
+    List<ProductResponse> getProductsByPromotionId(Long promotionId, Language language);
+
+    /**
+     * Retrieves a paginated list of products associated with a specific promotion ID in the specified language.
+     *
+     * @param promotionId The ID of the promotion.
+     * @param pageable    Pagination information.
+     * @param language    The language for the product details.
+     * @return A paginated response containing product responses associated with the promotion.
+     */
+    PageResponse<ProductResponse> getProductsByPromotionIdPaging(Long promotionId, Pageable pageable, Language language);
+
+    /**
+     * Retrieves products associated with a specific category ID in the specified language.
+     *
+     * @param categoryId The ID of the category.
+     * @param language   The language for the product details.
+     * @return List of product responses associated with the category.
+     */
+    List<ProductResponse> getProductsByCategoryId(Long categoryId, Language language);
+
+    /**
+     * Retrieves a paginated list of products associated with a specific category ID in the specified language.
+     *
+     * @param categoryId The ID of the category.
+     * @param pageable   Pagination information.
+     * @param language   The language for the product details.
+     * @return A paginated response containing product responses associated with the category.
+     */
+    PageResponse<ProductResponse> getProductsByCategoryIdPaging(Long categoryId, Pageable pageable, Language language);
 }
