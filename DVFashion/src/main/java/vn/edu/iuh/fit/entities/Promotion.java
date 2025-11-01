@@ -10,7 +10,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import vn.edu.iuh.fit.enums.PromotionType;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

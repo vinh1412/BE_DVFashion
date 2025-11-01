@@ -251,6 +251,25 @@ public class PromotionServiceImpl implements PromotionService {
         return PageResponse.from(dtoPage);
     }
 
+    @Override
+    public void removeProductFromPromotion(Long promotionId, Long productId) {
+        // Find existing promotion
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with ID: " + promotionId));
+
+        // Find the promotion product to remove
+        PromotionProduct promotionProduct = promotion.getPromotionProducts().stream()
+                .filter(pp -> pp.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found in promotion " + promotionId));
+
+        // Remove from promotion's collection
+        promotion.getPromotionProducts().remove(promotionProduct);
+
+        // Save the updated promotion
+        promotionRepository.save(promotion);
+    }
+
     // Helper method to build PromotionTranslation
     private PromotionTranslation buildTranslation(Promotion promotion, Language lang, String name, String description) {
         return PromotionTranslation.builder()

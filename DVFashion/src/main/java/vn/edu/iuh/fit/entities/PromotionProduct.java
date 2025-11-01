@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /*
- * @description:
+ * @description: Entity class representing the association between promotions and products.
  * @author: Tran Hien Vinh
  * @date:   01/11/2025
  * @version:    1.0

@@ -18,20 +18,55 @@ import java.util.List;
 import java.util.Optional;
 
 /*
- * @description:
+ * @description: Repository interface for managing PromotionProduct entities
  * @author: Tran Hien Vinh
  * @date:   01/11/2025
  * @version:    1.0
  */
 @Repository
 public interface PromotionProductRepository extends JpaRepository<PromotionProduct, Long> {
+    /**
+     * Finds all PromotionProduct entities by the given promotion ID.
+     *
+     * @param promotionId the ID of the promotion
+     * @return a list of PromotionProduct entities associated with the promotion ID
+     */
     List<PromotionProduct> findByPromotionId(Long promotionId);
+
+    /**
+     * Finds all PromotionProduct entities by the given product ID.
+     *
+     * @param productId the ID of the product
+     * @return a list of PromotionProduct entities associated with the product ID
+     */
     List<PromotionProduct> findByProductId(Long productId);
+
+    /**
+     * Finds a PromotionProduct entity by the given promotion ID and product ID.
+     *
+     * @param promotionId the ID of the promotion
+     * @param productId   the ID of the product
+     * @return an Optional containing the PromotionProduct entity if found, or empty if not found
+     */
     Optional<PromotionProduct> findByPromotionIdAndProductId(Long promotionId, Long productId);
 
+    /**
+     * Finds all active PromotionProduct entities by the given promotion ID.
+     *
+     * @param promotionId the ID of the promotion
+     * @return a list of active PromotionProduct entities associated with the promotion ID
+     */
     @Query("SELECT pp FROM PromotionProduct pp WHERE pp.promotion.id = :promotionId AND pp.active = true")
     List<PromotionProduct> findActiveByPromotionId(@Param("promotionId") Long promotionId);
 
+    /**
+     * Finds an active PromotionProduct for a given product ID, where the associated promotion is also active
+     * and within the valid date range, and there is available stock.
+     *
+     * @param productId   the ID of the product
+     * @param currentTime the current date and time
+     * @return an Optional containing the active PromotionProduct, or empty if none found
+     */
     @Query("""
         SELECT pp FROM PromotionProduct pp 
         JOIN pp.promotion p 
@@ -48,6 +83,14 @@ public interface PromotionProductRepository extends JpaRepository<PromotionProdu
             @Param("currentTime") LocalDateTime currentTime
     );
 
+    /**
+     * Finds active PromotionProduct entities for a list of product IDs, where the associated promotions are also active
+     * and within the valid date range, and there is available stock.
+     *
+     * @param productIds  the list of product IDs
+     * @param currentTime the current date and time
+     * @return a list of active PromotionProduct entities
+     */
     @Query("""
         SELECT pp FROM PromotionProduct pp 
         JOIN pp.promotion p 

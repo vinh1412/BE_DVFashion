@@ -7,7 +7,7 @@
 package vn.edu.iuh.fit.exceptions;
 
 /*
- * @description:
+ * @description: Custom exception thrown when a requested resource is not found
  * @author: Tran Hien Vinh
  * @date:   01/11/2025
  * @version:    1.0
