@@ -6,10 +6,14 @@
 
 package vn.edu.iuh.fit.services;
 
+import org.springframework.data.domain.Pageable;
 import vn.edu.iuh.fit.dtos.request.CreateVoucherRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
+import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
 import vn.edu.iuh.fit.enums.Language;
+
+import java.util.List;
 
 /*
  * @description: Service interface for Voucher operations
@@ -54,4 +58,47 @@ public interface VoucherService {
      * @param language  the language for the response
      */
     void deleteVoucher(Long voucherId, Language language);
+
+    /**
+     * Get a voucher by its ID.
+     *
+     * @param voucherId the ID of the voucher to retrieve
+     * @param language  the language for the response
+     * @return the VoucherResponse containing voucher details
+     */
+    VoucherResponse getVoucherById(Long voucherId, Language language);
+
+    /**
+     * Get all vouchers for admin without pagination.
+     *
+     * @param language the language for response
+     * @return List of VoucherResponse for admin
+     */
+    List<VoucherResponse> getAllVouchersForAdmin(Language language);
+
+    /**
+     * Get all available vouchers for customers without pagination.
+     *
+     * @param language the language for response
+     * @return List of VoucherResponse for customers
+     */
+    List<VoucherResponse> getAllAvailableVouchersForCustomer(Language language);
+
+    /**
+     * Get all vouchers for admin with pagination and sorting.
+     *
+     * @param pageable the pagination and sorting information
+     * @param language the language for response
+     * @return Page of VoucherResponse for admin
+     */
+    PageResponse<VoucherResponse> getVouchersForAdminPaging(Pageable pageable, Language language);
+
+    /**
+     * Get available vouchers for customers with pagination and sorting.
+     *
+     * @param pageable the pagination and sorting information
+     * @param language the language for response
+     * @return Page of VoucherResponse for customers
+     */
+    PageResponse<VoucherResponse> getAvailableVouchersForCustomerPaging(Pageable pageable, Language language);
 }

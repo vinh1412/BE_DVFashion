@@ -8,10 +8,13 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.dtos.request.CreateVoucherRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
+import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
 import vn.edu.iuh.fit.entities.Product;
 import vn.edu.iuh.fit.entities.Voucher;
@@ -184,6 +187,69 @@ public class VoucherServiceImpl implements VoucherService {
         voucherRepository.delete(voucher);
 
         log.info("Deleted voucher with ID: {}", voucherId);
+    }
+
+    @Override
+    public VoucherResponse getVoucherById(Long voucherId, Language language) {
+        // Find voucher by ID
+        Voucher voucher = voucherRepository.findById(voucherId)
+                .orElseThrow(() -> new NotFoundException("Voucher not found with ID: " + voucherId));
+
+        return voucherMapper.mapToResponse(voucher, language);
+    }
+
+    @Override
+    public List<VoucherResponse> getAllVouchersForAdmin(Language language) {
+        // Get all vouchers for admin
+        List<Voucher> vouchers = voucherRepository.findAll();
+
+        // Map to response
+        return vouchers.stream()
+                .map(voucher -> voucherMapper.mapToResponse(voucher, language))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<VoucherResponse> getAllAvailableVouchersForCustomer(Language language) {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Get only available vouchers for customers
+        List<Voucher> vouchers = voucherRepository.findAvailableVouchersForCustomers(now);
+
+        log.info("Retrieved {} available vouchers for customers", vouchers.size());
+
+        // Map to response
+        return vouchers.stream()
+                .map(voucher -> voucherMapper.mapToResponse(voucher, language))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<VoucherResponse> getVouchersForAdminPaging(Pageable pageable, Language language) {
+        // Get all vouchers with pagination for admin
+        Page<Voucher> voucherPage = voucherRepository.findAll(pageable);
+
+        // Map each Voucher entity to VoucherResponse DTO
+        Page<VoucherResponse> responsePage = voucherPage.map(voucher ->
+                voucherMapper.mapToResponse(voucher, language));
+
+        // Convert Page<VoucherResponse> to PageResponse<VoucherResponse>
+        return PageResponse.from(responsePage);
+    }
+
+    @Override
+    public PageResponse<VoucherResponse> getAvailableVouchersForCustomerPaging(Pageable pageable, Language language) {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Get available vouchers with pagination for customers
+        Page<Voucher> voucherPage = voucherRepository.findAvailableVouchersForCustomersPaging(now, pageable);
+
+        // Map each Voucher entity to VoucherResponse DTO
+        Page<VoucherResponse> responsePage = voucherPage.map(voucher ->
+                voucherMapper.mapToResponse(voucher, language));
+
+        // Convert Page<VoucherResponse> to PageResponse<VoucherResponse>
+        return PageResponse.from(responsePage);
     }
 
     private void validateVoucherForDeletion(Voucher voucher) {
