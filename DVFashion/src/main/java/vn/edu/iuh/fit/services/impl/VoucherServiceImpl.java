@@ -125,6 +125,48 @@ public class VoucherServiceImpl implements VoucherService {
         return voucherMapper.mapToResponse(existingVoucher, language);
     }
 
+    @Override
+    public VoucherResponse removeProductFromVoucher(Long voucherId, Long productId, Language language) {
+        // Find existing voucher
+        Voucher voucher = voucherRepository.findById(voucherId)
+                .orElseThrow(() -> new NotFoundException("Voucher not found with ID: " + voucherId));
+
+        // Validate voucher type
+        if (voucher.getType() != VoucherType.PRODUCT_SPECIFIC) {
+            throw new BadRequestException("Can only remove products from PRODUCT_SPECIFIC vouchers");
+        }
+
+        // Check if voucher has been used
+        if (voucher.getCurrentUsage() > 0) {
+            throw new BadRequestException("Cannot remove products from voucher that has been used");
+        }
+
+        // Find the voucher product relationship
+        VoucherProduct voucherProduct = voucher.getVoucherProducts().stream()
+                .filter(vp -> vp.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Product with ID " + productId + " is not associated with this voucher"));
+
+        // Check if this is the last product
+        if (Boolean.TRUE.equals(voucherProduct.getActive())) {
+            long activeProductCount = voucher.getVoucherProducts().stream()
+                    .filter(VoucherProduct::getActive)
+                    .count();
+
+            if (activeProductCount <= 1) {
+                throw new BadRequestException("Cannot remove the last active product from voucher");
+            }
+        }
+
+        // Remove the voucher product relationship
+        voucher.getVoucherProducts().remove(voucherProduct);
+        voucherProductRepository.delete(voucherProduct);
+
+        log.info("Removed product {} from voucher {}", productId, voucherId);
+
+        return voucherMapper.mapToResponse(voucher, language);
+    }
+
     // Validation voucher for update
     private void validateVoucherForUpdate(Voucher existingVoucher, UpdateVoucherRequest request) {
         // Cannot update voucher that has been used

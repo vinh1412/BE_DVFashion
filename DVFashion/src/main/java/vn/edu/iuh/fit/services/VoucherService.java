@@ -36,4 +36,14 @@ public interface VoucherService {
      * @return the updated VoucherResponse
      */
     VoucherResponse updateVoucher(Long id, UpdateVoucherRequest request, Language language);
+
+    /**
+     * Remove a product from a product-specific voucher.
+     *
+     * @param voucherId the ID of the voucher
+     * @param productId the ID of the product to remove
+     * @param language  the language for the response
+     * @return the updated VoucherResponse
+     */
+    VoucherResponse removeProductFromVoucher(Long voucherId, Long productId, Language language);
 }

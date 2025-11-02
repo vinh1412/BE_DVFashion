@@ -51,4 +51,15 @@ public class VoucherController {
         VoucherResponse response = voucherService.updateVoucher(id, request, language);
         return ResponseEntity.ok(ApiResponse.success(response, "Voucher updated successfully"));
     }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @DeleteMapping("/{voucherId}/products/{productId}")
+    public ResponseEntity<ApiResponse<VoucherResponse>> removeProductFromVoucher(
+            @PathVariable(name = "voucherId") Long voucherId,
+            @PathVariable(name = "productId") Long productId,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+
+        VoucherResponse response = voucherService.removeProductFromVoucher(voucherId, productId, language);
+        return ResponseEntity.ok(ApiResponse.success(response, "Product removed from voucher successfully"));
+    }
 }
