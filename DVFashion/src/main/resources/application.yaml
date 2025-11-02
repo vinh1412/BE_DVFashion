@@ -58,7 +58,7 @@ spring:
           auth: true
           starttls:
             enable: true
-# File upload configuration
+  # File upload configuration
   servlet:
     multipart:
       max-file-size: 10MB
@@ -85,6 +85,7 @@ logging:
 # Base path for the API
 web:
   base-path: /api/v1
+  frontend-base-url: ${FRONTEND_URL}
 
 # Security
 jwt:
@@ -110,13 +111,14 @@ recommendation:
 
 # PayPal configuration
 paypal:
-    base-url: https://api-m.sandbox.paypal.com
-    client-id: ${PAYPAL_CLIENT_ID}
-    client-secret: ${PAYPAL_CLIENT_SECRET}
-    mode: ${PAYPAL_MODE}
-    success-url: http://localhost:8080/api/v1/payments/paypal/success
-    cancel-url: http://localhost:8080/api/v1/payments/paypal/cancel
+  base-url: https://api-m.sandbox.paypal.com
+  client-id: ${PAYPAL_CLIENT_ID}
+  client-secret: ${PAYPAL_CLIENT_SECRET}
+  mode: ${PAYPAL_MODE}
+  success-url: http://localhost:8080/api/v1/payments/paypal/success
+  cancel-url: http://localhost:8080/api/v1/payments/paypal/cancel
 
+# GHN (Giao Hàng Nhanh) configuration
 ghn:
   base-url: ${GHN_BASE_URL}
   token: ${GHN_TOKEN}
