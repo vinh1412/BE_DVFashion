@@ -17,10 +17,7 @@ import vn.edu.iuh.fit.entities.Product;
 import vn.edu.iuh.fit.entities.Voucher;
 import vn.edu.iuh.fit.entities.VoucherProduct;
 import vn.edu.iuh.fit.entities.VoucherTranslation;
-import vn.edu.iuh.fit.enums.DiscountType;
-import vn.edu.iuh.fit.enums.Language;
-import vn.edu.iuh.fit.enums.ProductStatus;
-import vn.edu.iuh.fit.enums.VoucherType;
+import vn.edu.iuh.fit.enums.*;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.BadRequestException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -34,6 +31,7 @@ import vn.edu.iuh.fit.services.VoucherService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -165,6 +163,89 @@ public class VoucherServiceImpl implements VoucherService {
         log.info("Removed product {} from voucher {}", productId, voucherId);
 
         return voucherMapper.mapToResponse(voucher, language);
+    }
+
+    @Transactional
+    @Override
+    public void deleteVoucher(Long voucherId, Language language) {
+        // Find existing voucher
+        Voucher voucher = voucherRepository.findById(voucherId)
+                .orElseThrow(() -> new NotFoundException("Voucher not found with ID: " + voucherId));
+
+        // Validate voucher can be deleted
+        validateVoucherForDeletion(voucher);
+
+        // Delete voucher products first
+        if (!voucher.getVoucherProducts().isEmpty()) {
+            voucherProductRepository.deleteAll(voucher.getVoucherProducts());
+        }
+
+        // Delete voucher
+        voucherRepository.delete(voucher);
+
+        log.info("Deleted voucher with ID: {}", voucherId);
+    }
+
+    private void validateVoucherForDeletion(Voucher voucher) {
+        // Check if voucher has been used
+        if (voucher.getCurrentUsage() > 0) {
+            throw new BadRequestException("Cannot delete voucher that has been used. Current usage: " + voucher.getCurrentUsage());
+        }
+
+        // Check if voucher is currently active
+        if (Boolean.TRUE.equals(voucher.getActive())) {
+            LocalDateTime now = LocalDateTime.now();
+
+            // Check if voucher is currently in its active period
+            if ((voucher.getStartDate().isBefore(now) || voucher.getStartDate().isEqual(now)) &&
+                    voucher.getEndDate().isAfter(now)) {
+                throw new BadRequestException("Cannot delete voucher that is currently active. Please deactivate first.");
+            }
+        }
+
+        // Check if any voucher products are active
+        if (voucher.getType() == VoucherType.PRODUCT_SPECIFIC &&
+                !voucher.getVoucherProducts().isEmpty()) {
+
+            boolean hasActiveProducts = voucher.getVoucherProducts().stream()
+                    .anyMatch(VoucherProduct::getActive);
+
+            if (hasActiveProducts) {
+                throw new BadRequestException("Cannot delete voucher with active products. Please deactivate all products first.");
+            }
+        }
+
+        // Check if voucher has any pending orders
+        if (!voucher.getOrders().isEmpty()) {
+            long pendingOrders = voucher.getOrders().stream()
+                    .filter(order -> order.getStatus() != null &&
+                            (OrderStatus.PENDING.name().equals(order.getStatus().name()) ||
+                                OrderStatus.PROCESSING.name().equals(order.getStatus().name())))
+                    .count();
+
+            if (pendingOrders > 0) {
+                throw new BadRequestException("Cannot delete voucher with pending or processing orders");
+            }
+        }
+
+        // Check if voucher start date is in the future but too close
+        LocalDateTime now = LocalDateTime.now();
+        if (voucher.getStartDate().isAfter(now)) {
+            long hoursUntilStart = java.time.Duration.between(now, voucher.getStartDate()).toHours();
+            if (hoursUntilStart < 24) {
+                throw new BadRequestException("Cannot delete voucher that starts within 24 hours");
+            }
+        }
+
+        // Check if voucher has been saved by users (if tracking user saves)
+        if (voucher.getVoucherUsages() != null && !voucher.getVoucherUsages().isEmpty()) {
+            boolean hasSavedVouchers = voucher.getVoucherUsages().stream()
+                    .anyMatch(usage -> usage.getUsedAt() == null); // Saved but not used
+
+            if (hasSavedVouchers) {
+                throw new BadRequestException("Cannot delete voucher that has been saved by users");
+            }
+        }
     }
 
     // Validation voucher for update

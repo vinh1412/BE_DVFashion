@@ -46,4 +46,12 @@ public interface VoucherService {
      * @return the updated VoucherResponse
      */
     VoucherResponse removeProductFromVoucher(Long voucherId, Long productId, Language language);
+
+    /**
+     * Delete a voucher by its ID.
+     *
+     * @param voucherId the ID of the voucher to delete
+     * @param language  the language for the response
+     */
+    void deleteVoucher(Long voucherId, Language language);
 }
