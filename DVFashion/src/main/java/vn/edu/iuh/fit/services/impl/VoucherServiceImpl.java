@@ -16,10 +16,7 @@ import vn.edu.iuh.fit.dtos.request.CreateVoucherRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
-import vn.edu.iuh.fit.entities.Product;
-import vn.edu.iuh.fit.entities.Voucher;
-import vn.edu.iuh.fit.entities.VoucherProduct;
-import vn.edu.iuh.fit.entities.VoucherTranslation;
+import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.*;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.BadRequestException;
@@ -29,10 +26,13 @@ import vn.edu.iuh.fit.mappers.VoucherMapper;
 import vn.edu.iuh.fit.repositories.ProductRepository;
 import vn.edu.iuh.fit.repositories.VoucherProductRepository;
 import vn.edu.iuh.fit.repositories.VoucherRepository;
+import vn.edu.iuh.fit.repositories.VoucherUsageRepository;
+import vn.edu.iuh.fit.services.OrderItemService;
 import vn.edu.iuh.fit.services.TranslationService;
 import vn.edu.iuh.fit.services.VoucherService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -60,6 +60,10 @@ public class VoucherServiceImpl implements VoucherService {
     private final VoucherProductRepository voucherProductRepository;
 
     private final VoucherMapper voucherMapper;
+
+    private final VoucherUsageRepository voucherUsageRepository;
+
+    private final OrderItemService orderItemService;
 
     @Transactional
     @Override
@@ -250,6 +254,92 @@ public class VoucherServiceImpl implements VoucherService {
 
         // Convert Page<VoucherResponse> to PageResponse<VoucherResponse>
         return PageResponse.from(responsePage);
+    }
+
+    @Override
+    public Voucher validateAndApplyVoucher(String code, User customer, Order order) {
+        Voucher voucher = voucherRepository.findByCodeIgnoreCase(code)
+                .orElseThrow(() -> new NotFoundException("Voucher not found with code: " + code));
+
+        log.info("Validating voucher {} for customer {}", code, customer.getEmail());
+
+        // Check validate and time
+        LocalDateTime now = LocalDateTime.now();
+        if (!Boolean.TRUE.equals(voucher.getActive())) {
+            throw new BadRequestException("Voucher is not active");
+        }
+
+        if (now.isBefore(voucher.getStartDate())) {
+            throw new BadRequestException("Voucher is not yet active");
+        }
+
+        if (now.isAfter(voucher.getEndDate())) {
+            throw new BadRequestException("Voucher has expired");
+        }
+
+        if (voucher.getCurrentUsage() >= voucher.getMaxTotalUsage()) {
+            throw new BadRequestException("Voucher usage limit reached");
+        }
+
+        // Check user usage limit
+        long userUsageCount = voucher.getVoucherUsages().stream()
+                .filter(u -> u.getUser().getId().equals(customer.getId()))
+                .count();
+
+        if (userUsageCount >= voucher.getMaxUsagePerUser()) {
+            throw new BadRequestException("You have reached the maximum usage limit for this voucher");
+        }
+
+        // Check minimum order amount
+        BigDecimal subtotal = orderItemService.calculateSubtotal(order.getItems());
+        if (voucher.getMinOrderAmount() != null && subtotal.compareTo(voucher.getMinOrderAmount()) < 0) {
+            throw new BadRequestException("Order amount is below minimum required for this voucher");
+        }
+
+        log.info("Order subtotal: {}, Voucher min order amount: {}", subtotal, voucher.getMinOrderAmount());
+
+        return voucher;
+    }
+
+    @Override
+    public BigDecimal calculateVoucherDiscount(Voucher voucher, BigDecimal subtotal, List<OrderItem> items) {
+        BigDecimal discount = BigDecimal.ZERO;
+        switch (voucher.getDiscountType()) {
+            case PERCENTAGE -> {
+                discount = subtotal.multiply(voucher.getDiscountValue().divide(BigDecimal.valueOf(100)));
+                if (voucher.getHasMaxDiscount() && voucher.getMaxDiscountAmount() != null)
+                    discount = discount.min(voucher.getMaxDiscountAmount());
+            }
+            case FIXED_AMOUNT -> discount = voucher.getDiscountValue();
+        }
+
+        // If voucher is PRODUCT_SPECIFIC → only applies to products in voucher
+        if (voucher.getType() == VoucherType.PRODUCT_SPECIFIC) {
+            Set<Long> validProductIds = voucher.getVoucherProducts().stream()
+                    .filter(VoucherProduct::getActive)
+                    .map(vp -> vp.getProduct().getId())
+                    .collect(Collectors.toSet());
+            discount = items.stream()
+                    .filter(i -> validProductIds.contains(i.getProductVariant().getProduct().getId()))
+                    .map(i -> i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity()))
+                            .multiply(voucher.getDiscountValue().divide(BigDecimal.valueOf(100))))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+
+        return discount.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    @Transactional
+    public void recordUsage(Voucher voucher, User user, Order order) {
+        voucher.setCurrentUsage(voucher.getCurrentUsage() + 1);
+        VoucherUsage usage = VoucherUsage.builder()
+                .voucher(voucher)
+                .user(user)
+                .order(order)
+                .usedAt(LocalDateTime.now())
+                .build();
+        voucherUsageRepository.save(usage);
     }
 
     private void validateVoucherForDeletion(Voucher voucher) {

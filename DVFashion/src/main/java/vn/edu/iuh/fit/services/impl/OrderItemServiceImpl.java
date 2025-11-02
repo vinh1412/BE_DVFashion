@@ -61,4 +61,12 @@ public class OrderItemServiceImpl implements OrderItemService {
             default -> BigDecimal.ZERO;
         };
     }
+
+    @Override
+    public BigDecimal calculateSubtotal(List<OrderItem> orderItems) {
+        return orderItems.stream()
+                .map(item -> item.getUnitPrice().subtract(item.getDiscount())
+                        .multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }

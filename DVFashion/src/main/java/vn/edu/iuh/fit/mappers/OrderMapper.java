@@ -31,8 +31,8 @@ import java.math.BigDecimal;
 public class OrderMapper {
     private final ShippingInfoMapper shippingInfoMapper;
     private final PaymentMapper paymentMapper;
-    private final PromotionMapper promotionMapper;
     private final OrderItemMapper orderItemMapper;
+    private final VoucherMapper voucherMapper;
 
     public OrderResponse mapToOrderResponse(Order order, String userEmail, Language language) {
         return new OrderResponse(
@@ -44,18 +44,29 @@ public class OrderMapper {
                 calculateSubtotal(order),
                 order.getShippingFee(),
                 calculateDiscountAmount(order),
-                order.getPayment().getAmount(),
+                calculateOrderTotal(order),
                 shippingInfoMapper.mapShippingInfoResponse(order.getShippingInfo(), userEmail),
                 order.getNotes(),
                 order.getOrderDate(),
                 order.getEstimatedDeliveryTime(),
                 orderItemMapper.mapOrderItemResponses(order.getItems(), language),
                 paymentMapper.mapPaymentResponse(order.getPayment()),
-//                order.getPromotion() != null ? promotionMapper.mapPromotionOrderResponse(order.getPromotion(), language) : null,
-                null,
+                order.getVoucher() != null ? voucherMapper.mapToVoucherOrderResponse(order.getVoucher(), order.getVoucherDiscount()): null,
                 order.getPayment().getPaymentMethod() == PaymentMethod.PAYPAL
                         && order.getPayment().getPaymentStatus() == PaymentStatus.PENDING ? order.getPayment().getApprovalUrl() : null
         );
+    }
+
+    public BigDecimal calculateOrderTotal(Order order) {
+        BigDecimal itemsTotal = order.getItems().stream()
+                .map(item -> item.getUnitPrice().subtract(item.getDiscount())
+                        .multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal shippingFee = order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO;
+        BigDecimal voucherDiscount = order.getVoucherDiscount() != null ? order.getVoucherDiscount() : BigDecimal.ZERO;
+
+        return itemsTotal.add(shippingFee).subtract(voucherDiscount);
     }
 
     private BigDecimal calculateSubtotal(Order order) {
@@ -65,9 +76,13 @@ public class OrderMapper {
     }
 
     private BigDecimal calculateDiscountAmount(Order order) {
-        return order.getItems().stream()
+        BigDecimal itemDiscount = order.getItems().stream()
                 .map(item -> item.getDiscount().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal voucherDiscount = order.getVoucherDiscount() != null ? order.getVoucherDiscount() : BigDecimal.ZERO;
+
+        return itemDiscount.add(voucherDiscount);
     }
 
     // Ensure shipping info can be updated only when order is PENDING or PROCESSING

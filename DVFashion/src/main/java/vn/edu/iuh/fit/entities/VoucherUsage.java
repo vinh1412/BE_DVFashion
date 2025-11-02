@@ -12,7 +12,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /*
- * @description:
+ * @description: Entity representing the usage of a voucher by a user for an order
  * @author: Tran Hien Vinh
  * @date:   02/11/2025
  * @version:    1.0
@@ -37,7 +37,7 @@ public class VoucherUsage {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 

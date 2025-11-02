@@ -57,6 +57,10 @@ public class PaymentServiceImpl implements PaymentService {
                         .multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return itemsTotal.add(order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO);
+        BigDecimal total = itemsTotal
+                .add(order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO)
+                .subtract(order.getVoucherDiscount() != null ? order.getVoucherDiscount() : BigDecimal.ZERO);
+
+        return total.max(BigDecimal.ZERO);
     }
 }

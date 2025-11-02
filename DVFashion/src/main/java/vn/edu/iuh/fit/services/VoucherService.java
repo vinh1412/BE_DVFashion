@@ -11,8 +11,13 @@ import vn.edu.iuh.fit.dtos.request.CreateVoucherRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
+import vn.edu.iuh.fit.entities.Order;
+import vn.edu.iuh.fit.entities.OrderItem;
+import vn.edu.iuh.fit.entities.User;
+import vn.edu.iuh.fit.entities.Voucher;
 import vn.edu.iuh.fit.enums.Language;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /*
@@ -101,4 +106,33 @@ public interface VoucherService {
      * @return Page of VoucherResponse for customers
      */
     PageResponse<VoucherResponse> getAvailableVouchersForCustomerPaging(Pageable pageable, Language language);
+
+    /**
+     * Validate and apply a voucher code for a customer and order.
+     *
+     * @param code     the voucher code to validate
+     * @param customer the customer applying the voucher
+     * @param order    the order to which the voucher is applied
+     * @return the validated Voucher entity
+     */
+    Voucher validateAndApplyVoucher(String code, User customer, Order order);
+
+    /**
+     * Calculate the discount amount for a voucher based on the subtotal and order items.
+     *
+     * @param voucher  the voucher to calculate discount for
+     * @param subtotal the subtotal amount of the order
+     * @param items    the list of order items
+     * @return the calculated discount amount as BigDecimal
+     */
+    BigDecimal calculateVoucherDiscount(Voucher voucher, BigDecimal subtotal, List<OrderItem> items);
+
+    /**
+     * Record the usage of a voucher by a user for a specific order.
+     *
+     * @param voucher the voucher being used
+     * @param user    the user using the voucher
+     * @param order   the order associated with the voucher usage
+     */
+    void recordUsage(Voucher voucher, User user, Order order);
 }

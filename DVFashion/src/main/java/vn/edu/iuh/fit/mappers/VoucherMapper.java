@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.mappers;
 
 import org.springframework.stereotype.Component;
+import vn.edu.iuh.fit.dtos.response.VoucherOrderResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherProductResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
 import vn.edu.iuh.fit.entities.Product;
@@ -15,6 +16,7 @@ import vn.edu.iuh.fit.entities.VoucherTranslation;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /*
@@ -72,5 +74,14 @@ public class VoucherMapper {
                 .map(t -> t.getName())
                 .findFirst()
                 .orElse("Unknown Product");
+    }
+
+    public VoucherOrderResponse mapToVoucherOrderResponse(Voucher voucher, BigDecimal discountAmount) {
+        return new VoucherOrderResponse(
+                voucher.getId(),
+                voucher.getCode(),
+                voucher.getDiscountType(),
+                discountAmount
+        );
     }
 }

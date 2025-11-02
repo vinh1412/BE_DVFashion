@@ -16,6 +16,7 @@ import vn.edu.iuh.fit.entities.Voucher;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /*
  * @description: Repository interface for Voucher entity
@@ -40,7 +41,7 @@ public interface VoucherRepository extends JpaRepository<Voucher, Long> {
      * @return the Voucher entity if found, null otherwise
      */
     @Query("SELECT v FROM Voucher v WHERE UPPER(v.code) = UPPER(:code)")
-    Voucher findByCodeIgnoreCase(@Param("code") String code);
+    Optional<Voucher> findByCodeIgnoreCase(@Param("code") String code);
 
     /**
      * Find the maximum total usage allowed for a voucher by its ID.
