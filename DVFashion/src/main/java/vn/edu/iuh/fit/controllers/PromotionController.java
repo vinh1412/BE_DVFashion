@@ -52,7 +52,7 @@ public class PromotionController {
     @PutMapping(value = "/{id}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> updatePromotion(
             @Valid @RequestPart("promotion") UpdatePromotionRequest updatePromotionRequest,
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestParam(defaultValue = "VI") Language inputLang,
             @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
         PromotionResponse response = promotionService.updatePromotion(updatePromotionRequest, id, inputLang, bannerFile);
@@ -61,7 +61,7 @@ public class PromotionController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> getPromotionById(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
         PromotionResponse response = promotionService.getPromotionById(id, language);
         return ResponseEntity.ok(ApiResponse.success(response, "Promotion retrieved successfully."));
@@ -88,8 +88,8 @@ public class PromotionController {
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @DeleteMapping("/{promotionId}/products/{productId}")
     public ResponseEntity<ApiResponse<?>> removeProductFromPromotion(
-            @PathVariable Long promotionId,
-            @PathVariable Long productId) {
+            @PathVariable(name = "promotionId") Long promotionId,
+            @PathVariable(name = "productId") Long productId) {
         promotionService.removeProductFromPromotion(promotionId, productId);
         return ResponseEntity.ok(ApiResponse.noContent("Product removed from promotion successfully."));
     }
@@ -111,7 +111,7 @@ public class PromotionController {
 
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @DeleteMapping("/{promotionId}")
-    public ResponseEntity<ApiResponse<?>> deletePromotion(@PathVariable Long promotionId) {
+    public ResponseEntity<ApiResponse<?>> deletePromotion(@PathVariable(name = "promotionId") Long promotionId) {
         promotionService.deletePromotion(promotionId);
         return ResponseEntity.ok(ApiResponse.noContent("Promotion deleted successfully."));
     }

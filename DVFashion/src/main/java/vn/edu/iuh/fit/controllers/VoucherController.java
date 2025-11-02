@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.CreateVoucherRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
 import vn.edu.iuh.fit.enums.Language;
@@ -38,5 +39,16 @@ public class VoucherController {
 
         VoucherResponse response = voucherService.createVoucher(request, language);
         return ResponseEntity.ok(ApiResponse.created(response, "Voucher created successfully"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<VoucherResponse>> updateVoucher(
+            @PathVariable(name = "id") Long id,
+            @Valid @RequestBody UpdateVoucherRequest request,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+
+        VoucherResponse response = voucherService.updateVoucher(id, request, language);
+        return ResponseEntity.ok(ApiResponse.success(response, "Voucher updated successfully"));
     }
 }

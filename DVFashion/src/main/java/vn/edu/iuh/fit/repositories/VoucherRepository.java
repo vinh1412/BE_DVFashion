@@ -36,4 +36,13 @@ public interface VoucherRepository extends JpaRepository<Voucher, Long> {
      */
     @Query("SELECT v FROM Voucher v WHERE UPPER(v.code) = UPPER(:code)")
     Voucher findByCodeIgnoreCase(@Param("code") String code);
+
+    /**
+     * Find the maximum total usage allowed for a voucher by its ID.
+     *
+     * @param voucherId the ID of the voucher
+     * @return the maximum total usage allowed for the voucher
+     */
+    @Query("SELECT MAX(vu.voucher.maxUsagePerUser) FROM VoucherUsage vu WHERE vu.voucher.id = :voucherId")
+    Integer findMaxUsagePerUser(@Param("voucherId") Long voucherId);
 }

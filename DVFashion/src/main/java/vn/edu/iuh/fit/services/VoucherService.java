@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.services;
 
 import vn.edu.iuh.fit.dtos.request.CreateVoucherRequest;
+import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
 import vn.edu.iuh.fit.enums.Language;
 
@@ -25,4 +26,14 @@ public interface VoucherService {
      * @return the created VoucherResponse
      */
     VoucherResponse createVoucher(CreateVoucherRequest request, Language language);
+
+    /**
+     * Update an existing voucher identified by its ID with the provided request and language.
+     *
+     * @param id       the ID of the voucher to update
+     * @param request  the request containing updated voucher details
+     * @param language the language for the voucher translation
+     * @return the updated VoucherResponse
+     */
+    VoucherResponse updateVoucher(Long id, UpdateVoucherRequest request, Language language);
 }
