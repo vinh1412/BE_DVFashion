@@ -21,6 +21,7 @@ import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.enums.PromotionType;
 import vn.edu.iuh.fit.exceptions.BadRequestException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -106,6 +107,10 @@ public class PromotionServiceImpl implements PromotionService {
         for (PromotionProductRequest productRequest : request.promotionProducts()) {
             Product product = productRepository.findById(productRequest.productId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productRequest.productId()));
+
+            if (!ProductStatus.ACTIVE.equals(product.getStatus())) {
+                throw new BadRequestException("Product with ID " + productRequest.productId() + " is not active");
+            }
 
             BigDecimal originalPrice = (product.getSalePrice() != null && product.isOnSale())
                     ? product.getSalePrice()
@@ -442,6 +447,10 @@ public class PromotionServiceImpl implements PromotionService {
             // Find product
             Product product = productRepository.findById(req.productId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + req.productId()));
+
+            if (!ProductStatus.ACTIVE.equals(product.getStatus())) {
+                throw new BadRequestException("Product with ID " + req.productId() + " is not active");
+            }
 
             // Determine original price
             BigDecimal originalPrice = (product.getSalePrice() != null && product.isOnSale())

@@ -51,7 +51,8 @@ public class OrderMapper {
                 order.getEstimatedDeliveryTime(),
                 orderItemMapper.mapOrderItemResponses(order.getItems(), language),
                 paymentMapper.mapPaymentResponse(order.getPayment()),
-                order.getPromotion() != null ? promotionMapper.mapPromotionOrderResponse(order.getPromotion(), language) : null,
+//                order.getPromotion() != null ? promotionMapper.mapPromotionOrderResponse(order.getPromotion(), language) : null,
+                null,
                 order.getPayment().getPaymentMethod() == PaymentMethod.PAYPAL
                         && order.getPayment().getPaymentStatus() == PaymentStatus.PENDING ? order.getPayment().getApprovalUrl() : null
         );

@@ -34,7 +34,8 @@ public class OrderItemServiceImpl implements OrderItemService {
                     .size(cartItem.getSize())
                     .quantity(cartItem.getQuantity())
                     .unitPrice(cartItem.getUnitPrice())
-                    .discount(calculateDiscount(cartItem, order.getPromotion()))
+//                    .discount(calculateDiscount(cartItem, order.getPromotion()))
+                    .discount(BigDecimal.ZERO)
                     .build();
 
             return orderItem;
