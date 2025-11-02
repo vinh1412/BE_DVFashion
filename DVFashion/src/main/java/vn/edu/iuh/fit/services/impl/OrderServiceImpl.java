@@ -73,6 +73,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final ShippingService shippingService;
 
+    private final VoucherService voucherService;
+
     @Override
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -101,12 +103,6 @@ public class OrderServiceImpl implements OrderService {
         // Validate cart items and check inventory
         List<CartItem> cartItems = validateReserveStock(request.orderItems(), customer);
 
-        // Apply promotion if provided
-//        if (request.promotionId() != null) {
-//            Promotion promotion = promotionService.validatePromotion(request.promotionId());
-//            order.setPromotion(promotion);
-//        }
-
         // Create order items
         List<OrderItem> orderItems = orderItemService.createOrderItems(cartItems, order);
         order.setItems(orderItems);
@@ -118,6 +114,37 @@ public class OrderServiceImpl implements OrderService {
 
         // Save order
         Order savedOrder = orderRepository.save(order);
+
+        // Apply voucher if provided
+        if (request.voucherCode() != null && !request.voucherCode().isBlank()) {
+            // Validate and apply voucher
+            Voucher voucher = voucherService.validateAndApplyVoucher(request.voucherCode(), customer, savedOrder);
+
+            savedOrder.setVoucher(voucher);
+            savedOrder.setVoucherCode(voucher.getCode());
+
+            // Calculate voucher discount
+            BigDecimal subtotal = orderItemService.calculateSubtotal(savedOrder.getItems());
+
+            // Calculate voucher discount
+            BigDecimal voucherDiscount = voucherService.calculateVoucherDiscount(voucher, subtotal, savedOrder.getItems());
+
+            savedOrder.setVoucherDiscount(voucherDiscount);
+            
+            log.info("Voucher {} applied to order {}", voucher.getCode(), savedOrder.getOrderNumber());
+
+            // Update payment amount
+            if (savedOrder.getPayment() != null) {
+                BigDecimal total = orderMapper.calculateOrderTotal(savedOrder);
+                savedOrder.getPayment().setAmount(total);
+            }
+
+            log.info("Voucher {} applied. Subtotal={}, Discount={}, Final total={}",
+                    voucher.getCode(), subtotal, voucherDiscount, orderMapper.calculateOrderTotal(savedOrder));
+
+            // Record voucher usage
+            voucherService.recordUsage(voucher, customer, savedOrder);
+        }
 
         log.info("Order created successfully with ID: {}", savedOrder.getId());
 

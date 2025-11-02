@@ -47,14 +47,13 @@ public record OrderResponse(
 
          LocalDateTime orderDate,
 
-
          LocalDateTime estimatedDeliveryTime,
 
          List<OrderItemResponse> items,
 
          PaymentResponse payment,
 
-         PromotionOrderResponse promotion,
+         VoucherOrderResponse voucher,
 
          String paypalApprovalUrl
 ) {}

@@ -34,7 +34,8 @@ public class OrderItemServiceImpl implements OrderItemService {
                     .size(cartItem.getSize())
                     .quantity(cartItem.getQuantity())
                     .unitPrice(cartItem.getUnitPrice())
-                    .discount(calculateDiscount(cartItem, order.getPromotion()))
+//                    .discount(calculateDiscount(cartItem, order.getPromotion()))
+                    .discount(BigDecimal.ZERO)
                     .build();
 
             return orderItem;
@@ -59,5 +60,13 @@ public class OrderItemServiceImpl implements OrderItemService {
 //            case FIXED_AMOUNT -> promotion.getValue();
             default -> BigDecimal.ZERO;
         };
+    }
+
+    @Override
+    public BigDecimal calculateSubtotal(List<OrderItem> orderItems) {
+        return orderItems.stream()
+                .map(item -> item.getUnitPrice().subtract(item.getDiscount())
+                        .multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

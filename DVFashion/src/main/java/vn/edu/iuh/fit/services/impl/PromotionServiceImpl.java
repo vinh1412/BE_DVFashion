@@ -21,8 +21,10 @@ import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.enums.PromotionType;
 import vn.edu.iuh.fit.exceptions.BadRequestException;
+import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.exceptions.ResourceNotFoundException;
 import vn.edu.iuh.fit.mappers.PromotionMapper;
 import vn.edu.iuh.fit.repositories.ProductRepository;
@@ -34,6 +36,7 @@ import vn.edu.iuh.fit.services.TranslationService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -104,6 +107,10 @@ public class PromotionServiceImpl implements PromotionService {
         for (PromotionProductRequest productRequest : request.promotionProducts()) {
             Product product = productRepository.findById(productRequest.productId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productRequest.productId()));
+
+            if (!ProductStatus.ACTIVE.equals(product.getStatus())) {
+                throw new BadRequestException("Product with ID " + productRequest.productId() + " is not active");
+            }
 
             BigDecimal originalPrice = (product.getSalePrice() != null && product.isOnSale())
                     ? product.getSalePrice()
@@ -251,6 +258,75 @@ public class PromotionServiceImpl implements PromotionService {
         return PageResponse.from(dtoPage);
     }
 
+    @Override
+    public void removeProductFromPromotion(Long promotionId, Long productId) {
+        // Find existing promotion
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with ID: " + promotionId));
+
+        // Find the promotion product to remove
+        PromotionProduct promotionProduct = promotion.getPromotionProducts().stream()
+                .filter(pp -> pp.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + productId + " not found in promotion " + promotionId));
+
+        // Remove from promotion's collection
+        promotion.getPromotionProducts().remove(promotionProduct);
+
+        // Save the updated promotion
+        promotionRepository.save(promotion);
+    }
+
+    @Override
+    public List<PromotionResponse> getActivePromotions(Language language) {
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Promotion> activePromotions = promotionRepository.findActivePromotions(now);
+
+        return activePromotions.stream()
+                .map(promotion -> promotionMapper.mapToPromotionResponse(promotion, language))
+                .toList();
+    }
+
+    @Override
+    public PageResponse<PromotionResponse> getActivePromotionsPaging(Pageable pageable, Language language) {
+        LocalDateTime now = LocalDateTime.now();
+
+        Page<Promotion> activePromotions = promotionRepository.findActivePromotions(now, pageable);
+
+        Page<PromotionResponse> dtoPage = activePromotions.map(promotion ->
+                promotionMapper.mapToPromotionResponse(promotion, language));
+
+        return PageResponse.from(dtoPage);
+    }
+
+    @Override
+    public void deletePromotion(Long promotionId) {
+        // Find existing promotion
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new NotFoundException("Promotion not found with ID: " + promotionId));
+
+        // Check if promotion is currently active
+        LocalDateTime now = LocalDateTime.now();
+        if (promotion.isActive() &&
+                promotion.getStartDate().isBefore(now) &&
+                promotion.getEndDate().isAfter(now)) {
+            throw new BadRequestException("Cannot delete an active promotion that is currently running");
+        }
+
+        // Clear all promotion products first (to avoid constraint issues)
+        promotion.getPromotionProducts().clear();
+
+        // Clear all translations
+        promotion.getTranslations().clear();
+
+        // Save to flush changes
+        promotionRepository.save(promotion);
+
+        // Delete the promotion (this will cascade delete remaining relationships)
+        promotionRepository.delete(promotion);
+    }
+
     // Helper method to build PromotionTranslation
     private PromotionTranslation buildTranslation(Promotion promotion, Language lang, String name, String description) {
         return PromotionTranslation.builder()
@@ -371,6 +447,10 @@ public class PromotionServiceImpl implements PromotionService {
             // Find product
             Product product = productRepository.findById(req.productId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + req.productId()));
+
+            if (!ProductStatus.ACTIVE.equals(product.getStatus())) {
+                throw new BadRequestException("Product with ID " + req.productId() + " is not active");
+            }
 
             // Determine original price
             BigDecimal originalPrice = (product.getSalePrice() != null && product.isOnSale())

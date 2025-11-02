@@ -33,5 +33,5 @@ public record CreateOrderRequest(
         @Pattern(regexp = "CASH_ON_DELIVERY|PAYPAL|BANK_TRANSFER", message = "Invalid payment method")
         String paymentMethod,
 
-        Long promotionId
+        String voucherCode
 ) {}

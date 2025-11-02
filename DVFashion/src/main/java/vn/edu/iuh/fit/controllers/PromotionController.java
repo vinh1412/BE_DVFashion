@@ -9,12 +9,10 @@ package vn.edu.iuh.fit.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.constants.RoleConstant;
@@ -25,7 +23,6 @@ import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.services.PromotionService;
-import vn.edu.iuh.fit.validators.ValidationGroups;
 
 import java.util.List;
 
@@ -55,7 +52,7 @@ public class PromotionController {
     @PutMapping(value = "/{id}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<?>> updatePromotion(
             @Valid @RequestPart("promotion") UpdatePromotionRequest updatePromotionRequest,
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestParam(defaultValue = "VI") Language inputLang,
             @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
         PromotionResponse response = promotionService.updatePromotion(updatePromotionRequest, id, inputLang, bannerFile);
@@ -64,12 +61,13 @@ public class PromotionController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<?>> getPromotionById(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
         PromotionResponse response = promotionService.getPromotionById(id, language);
         return ResponseEntity.ok(ApiResponse.success(response, "Promotion retrieved successfully."));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<?>> getAllPromotionsNoPaging(
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
@@ -77,6 +75,7 @@ public class PromotionController {
         return ResponseEntity.ok(ApiResponse.success(promotions, "Promotions retrieved successfully."));
     }
 
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getPromotionsPaging(
             @PageableDefault(page = 0, size = 12) Pageable pageable,
@@ -86,28 +85,34 @@ public class PromotionController {
         return ResponseEntity.ok(ApiResponse.success(response, "Promotions retrieved successfully."));
     }
 
-//    @GetMapping("/{id}")
-//    public ResponseEntity<ApiResponse<?>> getPromotionById(
-//            @PathVariable Long id,
-//            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
-//        PromotionResponse response = promotionService.getPromotionById(id, language);
-//        return ResponseEntity.ok(ApiResponse.success(response, "Promotion retrieved successfully."));
-//    }
-//
-//    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
-//    @PutMapping("/{id}")
-//    public ResponseEntity<ApiResponse<?>> updatePromotion(
-//            @Validated(ValidationGroups.Update.class) @RequestBody CreatePromotionRequest createPromotionRequest,
-//            @PathVariable Long id,
-//            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
-//        PromotionResponse response = promotionService.updatePromotion(createPromotionRequest, id, language);
-//        return ResponseEntity.ok(ApiResponse.success(response, "Promotion updated successfully."));
-//    }
-//
-//    @GetMapping("/all")
-//    public ResponseEntity<ApiResponse<?>> getAllPromotionsNoPaging(
-//            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
-//        List<PromotionResponse> promotions = promotionService.getAllPromotions(language);
-//        return ResponseEntity.ok(ApiResponse.success(promotions, "Promotions retrieved successfully."));
-//    }
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @DeleteMapping("/{promotionId}/products/{productId}")
+    public ResponseEntity<ApiResponse<?>> removeProductFromPromotion(
+            @PathVariable(name = "promotionId") Long promotionId,
+            @PathVariable(name = "productId") Long productId) {
+        promotionService.removeProductFromPromotion(promotionId, productId);
+        return ResponseEntity.ok(ApiResponse.noContent("Product removed from promotion successfully."));
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<?>> getActivePromotions(
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        List<PromotionResponse> promotions = promotionService.getActivePromotions(language);
+        return ResponseEntity.ok(ApiResponse.success(promotions, "Active promotions retrieved successfully."));
+    }
+
+    @GetMapping("/active/paging")
+    public ResponseEntity<ApiResponse<?>> getActivePromotionsPaging(
+            @PageableDefault(page = 0, size = 12) Pageable pageable,
+            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        PageResponse<PromotionResponse> promotions = promotionService.getActivePromotionsPaging(pageable, language);
+        return ResponseEntity.ok(ApiResponse.success(promotions, "Active promotions retrieved successfully with pagination."));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @DeleteMapping("/{promotionId}")
+    public ResponseEntity<ApiResponse<?>> deletePromotion(@PathVariable(name = "promotionId") Long promotionId) {
+        promotionService.deletePromotion(promotionId);
+        return ResponseEntity.ok(ApiResponse.noContent("Promotion deleted successfully."));
+    }
 }

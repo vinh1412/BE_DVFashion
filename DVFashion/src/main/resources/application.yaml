@@ -118,6 +118,7 @@ paypal:
   success-url: http://localhost:8080/api/v1/payments/paypal/success
   cancel-url: http://localhost:8080/api/v1/payments/paypal/cancel
 
+# GHN (Giao Hàng Nhanh) configuration
 ghn:
   base-url: ${GHN_BASE_URL}
   token: ${GHN_TOKEN}

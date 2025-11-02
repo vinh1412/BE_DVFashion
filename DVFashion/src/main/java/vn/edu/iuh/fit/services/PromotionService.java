@@ -12,7 +12,6 @@ import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
 import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
-import vn.edu.iuh.fit.entities.Promotion;
 import vn.edu.iuh.fit.enums.Language;
 
 import java.util.List;
@@ -24,43 +23,43 @@ import java.util.List;
  * @version:    1.0
  */
 public interface PromotionService {
-    /*
+    /**
      * Creates a new promotion based on the provided request and language.
      *
-     * @param promotionRequest The request object containing promotion details.
+     * @param createPromotionRequest The request object containing promotion details.
      * @param inputLang The language for the promotion.
      * @return The created PromotionResponse object.
-     */
+     **/
     PromotionResponse createPromotion(CreatePromotionRequest createPromotionRequest, Language inputLang, MultipartFile bannerFile);
 
-    /*
+    /**
      * Updates an existing promotion identified by its ID with the provided request and language.
      *
      * @param updatePromotionRequest The request object containing updated promotion details.
      * @param id The ID of the promotion to update.
      * @param inputLang The language for the promotion.
      * @return The updated PromotionResponse object.
-     */
+     **/
     PromotionResponse updatePromotion(UpdatePromotionRequest updatePromotionRequest, Long id, Language inputLang, MultipartFile bannerFile);
 
-    /*
-     * Retrieves a promotion by its ID and language.
+    /**
+     * Retrieves a promotion by its ID in the specified language.
      *
-     * @param id The ID of the promotion to retrieve.
+     * @param id The ID of the promotion.
      * @param language The language for the promotion details.
      * @return The PromotionResponse object.
      */
     PromotionResponse getPromotionById(Long id, Language language);
 
-    /*
+    /**
      * Retrieves all promotions in the specified language.
      *
      * @param language The language for the promotion details.
-     * @return List of PromotionResponse objects.
+     * @return A list of PromotionResponse objects.
      */
     List<PromotionResponse> getAllPromotions(Language language);
 
-    /*
+    /**
      * Retrieves a paginated list of promotions in the specified language.
      *
      * @param pageable The pagination information.
@@ -68,4 +67,36 @@ public interface PromotionService {
      * @return A PageResponse containing PromotionResponse objects.
      */
     PageResponse<PromotionResponse> getPromotionsPaging(Pageable pageable, Language language);
+
+    /**
+     * Removes a product from a promotion.
+     *
+     * @param promotionId The ID of the promotion.
+     * @param productId   The ID of the product to remove.
+     */
+    void removeProductFromPromotion(Long promotionId, Long productId);
+
+    /**
+     * Retrieves all active and valid promotions for customers.
+     *
+     * @param language The language for the promotion details.
+     * @return List of active promotion responses.
+     */
+    List<PromotionResponse> getActivePromotions(Language language);
+
+    /**
+     * Retrieves a paginated list of active and valid promotions for customers.
+     *
+     * @param pageable Pagination information.
+     * @param language The language for the promotion details.
+     * @return A paginated response containing active promotion responses.
+     */
+    PageResponse<PromotionResponse> getActivePromotionsPaging(Pageable pageable, Language language);
+
+    /**
+     * Deletes a promotion by its ID.
+     *
+     * @param promotionId The ID of the promotion to delete.
+     */
+    void deletePromotion(Long promotionId);
 }

@@ -10,6 +10,7 @@ import vn.edu.iuh.fit.entities.CartItem;
 import vn.edu.iuh.fit.entities.Order;
 import vn.edu.iuh.fit.entities.OrderItem;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /*
@@ -27,4 +28,12 @@ public interface OrderItemService {
      * @return the list of created order items
      */
     List<OrderItem> createOrderItems(List<CartItem> cartItems, Order order);
+
+    /**
+     * Calculate the subtotal amount for a list of order items.
+     *
+     * @param orderItems the list of order items
+     * @return the subtotal amount as BigDecimal
+     */
+    BigDecimal calculateSubtotal(List<OrderItem> orderItems);
 }
