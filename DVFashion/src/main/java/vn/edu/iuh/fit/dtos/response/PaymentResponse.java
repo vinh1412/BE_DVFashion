@@ -20,10 +20,14 @@ import java.time.LocalDateTime;
  */
 public record PaymentResponse(
          Long id,
+
          String transactionId,
+
          BigDecimal amount,
+
          PaymentMethod paymentMethod,
+
          PaymentStatus paymentStatus,
+
          LocalDateTime paymentDate
-) {
-}
+) {}

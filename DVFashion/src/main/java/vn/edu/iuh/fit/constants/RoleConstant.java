@@ -14,14 +14,16 @@ package vn.edu.iuh.fit.constants;
  */
 public class RoleConstant {
     public static final String ADMIN = "ADMIN";
-    public static final String STAFF = "STAFF";
+//    public static final String STAFF = "STAFF";
     public static final String CUSTOMER = "CUSTOMER";
 
     public static final String HAS_ROLE_ADMIN = "hasRole('" + ADMIN + "')";
-    public static final String HAS_ROLE_STAFF = "hasRole('" + STAFF + "')";
+//    public static final String HAS_ROLE_STAFF = "hasRole('" + STAFF + "')";
     public static final String HAS_ROLE_CUSTOMER = "hasRole('" + CUSTOMER + "')";
 
-    public static final String HAS_ANY_ROLE_ADMIN_STAFF = "hasAnyRole('" + ADMIN + "','" + STAFF + "')";
-    public static final String HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER =
-            "hasAnyRole('" + ADMIN + "','" + STAFF + "','" + CUSTOMER + "')";
+//    public static final String HAS_ANY_ROLE_ADMIN_STAFF = "hasAnyRole('" + ADMIN + "','" + STAFF + "')";
+//    public static final String HAS_ANY_ROLE_STAFF_CUSTOMER = "hasAnyRole('" + STAFF + "','" + CUSTOMER + "')";
+    public static final String HAS_ANY_ROLE_ADMIN_CUSTOMER = "hasAnyRole('" + ADMIN + "','" + CUSTOMER + "')";
+//    public static final String HAS_ANY_ROLE_ADMIN_STAFF_CUSTOMER =
+//            "hasAnyRole('" + ADMIN + "','" + STAFF + "','" + CUSTOMER + "')";
 }

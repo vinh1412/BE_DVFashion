@@ -9,9 +9,8 @@ package vn.edu.iuh.fit.dtos.request;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import vn.edu.iuh.fit.enums.PaymentMethod;
+import jakarta.validation.constraints.Pattern;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /*
@@ -21,22 +20,18 @@ import java.util.List;
  * @version:    1.0
  */
 public record CreateOrderRequest(
-        @NotNull(message = "Customer ID is required")
-        Long customerId,
-
-        @NotEmpty(message = "Cart item IDs cannot be empty")
-        List<Long> cartItemIds,
+        @Valid
+        @NotEmpty(message = "Order must contain at least one item")
+        List<OrderItemRequest> orderItems,
 
         @Valid
         ShippingInfoRequest shippingInfo,
 
-        Long promotionId,
-
-        @NotNull(message = "Payment method is required")
-        PaymentMethod paymentMethod,
-
         String notes,
 
-        BigDecimal shippingFee
-        ) {
-}
+        @NotNull(message = "Payment method is required")
+        @Pattern(regexp = "CASH_ON_DELIVERY|PAYPAL|BANK_TRANSFER", message = "Invalid payment method")
+        String paymentMethod,
+
+        String voucherCode
+) {}

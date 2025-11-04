@@ -70,14 +70,14 @@ public class User {
     @Column(name = "provider_id")
     private String providerId;
 
-//    @Column(name = "verification_code")
-//    private String verificationCode;
-//
-//    @Column(name = "verification_code_expiry")
-//    private LocalDateTime verificationCodeExpiry;
-//
-//    @Column(name = "is_verified", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
-//    private boolean isVerified = false;
+    @Column(name = "verification_code")
+    private String verificationCode;
+
+    @Column(name = "verification_code_expiry")
+    private LocalDateTime verificationCodeExpiry;
+
+    @Column(name = "is_verified", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean isVerified = false;
 
     @OneToMany(mappedBy = "user")
     private List<Address> addresses = new ArrayList<>();
@@ -90,9 +90,6 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     private List<Review> reviews = new ArrayList<>();
-
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    private Wishlist wishlist;
 
     @Column(name = "is_deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean isDeleted = false;

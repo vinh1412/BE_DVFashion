@@ -14,7 +14,10 @@ package vn.edu.iuh.fit.dtos.response;
  */
 public record ShippingInfoResponse (
          String fullName,
+
          String phone,
+
          String email,
+
          String fullAddress
 ){}

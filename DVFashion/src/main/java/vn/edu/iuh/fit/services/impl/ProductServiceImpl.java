@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,13 +17,16 @@ import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.request.ProductVariantRequest;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
+import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.exceptions.ResourceNotFoundException;
 import vn.edu.iuh.fit.mappers.ProductMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /*
@@ -33,6 +37,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
 
@@ -51,6 +56,10 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 
     private final PromotionService promotionService;
+
+    private final UserService userService;
+
+    private final UserInteractionService userInteractionService;
 
     @Transactional
     @Override
@@ -167,6 +176,19 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product not found with id: " + productId));
 
+        // Track user interaction
+        try {
+            Long currentUserId = userService.getCurrentUser().getId();
+            if (currentUserId != null) {
+                userInteractionService.trackInteraction(currentUserId, productId, InteractionType.VIEW, null);
+            } else {
+                // If no user logged in, skip tracking or handle as guest
+                log.info("Guest viewed product {}, not tracking to DB yet", productId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to track interaction for product {}: {}", productId, e.getMessage());
+        }
+
         // Map to ProductResponse
         return toResponse(product, language);
     }
@@ -190,6 +212,68 @@ public class ProductServiceImpl implements ProductService {
         return PageResponse.from(productResponses);
     }
 
+    @Override
+    public List<ProductResponse> getProductsByPromotionId(Long promotionId, Language language) {
+        // Check if promotion exists
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with ID: " + promotionId));
+
+        // Get all products from promotion products
+        List<Product> products = promotion.getPromotionProducts().stream()
+                .map(PromotionProduct::getProduct)
+                .toList();
+
+        // Map each product to ProductResponse
+        return products.stream()
+                .map(product -> toResponse(product, language))
+                .toList();
+    }
+
+    @Override
+    public PageResponse<ProductResponse> getProductsByPromotionIdPaging(Long promotionId, Pageable pageable, Language language) {
+        // Check if promotion exists
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with ID: " + promotionId));
+
+        // Get products with pagination through PromotionProduct relationship
+        Page<Product> products = productRepository.findProductsByPromotionId(promotion.getId(), pageable);
+
+        // Map each product to ProductResponse
+        Page<ProductResponse> productResponses = products.map(product -> toResponse(product, language));
+
+        return PageResponse.from(productResponses);
+    }
+
+    @Override
+    public List<ProductResponse> getProductsByCategoryId(Long categoryId, Language language) {
+        // Check if category exists
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
+
+        // Get all products by category
+        List<Product> products = productRepository.findByCategoryId(category.getId());
+
+        // Map each product to ProductResponse
+        return products.stream()
+                .map(product -> toResponse(product, language))
+                .toList();
+    }
+
+    @Override
+    public PageResponse<ProductResponse> getProductsByCategoryIdPaging(Long categoryId, Pageable pageable, Language language) {
+        // Check if category exists
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
+
+        // Get products with pagination by category
+        Page<Product> products = productRepository.findByCategoryId(category.getId(), pageable);
+
+        // Map each product to ProductResponse
+        Page<ProductResponse> productResponses = products.map(product -> toResponse(product, language));
+
+        return PageResponse.from(productResponses);
+    }
+
     private ProductResponse toResponse(Product product, Language inputLang) {
         // Find translation in requested language, if not found, fallback to Vietnamese
         ProductTranslation translation = productTranslationRepository.findByProductIdAndLanguage(product.getId(), inputLang)
@@ -200,14 +284,7 @@ public class ProductServiceImpl implements ProductService {
         CategoryResponse categoryResponse = categoryService.getCategoryById(product.getCategory().getId(), inputLang);
         String categoryName = categoryResponse != null ? categoryResponse.name() : "Unknown";
 
-        // Find promotion name if exists
-        String promotionName = null;
-        if (product.getPromotion() != null) {
-            PromotionResponse promotionResponse = promotionService.getPromotionById(product.getPromotion().getId(), inputLang);
-            promotionName = promotionResponse != null ? promotionResponse.name() : null;
-        }
-
         // Map to ProductResponse
-        return productMapper.toResponse(product, translation, categoryName, promotionName);
+        return productMapper.toResponse(product, translation, categoryName);
     }
 }

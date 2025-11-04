@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -125,6 +126,62 @@ public class GlobalExceptionHandler  {
 
     @ExceptionHandler(CartLimitExceededException.class)
     public ResponseEntity<ApiResponse<Object>> handleCartLimitExceededException(CartLimitExceededException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+    
+    @ExceptionHandler(DuplicateAddressException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicateAddressException(DuplicateAddressException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePaymentException(PaymentException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(OrderException.class)
+    public ResponseEntity<ApiResponse<Object>> handleOrderException(OrderException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(PaypalException.class)
+    public ResponseEntity<ApiResponse<Object>> handlePaypalException(PaypalException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<Object>> handleBadRequestException(BadRequestException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(NotActiveException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNotActiveException(NotActiveException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND.value(), "NOT_FOUND"));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "BAD_REQUEST"));

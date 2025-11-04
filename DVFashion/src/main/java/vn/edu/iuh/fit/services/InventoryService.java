@@ -11,6 +11,8 @@ import vn.edu.iuh.fit.dtos.request.ImportStockRequest;
 import vn.edu.iuh.fit.dtos.request.StockAdjustmentRequest;
 import vn.edu.iuh.fit.dtos.response.InventoryResponse;
 import vn.edu.iuh.fit.dtos.response.InventoryStatsResponse;
+import vn.edu.iuh.fit.entities.Order;
+import vn.edu.iuh.fit.entities.User;
 
 import java.util.List;
 
@@ -27,9 +29,10 @@ public interface InventoryService {
      * @param sizeId          the ID of the product size
      * @param quantity        the quantity to reserve
      * @param referenceNumber a unique reference number for the reservation
+     * @param user            the user performing the reservation
      * @return true if the reservation is successful, false otherwise
      */
-    boolean reserveStock(Long sizeId, int quantity, String referenceNumber);
+    boolean reserveStock(Long sizeId, int quantity, String referenceNumber, User user);
 
     /**
      * Release previously reserved stock.
@@ -37,8 +40,9 @@ public interface InventoryService {
      * @param sizeId          the ID of the product size
      * @param quantity        the quantity to release
      * @param referenceNumber the reference number associated with the reservation
+     * @param user            the user performing the release
      */
-    void releaseReservedStock(Long sizeId, int quantity, String referenceNumber);
+    void releaseReservedStock(Long sizeId, int quantity, String referenceNumber, User user);
 
     /**
      * Get the available quantity of a specific product size.
@@ -108,4 +112,38 @@ public interface InventoryService {
      * @return a list of inventory responses for out of stock items
      */
     List<InventoryResponse> getOutOfStockItems();
+
+    /**
+     * Check if a specific quantity of a product size is available
+     *
+     * @param sizeId   the ID of the product size
+     * @param quantity the quantity to check
+     * @return true if the quantity is available, false otherwise
+     */
+    boolean checkAvailability(Long sizeId, int quantity);
+
+    /**
+     * Confirm previously reserved stock after order completion
+     *
+     * @param sizeId          the ID of the product size
+     * @param quantity        the quantity to confirm
+     * @param referenceNumber the reference number associated with the reservation
+     * @param order           the order associated with the stock confirmation
+     * @param user            the user performing the confirmation
+     */
+    void confirmReservedStock(Long sizeId, int quantity, String referenceNumber, User user, Order order);
+
+    /**
+     * Release all reserved stock associated with a specific order number
+     *
+     * @param orderNumber the unique order number
+     */
+    void releaseReservedStockByOrder(String orderNumber);
+
+    /**
+     * Process return stock for a given order
+     *
+     * @param order the order for which to process return stock
+     */
+    void processReturnStock(Order order);
 }

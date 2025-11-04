@@ -28,8 +28,6 @@ public record ProductRecommendationResponse(
 
         String category,
 
-        String brand,
-
         BigDecimal price
 ) {
 }

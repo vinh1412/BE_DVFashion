@@ -23,7 +23,7 @@ public record OrderItemResponse(
 
          String sizeName,
 
-         int quantity,
+         Integer quantity,
 
          BigDecimal unitPrice,
 

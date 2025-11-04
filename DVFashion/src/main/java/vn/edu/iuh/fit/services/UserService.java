@@ -105,7 +105,7 @@ public interface UserService {
      * @param request the CreateStaffRequest containing staff details
      * @return the UserResponse containing the created staff's details
      */
-//    UserResponse createStaff(CreateStaffRequest request);
+    UserResponse createStaff(CreateStaffRequest request);
 
     /**
      * Verify a staff member's account.
@@ -113,7 +113,7 @@ public interface UserService {
      * @param request the VerifyStaffRequest containing verification details
      * @return the UserResponse containing the verified staff's details
      */
-//    UserResponse verifyStaff(VerifyStaffRequest request);
+    UserResponse verifyStaff(VerifyStaffRequest request);
 
     /**
      * Retrieve all users.

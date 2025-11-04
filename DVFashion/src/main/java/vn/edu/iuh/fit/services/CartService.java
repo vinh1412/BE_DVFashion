@@ -55,4 +55,10 @@ public interface CartService {
      * @return the updated (empty) cart response
      */
     CartResponse clearCart();
+
+    /**
+     * Automatically release cart items that have expired (not purchased within the reservation period).
+     * This method should be scheduled to run periodically.
+     */
+    void autoReleaseExpiredCartItems();
 }

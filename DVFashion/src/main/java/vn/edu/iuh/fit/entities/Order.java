@@ -15,6 +15,7 @@ import vn.edu.iuh.fit.enums.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /*
@@ -49,8 +50,18 @@ public class Order {
     private BigDecimal shippingFee;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "promotion_id")
-    private Promotion promotion;
+    @JoinColumn(name = "voucher_id")
+    private Voucher voucher;
+
+    @Column(precision = 15, scale = 2, name = "voucher_discount")
+    private BigDecimal voucherDiscount;
+
+    @Column(length = 50, name = "voucher_code")
+    private String voucherCode;
+
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "promotion_id")
+//    private Promotion promotion;
 
     @Embedded
     @AttributeOverrides({
@@ -68,17 +79,23 @@ public class Order {
     @Column(name = "order_date")
     private LocalDateTime orderDate;
 
-    @Column(name = "shipped_date")
-    private LocalDateTime shippedDate;
-
-    @Column(name = "delivered_date")
-    private LocalDateTime deliveredDate;
+//    @Column(name = "shipped_date")
+//    private LocalDateTime shippedDate;
+//
+//    @Column(name = "delivered_date")
+//    private LocalDateTime deliveredDate;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> items;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Payment payment;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<VoucherUsage> voucherUsages = new ArrayList<>();
+
+    @Column(name = "estimated_delivery_time")
+    private LocalDateTime estimatedDeliveryTime;
 
     @PrePersist
     public void prePersist() {

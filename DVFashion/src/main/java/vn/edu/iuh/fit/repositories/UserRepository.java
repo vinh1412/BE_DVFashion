@@ -48,6 +48,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameAndActiveTrue(@Param("username") String username);
 
     /**
+     * Find a user by email or phone and ensure the user is active.
+     *
+     * @param username
+     * @return an Optional containing the User if found and active, or empty if not found or inactive
+     */
+    @Query("SELECT u FROM User u WHERE (u.email = :username OR u.phone = :username) AND u.isDeleted = false")
+    Optional<User> findByUsernameAndDeleteFalse(@Param("username") String username);
+
+    /**
      * Check if a user exists by their username (email or phone).
      *
      * @param username the username to check
@@ -90,7 +99,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param email the email to check
      * @return true if a user with the specified email exists and is not deleted, false otherwise
      */
-    @Query("SELECT u FROM User u WHERE u.id = :id AND u.isDeleted = false")
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.email = :email AND u.isDeleted = false")
     boolean existsByEmailAndIsDeleteFalse(String email);
 
     /**
@@ -99,7 +108,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param phone the phone number to check
      * @return true if a user with the specified phone number exists and is not deleted, false otherwise
      */
-    @Query("SELECT u FROM User u WHERE u.phone = :phone AND u.isDeleted = false")
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.phone = :phone AND u.isDeleted = false")
     boolean existsByPhoneAndIsDeleteFalse(String phone);
 
     /**

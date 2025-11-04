@@ -16,9 +16,10 @@ import java.math.BigDecimal;
  */
 public record PromotionOrderResponse(
         Long id,
-        String code,
+
         String name,
+
         BigDecimal discountValue,
+
         String discountType
-) {
-}
+) {}

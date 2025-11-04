@@ -1,7 +1,7 @@
 package vn.edu.iuh.fit.enums;
 
 public enum UserRole {
-    ADMIN("ADMIN"), CUSTOMER("CUSTOMER");
+    ADMIN("ADMIN"), STAFF("STAFF"), CUSTOMER("CUSTOMER");
 
     private final String value;
 

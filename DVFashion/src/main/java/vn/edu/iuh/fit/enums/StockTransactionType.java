@@ -19,7 +19,8 @@ public enum StockTransactionType {
     RELEASE("RELEASE"),
     CONFIRMED("CONFIRMED"),
     ADJUSTMENT_IN("ADJUSTMENT_IN"),
-    ADJUSTMENT_OUT("ADJUSTMENT_OUT");
+    ADJUSTMENT_OUT("ADJUSTMENT_OUT"),
+    RETURN("RETURN");
 
     private final String description;
 

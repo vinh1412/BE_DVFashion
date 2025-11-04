@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.StockTransaction;
 
+import java.util.List;
+
 /*
  * @description: Repository for managing stock transactions
  * @author: Tran Hien Vinh
@@ -18,4 +20,11 @@ import vn.edu.iuh.fit.entities.StockTransaction;
  */
 @Repository
 public interface StockTransactionRepository extends JpaRepository<StockTransaction, Long> {
+    /**
+     * Find all stock transactions with reference numbers starting with the given prefix.
+     *
+     * @param prefix the prefix to search for
+     * @return a list of matching stock transactions
+     */
+    List<StockTransaction> findByReferenceNumberStartingWith(String prefix);
 }

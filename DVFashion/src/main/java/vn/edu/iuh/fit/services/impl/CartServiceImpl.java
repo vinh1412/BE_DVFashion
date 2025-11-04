@@ -9,6 +9,7 @@ package vn.edu.iuh.fit.services.impl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.request.AddToCartRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateCartItemQuantityRequest;
@@ -16,15 +17,18 @@ import vn.edu.iuh.fit.dtos.response.CartItemResponse;
 import vn.edu.iuh.fit.dtos.response.CartResponse;
 import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.*;
+import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.exceptions.CartLimitExceededException;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.mappers.CartItemMapper;
+import vn.edu.iuh.fit.mappers.ProductMapper;
 import vn.edu.iuh.fit.mappers.ShoppingCartMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.CartService;
 import vn.edu.iuh.fit.services.InventoryService;
+import vn.edu.iuh.fit.services.UserInteractionService;
 import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 
@@ -61,6 +65,14 @@ public class CartServiceImpl implements CartService {
 
     private final ShoppingCartMapper shoppingCartMapper;
 
+    private final UserInteractionService userInteractionService;
+
+    private final ProductMapper productMapper;
+
+    private final PromotionProductRepository promotionProductRepository;
+
+    private final OrderItemRepository orderItemRepository;
+
     private static final int MAX_QUANTITY_PER_ITEM = 20;
     private static final int MAX_DIFFERENT_ITEMS_IN_CART = 70;
 
@@ -89,6 +101,9 @@ public class CartServiceImpl implements CartService {
             throw new NotFoundException("Size does not belong to the specified product variant");
         }
 
+        // Check promotion constraints
+        validatePromotionConstraints(productVariant.getProduct(), user.getId(), request.quantity());
+
         // Get or create shopping cart for user
         ShoppingCart cart = getOrCreateCart(user);
 
@@ -113,7 +128,7 @@ public class CartServiceImpl implements CartService {
         String referenceNumber = "CART_" + user.getId() + "_" + System.currentTimeMillis();
 
         // Reserve stock
-        boolean reserved = inventoryService.reserveStock(request.sizeId(), request.quantity(), referenceNumber);
+        boolean reserved = inventoryService.reserveStock(request.sizeId(), request.quantity(), referenceNumber, user);
 
         // If reservation fails due to insufficient stock
         if (!reserved) {
@@ -137,13 +152,20 @@ public class CartServiceImpl implements CartService {
             log.info("Added {} items of size {} to cart for user {}",
                     request.quantity(), size.getSizeName(), user.getId());
 
+            // Track user interaction
+            userInteractionService.trackInteraction(
+                    user.getId(),
+                    productVariant.getProduct().getId(),
+                    InteractionType.ADD_TO_CART,
+                    null);
+
             Language currentLanguage = LanguageUtils.getCurrentLanguage();
             return shoppingCartMapper.buildCartResponse(cart, currentLanguage);
 
         } catch (Exception e) {
             // If error occurs, release reserved stock
             inventoryService.releaseReservedStock(
-                    request.sizeId(), request.quantity(), referenceNumber + "_ROLLBACK"
+                    request.sizeId(), request.quantity(), referenceNumber + "_ROLLBACK", user
             );
             throw e;
         }
@@ -211,12 +233,18 @@ public class CartServiceImpl implements CartService {
         // Calculate quantity difference
         int quantityDiff = newQuantity - currentQuantity;
 
+        if (quantityDiff > 0) {
+            ProductVariant variant = cartItem.getProductVariant();
+            Product product = variant.getProduct();
+            validatePromotionConstraints(product, user.getId(), quantityDiff);
+        }
+
         String referenceNumber = "CART_UPDATE_QTY_" + cartItemId + "_" + System.currentTimeMillis();
 
         if (quantityDiff > 0) {
             // Need to reserve more stock
             boolean reserved = inventoryService.reserveStock(
-                    cartItem.getSize().getId(), quantityDiff, referenceNumber);
+                    cartItem.getSize().getId(), quantityDiff, referenceNumber, user);
 
             if (!reserved) {
                 int availableQty = inventoryService.getAvailableQuantity(cartItem.getSize().getId());
@@ -228,7 +256,7 @@ public class CartServiceImpl implements CartService {
         } else if (quantityDiff < 0) {
             // Need to release some reserved stock
             inventoryService.releaseReservedStock(
-                    cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber);
+                    cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber, user);
         }
 
         try {
@@ -247,10 +275,10 @@ public class CartServiceImpl implements CartService {
             // Rollback stock changes if error occurs
             if (quantityDiff > 0) {
                 inventoryService.releaseReservedStock(
-                        cartItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK");
+                        cartItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK", user);
             } else if (quantityDiff < 0) {
                 inventoryService.reserveStock(
-                        cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber + "_ROLLBACK");
+                        cartItem.getSize().getId(), Math.abs(quantityDiff), referenceNumber + "_ROLLBACK", user);
             }
             throw e;
         }
@@ -272,7 +300,7 @@ public class CartServiceImpl implements CartService {
         // Release reserved stock
         String referenceNumber = "CART_REMOVE_" + cartItemId + "_" + System.currentTimeMillis();
         inventoryService.releaseReservedStock(
-                cartItem.getSize().getId(), cartItem.getQuantity(), referenceNumber);
+                cartItem.getSize().getId(), cartItem.getQuantity(), referenceNumber, user);
 
         cartItemRepository.delete(cartItem);
 
@@ -319,7 +347,8 @@ public class CartServiceImpl implements CartService {
             inventoryService.releaseReservedStock(
                     item.getSize().getId(),
                     item.getQuantity(),
-                    referenceNumber + "_ITEM_" + item.getId()
+                    referenceNumber + "_ITEM_" + item.getId(),
+                    user
             );
         }
 
@@ -330,6 +359,69 @@ public class CartServiceImpl implements CartService {
 
         Language currentLanguage = LanguageUtils.getCurrentLanguage();
         return shoppingCartMapper.buildCartResponse(cart, currentLanguage);
+    }
+
+    @Scheduled(cron = "0 0,30 * * * *") // Every hour at minute 0 and 30
+    @Transactional
+    @Override
+    public void autoReleaseExpiredCartItems() {
+        List<CartItem> expiredItems = cartItemRepository.findByReservedUntilBefore(LocalDateTime.now());
+
+        for (CartItem item : expiredItems) {
+            // Release reserved stock
+            String referenceNumber = "CART_EXPIRE_" + item.getId() + "_" + System.currentTimeMillis();
+            inventoryService.releaseReservedStock(
+                    item.getSize().getId(),
+                    item.getQuantity(),
+                    referenceNumber,
+                    item.getCart().getUser()
+            );
+
+            // Delete cart item
+            cartItemRepository.delete(item);
+
+            log.info("Auto-released expired cart item {} for user {}", item.getId(), item.getCart().getUser().getId());
+        }
+    }
+
+    // Validate promotion constraints when adding/updating cart items
+    private void validatePromotionConstraints(Product product, Long userId, int requestedQuantity) {
+        // Check if product has active promotion
+        Optional<PromotionProduct> activePromotion = promotionProductRepository
+                .findActivePromotionForProduct(product.getId());
+
+        if (activePromotion.isPresent()) {
+            PromotionProduct promotionProduct = activePromotion.get();
+
+            // Check promotion stock availability
+            int availablePromotionStock = promotionProduct.getStockQuantity() - promotionProduct.getSoldQuantity();
+            if (availablePromotionStock < requestedQuantity) {
+                throw new InsufficientStockException(
+                        String.format("Insufficient promotion stock. Available: %d, Requested: %d",
+                                availablePromotionStock, requestedQuantity));
+            }
+
+            // Check max quantity per user constraint
+            if (promotionProduct.getMaxQuantityPerUser() != null) {
+                int userPurchasedQuantity = getUserPromotionPurchasedQuantity(userId, product.getId());
+                int totalUserQuantity = userPurchasedQuantity + requestedQuantity;
+
+                if (totalUserQuantity > promotionProduct.getMaxQuantityPerUser()) {
+                    throw new CartLimitExceededException(
+                            String.format("Maximum %d items per user for this promotion. You have already purchased %d",
+                                    promotionProduct.getMaxQuantityPerUser(), userPurchasedQuantity));
+                }
+            }
+        }
+    }
+
+    // Get total quantity user has purchased for product in current active promotion
+    private int getUserPromotionPurchasedQuantity(Long userId, Long productId) {
+        // Get user's purchased quantity for this product in current active promotion
+        // This should check both cart items and completed orders
+        int cartQuantity = cartItemRepository.sumQuantityByUserAndProduct(userId, productId);
+        int orderedQuantity = orderItemRepository.sumQuantityByUserAndProductInActivePromotion(userId, productId);
+        return cartQuantity + orderedQuantity;
     }
 
     // Update existing cart item quantity
@@ -343,10 +435,19 @@ public class CartServiceImpl implements CartService {
         // Quantity diff need to reserve more
         int quantityDiff = additionalQuantity;
 
+        // Validate promotion constraints khi tăng số lượng
+        if (quantityDiff > 0) {
+            ProductVariant productVariant = existingItem.getProductVariant();
+            Product product = productVariant.getProduct();
+            Long userId = existingItem.getCart().getUser().getId();
+
+            validatePromotionConstraints(product, userId, quantityDiff);
+        }
+
         // Generate reference number for this transaction
         String referenceNumber = "CART_UPDATE_" + existingItem.getId() + "_" + System.currentTimeMillis();
 
-        boolean reserved = inventoryService.reserveStock(existingItem.getSize().getId(), quantityDiff, referenceNumber);
+        boolean reserved = inventoryService.reserveStock(existingItem.getSize().getId(), quantityDiff, referenceNumber, existingItem.getCart().getUser());
 
         // If reservation fails due to insufficient stock
         if (!reserved) {
@@ -376,7 +477,7 @@ public class CartServiceImpl implements CartService {
         } catch (Exception e) {
             // Rollback reserved stock if error occurs
             inventoryService.releaseReservedStock(
-                    existingItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK"
+                    existingItem.getSize().getId(), quantityDiff, referenceNumber + "_ROLLBACK", existingItem.getCart().getUser()
             );
             throw e;
         }
@@ -399,9 +500,7 @@ public class CartServiceImpl implements CartService {
         Product product = productVariant.getProduct();
 
         // Base price is sale price if on sale, otherwise regular price
-        BigDecimal basePrice = product.isOnSale() && product.getSalePrice() != null
-                ? product.getSalePrice()
-                : product.getPrice();
+        BigDecimal basePrice = productMapper.calculateCurrentPrice(product);
 
         // Add additional price from variant if any
         BigDecimal additionalPrice = productVariant.getAddtionalPrice() != null

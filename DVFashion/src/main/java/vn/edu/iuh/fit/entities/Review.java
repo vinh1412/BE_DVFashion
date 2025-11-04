@@ -10,7 +10,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.*;
-import vn.edu.iuh.fit.enums.PaymentStatus;
+import vn.edu.iuh.fit.enums.ReviewStatus;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -59,11 +59,24 @@ public class Review {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private ReviewStatus status;
+
+    @Column(name = "edited", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean edited = false;
+
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<ReviewImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ReviewTranslation> translations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ReviewReply> replies = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {
