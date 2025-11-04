@@ -3,7 +3,7 @@ FROM gradle:8.5-jdk17 AS build
 
 WORKDIR /app
 COPY . .
-
+RUN chmod +x gradlew
 RUN ./gradlew clean build -x test
 
 # Runtime stage
