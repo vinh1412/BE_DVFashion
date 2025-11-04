@@ -8,10 +8,8 @@ package vn.edu.iuh.fit.services;
 
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.*;
-import vn.edu.iuh.fit.dtos.response.AdminReviewsResponse;
-import vn.edu.iuh.fit.dtos.response.ContentModerationResult;
-import vn.edu.iuh.fit.dtos.response.ProductReviewsResponse;
-import vn.edu.iuh.fit.dtos.response.ReviewResponse;;
+import vn.edu.iuh.fit.dtos.response.*;
+;
 
 import java.util.List;
 
@@ -96,4 +94,53 @@ public interface ReviewService {
      * @return a list of review responses for the current customer
      */
     List<ReviewResponse> getAllReviewsForCustomer();
+
+    /**
+     * Creates a reply to a review.
+     *
+     * @param request the review reply creation request
+     * @return the created review reply response
+     */
+    ReviewReplyResponse createReviewReply(CreateReviewReplyRequest request);
+
+    /**
+     * Updates an existing review reply.
+     *
+     * @param replyId the ID of the review reply to be updated
+     * @param request the review reply update request
+     * @return the updated review reply response
+     */
+    ReviewReplyResponse updateReviewReply(Long replyId, UpdateReviewReplyRequest request);
+
+    /**
+     * Deletes a review reply.
+     *
+     * @param replyId the ID of the review reply to be deleted
+     */
+    void deleteReviewReply(Long replyId);
+
+    /**
+     * Retrieves all review replies for a specific review for the current customer.
+     *
+     * @param reviewId the ID of the review
+     * @return a list of review reply responses for the review
+     */
+    List<ReviewReplyResponse> getReviewRepliesForCustomer(Long reviewId);
+
+    /**
+     * Retrieves all review replies for a specific review for admin.
+     *
+     * @param reviewId the ID of the review
+     * @return a list of review reply responses for the review
+     */
+    List<ReviewReplyResponse> getAllReviewRepliesForAdmin(Long reviewId);
+
+    /**
+     * Moderates a review reply based on the provided moderation request.
+     *
+     * @param replyId the ID of the review reply to be moderated
+     * @param request the moderation request containing moderation details
+     * @return the moderated review reply response
+     */
+    ReviewReplyResponse moderateReviewReply(Long replyId, ModerateReviewReplyRequest request);
 }
