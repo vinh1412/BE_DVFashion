@@ -8,7 +8,6 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -17,13 +16,12 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
-import vn.edu.iuh.fit.enums.InteractionType;
-import vn.edu.iuh.fit.enums.Language;
-import vn.edu.iuh.fit.enums.OrderStatus;
-import vn.edu.iuh.fit.enums.ReviewStatus;
+import vn.edu.iuh.fit.enums.*;
 import vn.edu.iuh.fit.exceptions.BadRequestException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
+import vn.edu.iuh.fit.exceptions.UnauthorizedException;
 import vn.edu.iuh.fit.mappers.ReviewMapper;
+import vn.edu.iuh.fit.mappers.ReviewReplyMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.*;
 import vn.edu.iuh.fit.specifications.ReviewSpecification;
@@ -62,6 +60,12 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewMapper reviewMapper;
 
     private final UserInteractionService userInteractionService;
+
+    private final ReviewReplyRepository reviewReplyRepository;
+
+    private final ReviewReplyTranslationRepository reviewReplyTranslationRepository;
+
+    private final ReviewReplyMapper reviewReplyMapper;
 
     @Override
     @Transactional
@@ -574,6 +578,236 @@ public class ReviewServiceImpl implements ReviewService {
         return reviews.stream()
                 .map(reviewMapper::mapToResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public ReviewReplyResponse createReviewReply(CreateReviewReplyRequest request) {
+        // Get current user
+        UserResponse currentUser = userService.getCurrentUser();
+        User user = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        // Validate review exists
+        Review review = reviewRepository.findById(request.reviewId())
+                .orElseThrow(() -> new NotFoundException("Review not found"));
+
+        // Validate parent reply if provided
+        ReviewReply parentReply = null;
+        if (request.parentReplyId() != null) {
+            parentReply = reviewReplyRepository.findById(request.parentReplyId())
+                    .orElseThrow(() -> new NotFoundException("Parent reply not found"));
+
+            // Ensure parent reply belongs to the same review
+            if(!request.reviewId().equals(parentReply.getReview().getId())) {
+                throw new BadRequestException("Parent reply does not belong to the specified review");
+            }
+
+        }
+
+        // Get current language
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        // Create review reply
+        ReviewReply reviewReply = ReviewReply.builder()
+                .review(review)
+                .parentReply(parentReply)
+                .user(user)
+                .status(ReviewReplyStatus.APPROVED)
+                .build();
+
+        reviewReply = reviewReplyRepository.save(reviewReply);
+
+        // Create translation for current language
+        ReviewReplyTranslation currentTranslation = ReviewReplyTranslation.builder()
+                .reviewReply(reviewReply)
+                .language(currentLanguage)
+                .content(request.content())
+                .build();
+        reviewReplyTranslationRepository.save(currentTranslation);
+
+        // Create translation for other language
+        Language otherLanguage = (currentLanguage == Language.VI) ? Language.EN : Language.VI;
+        String translatedContent = translationService.translate(request.content(), otherLanguage.name());
+
+        ReviewReplyTranslation otherTranslation = ReviewReplyTranslation.builder()
+                .reviewReply(reviewReply)
+                .language(otherLanguage)
+                .content(translatedContent)
+                .build();
+        reviewReplyTranslationRepository.save(otherTranslation);
+
+        if (reviewReply.getTranslations() == null) {
+            reviewReply.setTranslations(new ArrayList<>());
+        }
+
+        reviewReply.getTranslations().add(currentTranslation);
+        reviewReply.getTranslations().add(otherTranslation);
+
+        return reviewReplyMapper.mapToReviewReplyResponse(reviewReply, currentLanguage);
+    }
+
+    @Override
+    @Transactional
+    public ReviewReplyResponse updateReviewReply(Long replyId, UpdateReviewReplyRequest request) {
+        // Get current user
+        UserResponse currentUser = userService.getCurrentUser();
+
+        // Find reply
+        ReviewReply reply = reviewReplyRepository.findById(replyId)
+                .orElseThrow(() -> new NotFoundException("Review reply not found"));
+
+        // Check ownership (user can only edit their own replies, admin can edit any)
+        if (!reply.getUser().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedException("You can only edit your own replies");
+        }
+
+        if (reply.getStatus() == ReviewReplyStatus.HIDDEN) {
+            throw new BadRequestException("Cannot edit a hidden reply");
+        }
+
+        // Get current language
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        // Update translation for current language
+        ReviewReplyTranslation currentTranslation = reply.getTranslations().stream()
+                .filter(t -> t.getLanguage() == currentLanguage)
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Translation not found"));
+
+        currentTranslation.setContent(request.content());
+        reviewReplyTranslationRepository.save(currentTranslation);
+
+        // Update translation for other language
+        Language otherLanguage = (currentLanguage == Language.VI) ? Language.EN : Language.VI;
+        String translatedContent = translationService.translate(request.content(), otherLanguage.name());
+
+        ReviewReplyTranslation otherTranslation = reply.getTranslations().stream()
+                .filter(t -> t.getLanguage() == otherLanguage)
+                .findFirst()
+                .orElseGet(() -> {
+                    ReviewReplyTranslation newTranslation = ReviewReplyTranslation.builder()
+                            .reviewReply(reply)
+                            .language(otherLanguage)
+                            .content(translatedContent)
+                            .build();
+                    reply.getTranslations().add(newTranslation);
+                    return newTranslation;
+                });
+
+        otherTranslation.setContent(translatedContent);
+        reviewReplyTranslationRepository.save(otherTranslation);
+
+        // Mark as edited
+        reply.setEdited(true);
+        reply.setEditedAt(LocalDateTime.now());
+        reviewReplyRepository.save(reply);
+
+        return reviewReplyMapper.mapToReviewReplyResponse(reply, currentLanguage);
+    }
+
+    @Override
+    @Transactional
+    public void deleteReviewReply(Long replyId) {
+        // Get current user
+        UserResponse currentUser = userService.getCurrentUser();
+
+        // Find reply
+        ReviewReply reply = reviewReplyRepository.findById(replyId)
+                .orElseThrow(() -> new NotFoundException("Review reply not found"));
+
+        // Check ownership (user can only delete their own replies, admin can delete any)
+        if (!reply.getUser().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedException("You can only delete your own replies");
+        }
+
+        reviewReplyRepository.delete(reply);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReviewReplyResponse> getReviewRepliesForCustomer(Long reviewId) {
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        // Get top-level replies
+        List<ReviewReply> topLevelReplies = reviewReplyRepository
+                .findTopLevelRepliesByReviewIdAndStatus(reviewId, ReviewReplyStatus.APPROVED);
+
+        return topLevelReplies.stream()
+                .map(reply -> reviewReplyMapper.mapToReviewReplyResponseWithChildren(reply, currentLanguage))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReviewReplyResponse> getAllReviewRepliesForAdmin(Long reviewId) {
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        // Validate review exists
+        if (!reviewRepository.existsById(reviewId)) {
+            throw new NotFoundException("Review not found");
+        }
+
+        // Get all top-level replies regardless of status
+        List<ReviewReply> topLevelReplies = reviewReplyRepository
+                .findAllTopLevelRepliesByReviewId(reviewId);
+
+        return topLevelReplies.stream()
+                .map(reply -> reviewReplyMapper.mapToReviewReplyResponseForAdmin(reply, currentLanguage))
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public ReviewReplyResponse moderateReviewReply(Long replyId, ModerateReviewReplyRequest request) {
+        // Find reply
+        ReviewReply reply = reviewReplyRepository.findById(replyId)
+                .orElseThrow(() -> new NotFoundException("Review reply not found"));
+
+        ReviewReplyStatus currentStatus = reply.getStatus();
+        ReviewReplyStatus newStatus = ReviewReplyStatus.valueOf(request.newStatus());
+
+        // Check if status is unchanged
+        if (currentStatus == newStatus) {
+            return reviewReplyMapper.mapToReviewReplyResponseForAdmin(reply, LanguageUtils.getCurrentLanguage());
+        }
+
+        // Validate status transitions
+        validateReplyStatusTransition(currentStatus, newStatus);
+
+        // Update status
+        reply.setStatus(newStatus);
+
+        // Save updated reply
+        reply = reviewReplyRepository.save(reply);
+
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+        return reviewReplyMapper.mapToReviewReplyResponse(reply, currentLanguage);
+    }
+
+    private void validateReplyStatusTransition(ReviewReplyStatus currentStatus, ReviewReplyStatus newStatus) {
+        switch (currentStatus) {
+            case PENDING:
+                // PENDING can go to APPROVED or HIDDEN
+                if (newStatus != ReviewReplyStatus.APPROVED && newStatus != ReviewReplyStatus.HIDDEN) {
+                    throw new BadRequestException("PENDING reply can only be changed to APPROVED or HIDDEN");
+                }
+                break;
+            case APPROVED:
+                // APPROVED can go to HIDDEN or back to PENDING for re-review
+                if (newStatus != ReviewReplyStatus.HIDDEN && newStatus != ReviewReplyStatus.PENDING) {
+                    throw new BadRequestException("APPROVED reply can only be changed to HIDDEN or PENDING");
+                }
+                break;
+            case HIDDEN:
+                // HIDDEN can be restored to APPROVED or PENDING
+                if (newStatus != ReviewReplyStatus.APPROVED && newStatus != ReviewReplyStatus.PENDING) {
+                    throw new BadRequestException("HIDDEN reply can only be changed to APPROVED or PENDING");
+                }
+                break;
+            default:
+                throw new BadRequestException("Unknown review reply status: " + currentStatus);
+        }
     }
 
     // Get product review statistics

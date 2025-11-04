@@ -47,5 +47,7 @@ public record ReviewResponse(
 
      String adminComment,
 
-     UserSummaryResponse user
+     UserSummaryResponse user,
+
+     List<ReviewReplyResponse> replies
 ){}

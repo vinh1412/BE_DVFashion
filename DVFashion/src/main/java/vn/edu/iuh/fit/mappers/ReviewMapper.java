@@ -6,6 +6,7 @@
 
 package vn.edu.iuh.fit.mappers;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import vn.edu.iuh.fit.dtos.response.ReviewResponse;
 import vn.edu.iuh.fit.dtos.response.UserSummaryResponse;
@@ -25,7 +26,10 @@ import java.util.Optional;
  * @version:    1.0
  */
 @Component
+@RequiredArgsConstructor
 public class ReviewMapper {
+    private final ReviewReplyMapper reviewReplyMapper;
+
     public ReviewResponse mapToResponse(Review review) {
         Language responseLanguage = LanguageUtils.getCurrentLanguage();
 
@@ -51,7 +55,10 @@ public class ReviewMapper {
                 review.getUpdatedAt(),
                 imageUrls,
                 adminComment,
-                userSummary
+                userSummary,
+                review.getReplies().stream()
+                        .map(reply -> reviewReplyMapper.mapToReviewReplyResponseWithChildren(reply, responseLanguage))
+                        .toList()
         );
     }
 
