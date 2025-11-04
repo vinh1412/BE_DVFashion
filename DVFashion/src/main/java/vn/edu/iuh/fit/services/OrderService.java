@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.services;
 
 import org.springframework.data.domain.Pageable;
 import vn.edu.iuh.fit.dtos.request.AdminUpdateOrderRequest;
+import vn.edu.iuh.fit.dtos.request.CancelOrderRequest;
 import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
@@ -119,4 +120,13 @@ public interface OrderService {
      * @return list of all order responses
      */
     List<OrderResponse> getAllOrders();
+
+    /**
+     * Cancel an order by the customer.
+     *
+     * @param orderNumber the order number to cancel
+     * @param request     the cancel order request containing cancellation reason
+     * @return the updated order response after cancellation
+     */
+    OrderResponse cancelOrderByCustomer(String orderNumber, CancelOrderRequest request);
 }

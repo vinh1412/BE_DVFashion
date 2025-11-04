@@ -9,11 +9,10 @@ package vn.edu.iuh.fit.services.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import vn.edu.iuh.fit.config.PayPalClient;
 import vn.edu.iuh.fit.dtos.response.PayPalCreateResponse;
@@ -116,7 +115,7 @@ public class PayPalServiceImpl implements PayPalService {
     }
 
     @Override
-    public void capturePayment(String orderId) {
+    public String capturePayment(String orderId) {
         // Get access token from PayPal
         String accessToken = payPalClient.getAccessToken();
 
@@ -130,10 +129,90 @@ public class PayPalServiceImpl implements PayPalService {
 
         // Send POST request to PayPal to capture payment
         // This is the official PayPal API for “closing the deal”
-        restTemplate.postForEntity(
-                baseUrl + "/v2/checkout/orders/" + orderId + "/capture",
-                entity,
-                Map.class
-        );
+        try {
+            // Call PayPal API to capture payment
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    baseUrl + "/v2/checkout/orders/" + orderId + "/capture",
+                    entity,
+                    Map.class
+            );
+
+            Map<String, Object> body = response.getBody();
+            if (body == null) {
+                throw new PaypalException("Empty PayPal capture response");
+            }
+
+            // Extract capture ID
+            List<Map<String, Object>> purchaseUnits = (List<Map<String, Object>>) body.get("purchase_units");
+            Map<String, Object> payments = (Map<String, Object>) purchaseUnits.get(0).get("payments");
+            List<Map<String, Object>> captures = (List<Map<String, Object>>) payments.get("captures");
+            String captureId = (String) captures.get(0).get("id");
+
+            log.info("Captured PayPal payment successfully, captureId={}", captureId);
+            return captureId;
+
+        } catch (HttpClientErrorException | HttpServerErrorException ex) {
+            log.error("PayPal capture error: status={}, body={}", ex.getStatusCode(), ex.getResponseBodyAsString());
+            throw new PaypalException("PayPal capture failed: " + ex.getMessage());
+
+        } catch (Exception e) {
+            log.error("PayPal capture failed for order {}: {}", orderId, e.getMessage());
+            throw new PaypalException("Failed to capture PayPal payment: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void refundPayment(String captureId, BigDecimal amount) {
+        try {
+            log.info("Processing PayPal refund for payment {} amount {}", captureId, amount);
+
+            // Get access token
+            String accessToken = payPalClient.getAccessToken();
+
+            // Prepare headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(accessToken);
+
+            // Prepare refund request body
+            Map<String, Object> refundRequest = Map.of(
+                    "amount", Map.of(
+                            "total", amount.toString(),
+                            "currency", "USD"
+                    ),
+                    "reason", "Order cancelled by customer"
+            );
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(refundRequest, headers);
+
+            // Make refund API call
+            String refundUrl = baseUrl + "/v1/payments/sale/" + captureId + "/refund";
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    refundUrl,
+                    HttpMethod.POST,
+                    entity,
+                    Map.class
+            );
+
+            // Validate response
+            if (response.getStatusCode() == HttpStatus.CREATED) {
+                Map<String, Object> responseBody = response.getBody();
+                String refundId = (String) responseBody.get("id");
+                String state = (String) responseBody.get("state");
+
+                log.info("PayPal refund successful - RefundID: {}, State: {}", refundId, state);
+            } else {
+                throw new PaypalException("PayPal refund failed with status: " + response.getStatusCode());
+            }
+
+        } catch (HttpClientErrorException | HttpServerErrorException ex) {
+            log.error("PayPal refund HTTP error: status={}, body={}",
+                    ex.getStatusCode(), ex.getResponseBodyAsString());
+            throw new RuntimeException("Failed to process PayPal refund: " + ex.getMessage(), ex);
+
+        } catch (Exception e) {
+            log.error("PayPal refund failed for payment {}: {}", captureId, e.getMessage());
+            throw new RuntimeException("Failed to process PayPal refund", e);
+        }
     }
 }

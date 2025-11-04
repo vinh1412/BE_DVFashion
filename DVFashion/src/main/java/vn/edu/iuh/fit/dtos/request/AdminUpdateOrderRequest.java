@@ -35,9 +35,11 @@ public record AdminUpdateOrderRequest(
         @Size(max = 500, message = "notes must be <= 500 characters")
         String notes,
 
-        @Pattern(regexp = "PENDING|CONFIRMED|PROCESSING|SHIPPED|DELIVERED|CANCELLED|RETURNED", message = "Invalid order status")
+        @Pattern(regexp = "PENDING|CONFIRMED|PROCESSING|SHIPPED|DELIVERED|CANCELED|RETURNED", message = "Invalid order status")
         String orderStatus,
 
         @Pattern(regexp = "PENDING|COMPLETED|FAILED|REFUNDED|CANCELED", message = "Invalid payment status")
-        String paymentStatus
+        String paymentStatus,
+
+        String cancellationReason
 ) {}

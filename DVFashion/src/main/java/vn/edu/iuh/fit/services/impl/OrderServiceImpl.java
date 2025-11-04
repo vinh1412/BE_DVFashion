@@ -23,9 +23,7 @@ import vn.edu.iuh.fit.exceptions.OrderException;
 import vn.edu.iuh.fit.exceptions.UnauthorizedException;
 import vn.edu.iuh.fit.mappers.OrderMapper;
 import vn.edu.iuh.fit.mappers.ShippingInfoMapper;
-import vn.edu.iuh.fit.repositories.CartItemRepository;
-import vn.edu.iuh.fit.repositories.OrderRepository;
-import vn.edu.iuh.fit.repositories.UserRepository;
+import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.*;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 import vn.edu.iuh.fit.utils.OrderUtils;
@@ -74,6 +72,11 @@ public class OrderServiceImpl implements OrderService {
     private final ShippingService shippingService;
 
     private final VoucherService voucherService;
+
+    private final StockTransactionRepository stockTransactionRepository;
+
+    private final InventoryRepository inventoryRepository;
+
 
     @Override
     @Transactional
@@ -130,7 +133,7 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal voucherDiscount = voucherService.calculateVoucherDiscount(voucher, subtotal, savedOrder.getItems());
 
             savedOrder.setVoucherDiscount(voucherDiscount);
-            
+
             log.info("Voucher {} applied to order {}", voucher.getCode(), savedOrder.getOrderNumber());
 
             // Update payment amount
@@ -202,7 +205,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderResponse confirmPayPalPayment(String token, String orderNumber) {
         // Capture payment
-        payPalService.capturePayment(token);
+        String captureId = payPalService.capturePayment(token);
 
         // Get order by orderNumber
         Order order = orderRepository.findByOrderNumber(orderNumber)
@@ -216,6 +219,7 @@ public class OrderServiceImpl implements OrderService {
         payment.setPaymentStatus(PaymentStatus.COMPLETED);
         payment.setPaymentDate(LocalDateTime.now());
         payment.setCapturedAt(LocalDateTime.now());
+        payment.setPaypalCaptureId(captureId);
 
         // Save order
         orderRepository.save(order);
@@ -360,7 +364,14 @@ public class OrderServiceImpl implements OrderService {
 
         // Update order status transition
         if (request.orderStatus() != null) {
-            applyOrderStatusTransition(order, OrderStatus.valueOf(request.orderStatus()));
+            OrderStatus targetStatus = OrderStatus.valueOf(request.orderStatus());
+
+            // Special handling for admin cancellation
+            if (targetStatus == OrderStatus.CANCELED && order.getStatus() != OrderStatus.CANCELED) {
+                processAdminCancellation(order, request.cancellationReason());
+            } else {
+                applyOrderStatusTransition(order, targetStatus);
+            }
         }
 
         // Update payment status transition
@@ -375,6 +386,49 @@ public class OrderServiceImpl implements OrderService {
                 order.getCustomer().getEmail(),
                 LanguageUtils.getCurrentLanguage()
         );
+    }
+
+    private void processAdminCancellation(Order order, String cancellationReason) {
+        OrderStatus oldStatus = order.getStatus();
+
+        // Update order status
+        order.setStatus(OrderStatus.CANCELED);
+
+        // Add cancellation reason to notes
+        String existingNotes = order.getNotes() != null ? order.getNotes() : "";
+        String cancellationNote = "CANCELLED BY ADMIN" +
+                (cancellationReason != null ? ": " + cancellationReason : "");
+
+        if (!existingNotes.isEmpty()) {
+            order.setNotes(existingNotes + " | " + cancellationNote);
+        } else {
+            order.setNotes(cancellationNote);
+        }
+
+        // Process payment cancellation (same as customer cancellation)
+        processPaymentCancellation(order);
+
+        // Process stock restoration (same as customer cancellation)
+        processStockRestoration(order, oldStatus);
+
+        // Send admin cancellation email
+        try {
+            OrderResponse orderResponse = orderMapper.mapToOrderResponse(
+                    order,
+                    order.getCustomer().getEmail(),
+                    LanguageUtils.getCurrentLanguage()
+            );
+
+            emailService.sendOrderCancellationEmail(
+                    orderResponse,
+                    order.getCustomer().getEmail(),
+                    cancellationNote
+            );
+        } catch (Exception e) {
+            log.error("Failed to send admin order cancellation email: {}", e.getMessage());
+        }
+
+        log.info("Order {} cancelled by admin", order.getOrderNumber());
     }
 
     @Override
@@ -485,6 +539,176 @@ public class OrderServiceImpl implements OrderService {
                         LanguageUtils.getCurrentLanguage()
                 ))
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse cancelOrderByCustomer(String orderNumber, CancelOrderRequest request) {
+            // Get current user
+            UserResponse currentUser = userService.getCurrentUser();
+
+            // Find order
+            Order order = orderRepository.findByOrderNumber(orderNumber)
+                    .orElseThrow(() -> new NotFoundException("Order not found"));
+
+            // Check ownership
+            if (!order.getCustomer().getId().equals(currentUser.getId())) {
+                throw new UnauthorizedException("You can only cancel your own orders");
+            }
+
+            // Validate cancellation eligibility
+            validateCancellationEligibility(order);
+
+            // Process cancellation based on payment method
+            processCancellation(order, request.cancellationReason());
+
+            // Save updated order
+            orderRepository.save(order);
+
+            return orderMapper.mapToOrderResponse(
+                    order,
+                    currentUser.getEmail(),
+                    LanguageUtils.getCurrentLanguage()
+            );
+    }
+
+    private void validateCancellationEligibility(Order order) {
+        // Check status - only PENDING or CONFIRMED can be cancelled
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
+            throw new OrderException("Order cannot be cancelled. Current status: " + order.getStatus());
+        }
+
+        // Check time limit - must be within 24 hours
+        LocalDateTime orderDate = order.getOrderDate();
+        LocalDateTime cutoffTime = orderDate.plusHours(24);
+
+        if (LocalDateTime.now().isAfter(cutoffTime)) {
+            throw new OrderException("Order can only be cancelled within 24 hours of placement");
+        }
+
+        log.info("Order {} is eligible for cancellation", order.getOrderNumber());
+    }
+
+    private void processCancellation(Order order, String cancellationReason) {
+        OrderStatus oldStatus = order.getStatus();
+
+        // Update order status and add cancellation reason
+        order.setStatus(OrderStatus.CANCELED);
+
+        // Add cancellation reason to notes
+        String existingNotes = order.getNotes() != null ? order.getNotes() : "";
+        String cancellationNote = "CANCELLED BY CUSTOMER: " + cancellationReason;
+
+        if (!existingNotes.isEmpty()) {
+            order.setNotes(existingNotes + " | " + cancellationNote);
+        } else {
+            order.setNotes(cancellationNote);
+        }
+
+        // Process payment cancellation
+        processPaymentCancellation(order);
+
+        // Process stock restoration
+        processStockRestoration(order, oldStatus);
+
+        // Send cancellation email
+        try {
+            OrderResponse orderResponse = orderMapper.mapToOrderResponse(
+                    order,
+                    order.getCustomer().getEmail(),
+                    LanguageUtils.getCurrentLanguage()
+            );
+
+            emailService.sendOrderCancellationEmail(
+                    orderResponse,
+                    order.getCustomer().getEmail(),
+                    cancellationReason
+            );
+        } catch (Exception e) {
+            log.error("Failed to send order cancellation email: {}", e.getMessage());
+        }
+
+        log.info("Order {} cancelled successfully by customer", order.getOrderNumber());
+    }
+
+    private void processPaymentCancellation(Order order) {
+        // Get payment details
+        Payment payment = order.getPayment();
+        if (payment == null) return;
+
+        switch (payment.getPaymentMethod()) {
+            case CASH_ON_DELIVERY -> {
+                // For COD, just mark payment as cancelled - no refund needed
+                payment.setPaymentStatus(PaymentStatus.CANCELED);
+                payment.setPaymentDate(LocalDateTime.now());
+                log.info("COD payment cancelled for order {}", order.getOrderNumber());
+            }
+            case PAYPAL -> {
+                // For PayPal, process refund if payment was completed
+                if (payment.getPaymentStatus() == PaymentStatus.COMPLETED) {
+                    try {
+                        // Process PayPal refund
+                        payPalService.refundPayment(payment.getPaypalCaptureId(), payment.getAmount());
+                        payment.setPaymentStatus(PaymentStatus.REFUNDED);
+                        log.info("PayPal refund processed for order {}", order.getOrderNumber());
+                    } catch (Exception e) {
+                        log.error("Failed to process PayPal refund for order {}: {}",
+                                order.getOrderNumber(), e.getMessage());
+                        throw new OrderException("Failed to process refund. Please contact support.");
+                    }
+                } else {
+                    // If payment was still pending, just cancel it
+                    payment.setPaymentStatus(PaymentStatus.CANCELED);
+                    payment.setPaymentDate(LocalDateTime.now());
+                    log.info("Pending PayPal payment cancelled for order {}", order.getOrderNumber());
+                }
+            }
+            default -> throw new OrderException("Unsupported payment method for cancellation");
+        }
+    }
+
+    private void processStockRestoration(Order order, OrderStatus oldStatus) {
+        // Get current user for audit
+        User currentUser = userRepository.findById(userService.getCurrentUser().getId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        for (OrderItem item : order.getItems()) {
+            // Get size ID and quantity
+            Long sizeId = item.getSize().getId();
+            int quantity = item.getQuantity();
+            String referenceNumber = "CANCEL-" + order.getOrderNumber() + "-" + "PRV-"+ item.getId().getProductVariantId() + "-" + "S-"+sizeId;
+
+            if (oldStatus == OrderStatus.PENDING) {
+                // For PENDING orders, release reserved stock
+                inventoryService.releaseReservedStock(sizeId, quantity, referenceNumber, currentUser);
+                log.info("Released reserved stock for cancelled PENDING order: {} units for size {}",
+                        quantity, sizeId);
+            } else if (oldStatus == OrderStatus.CONFIRMED) {
+                // For CONFIRMED orders, return stock to inventory
+                Optional<Inventory> inventoryOpt = inventoryRepository.findBySizeIdWithLock(sizeId);
+                if (inventoryOpt.isPresent()) {
+                    Inventory inventory = inventoryOpt.get();
+                    int oldQuantity = inventory.getQuantityInStock();
+                    inventory.setQuantityInStock(oldQuantity + quantity);
+                    inventoryRepository.save(inventory);
+
+                    // Create transaction log
+                    StockTransaction transaction = StockTransaction.builder()
+                            .inventory(inventory)
+                            .transactionType(StockTransactionType.RETURN)
+                            .quantity(quantity)
+                            .orderId(order.getId())
+                            .referenceNumber(referenceNumber)
+                            .notes("Stock returned from cancelled order")
+                            .createdBy(currentUser)
+                            .build();
+                    stockTransactionRepository.save(transaction);
+
+                    log.info("Returned stock for cancelled CONFIRMED order: {} units for size {} (old: {}, new: {})",
+                            quantity, sizeId, oldQuantity, inventory.getQuantityInStock());
+                }
+            }
+        }
     }
 
     // Check if any shipping info fields have changed
@@ -632,7 +856,7 @@ public class OrderServiceImpl implements OrderService {
                 payment.setPaymentStatus(PaymentStatus.CANCELED);
                 payment.setPaymentDate(LocalDateTime.now());
                 // Optionally cancel order
-                if (ALLOWED_STATUS_FLOW.get(order.getStatus()).contains(OrderStatus.CANCELED)) {
+                if (getAllowedStatusFlow().get(order.getStatus()).contains(OrderStatus.CANCELED)) {
                     order.setStatus(OrderStatus.CANCELED);
                 }
             } else {
@@ -641,6 +865,10 @@ public class OrderServiceImpl implements OrderService {
         } else {
             throw new OrderException("Payment status is terminal and cannot be changed");
         }
+    }
+
+    private static Map<OrderStatus, Set<OrderStatus>> getAllowedStatusFlow() {
+        return ALLOWED_STATUS_FLOW;
     }
 
     /**

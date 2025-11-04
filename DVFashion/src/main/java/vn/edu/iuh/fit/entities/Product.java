@@ -76,10 +76,6 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductTranslation> translations = new ArrayList<>();
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<UserBehavior> userBehaviors = new ArrayList<>();
-
-
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

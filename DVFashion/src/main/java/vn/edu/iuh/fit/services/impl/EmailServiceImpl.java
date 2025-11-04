@@ -549,6 +549,135 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    @Override
+    public void sendOrderCancellationEmail(OrderResponse orderResponse, String customerEmail, String cancellationReason) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            String htmlContent = """
+                <html>
+                  <head>
+                    <meta charset="UTF-8">
+                    <style>
+                      body {
+                        font-family: 'Segoe UI', Arial, sans-serif;
+                        background-color: #f4f6f8;
+                        margin: 0;
+                        padding: 0;
+                        font-size: 16px;
+                      }
+                      .container {
+                        max-width: 900px;
+                        background-color: #ffffff;
+                        margin: 40px auto;
+                        border-radius: 12px;
+                        box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+                        overflow: hidden;
+                      }
+                      .header {
+                        background-color: #dc3545;
+                        color: #ffffff;
+                        padding: 30px;
+                        text-align: center;
+                      }
+                      .header h2 {
+                        font-size: 28px;
+                        margin: 0;
+                      }
+                      .content {
+                        padding: 35px 45px;
+                        color: #333333;
+                        font-size: 17px;
+                      }
+                      .reason-box {
+                        background-color: #fff3cd;
+                        border-left: 6px solid #ffc107;
+                        padding: 20px;
+                        border-radius: 8px;
+                        margin: 25px 0;
+                        font-size: 17px;
+                      }
+                      .summary-box {
+                        background-color: #f8f9fa;
+                        border-radius: 8px;
+                        padding: 20px;
+                        margin-top: 20px;
+                        font-size: 17px;
+                      }
+                      .summary-box p { margin: 8px 0; }
+                      .footer {
+                        background-color: #f1f3f5;
+                        text-align: center;
+                        padding: 20px;
+                        font-size: 15px;
+                        color: #6c757d;
+                      }
+                      a { color: #007bff; text-decoration: none; }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="container">
+                      <div class="header">
+                        <h2>❌ Đơn hàng #%s đã bị hủy</h2>
+                      </div>
+                
+                      <div class="content">
+                        <p>Xin chào <strong>%s</strong>,</p>
+                        <p>Chúng tôi rất tiếc khi phải thông báo rằng đơn hàng của bạn đã bị <strong>hủy</strong>.</p>
+                
+                        <div class="reason-box">
+                          <p><strong>📝 Lý do hủy:</strong> %s</p>
+                        </div>
+                
+                        <div class="summary-box">
+                          <p><strong>Mã đơn hàng:</strong> %s</p>
+                          <p><strong>Ngày đặt:</strong> %s</p>
+                          <p><strong>Tổng thanh toán:</strong> %s VND</p>
+                          <p><strong>Trạng thái hiện tại:</strong> <span style="color:#dc3545; font-weight:bold;">Đã hủy</span></p>
+                        </div>
+                
+                        <p style="margin-top:25px;">
+                          Nếu bạn đã thanh toán trước bằng <strong>%s</strong>, số tiền sẽ được hoàn lại theo chính sách của DVFashion.
+                          Vui lòng kiểm tra email từ <strong>PayPal</strong> (hoặc tài khoản ngân hàng) để xác nhận giao dịch hoàn tiền.
+                        </p>
+                
+                        <div style="background-color:#e7f3ff; border-left:5px solid #007bff; padding:20px; margin-top:35px; font-size:17px;">
+                          <p><strong>📞 Cần hỗ trợ?</strong><br>
+                          Hotline: <strong>123456</strong><br>
+                          Email: <a href="mailto:test@gmail.com">test@gmail.com</a></p>
+                        </div>
+                      </div>
+                
+                      <div class="footer">
+                        <p>© 2025 DVFashion — Mong sớm được phục vụ bạn trong lần mua sắm tới 💙</p>
+                      </div>
+                    </div>
+                  </body>
+                </html>
+                """.formatted(
+                    orderResponse.orderNumber(),
+                    orderResponse.customerName(),
+                    cancellationReason != null && !cancellationReason.isBlank() ? cancellationReason : "Không có lý do cụ thể",
+                    orderResponse.orderNumber(),
+                    orderResponse.orderDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                    formatCurrency(orderResponse.totalAmount()),
+                    getPaymentMethodDisplayName(orderResponse.payment())
+            );
+
+            helper.setTo(customerEmail);
+            helper.setSubject("Hủy đơn hàng #" + orderResponse.orderNumber() + " - DVFashion");
+            helper.setText(htmlContent, true);
+
+            mailSender.send(mimeMessage);
+            log.info("✅ Sent order cancellation email for order #{}", orderResponse.orderNumber());
+
+        } catch (MessagingException e) {
+            log.error("Error sending order cancellation email: {}", e.getMessage());
+            throw new RuntimeException("Error while sending order cancellation email", e);
+        }
+    }
+
     // Helper methods
     private String buildOrderItemsHtml(List<OrderItemResponse> items) {
         StringBuilder html = new StringBuilder();
