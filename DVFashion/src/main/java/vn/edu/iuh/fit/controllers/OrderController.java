@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.AdminUpdateOrderRequest;
+import vn.edu.iuh.fit.dtos.request.CancelOrderRequest;
 import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
@@ -116,5 +117,16 @@ public class OrderController {
     public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders() {
         List<OrderResponse> orders = orderService.getAllOrders();
         return ResponseEntity.ok(ApiResponse.success(orders, "All orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
+    @PutMapping("/{orderNumber}/cancel")
+    public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
+            @PathVariable String orderNumber,
+            @Valid @RequestBody CancelOrderRequest request) {
+
+        OrderResponse response = orderService.cancelOrderByCustomer(orderNumber, request);
+
+        return ResponseEntity.ok(ApiResponse.success(response, "Order cancelled successfully"));
     }
 }

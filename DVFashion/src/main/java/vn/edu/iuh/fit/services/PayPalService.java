@@ -31,5 +31,13 @@ public interface PayPalService {
      *
      * @param orderId the unique order ID associated with the payment
      */
-    void capturePayment(String orderId);
+    String capturePayment(String orderId);
+
+    /**
+     * Refund a captured PayPal payment.
+     *
+     * @param captureId the unique capture ID of the payment to be refunded
+     * @param amount    the amount to be refunded
+     */
+    void refundPayment(String captureId, BigDecimal amount);
 }

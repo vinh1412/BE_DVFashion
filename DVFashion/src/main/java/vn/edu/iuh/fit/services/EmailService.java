@@ -52,11 +52,28 @@ public interface EmailService {
 
     /**
      * Send order confirmation email to customer
+     *
+     * @param orderResponse the order details
+     * @param customerEmail the customer's email address
      */
     void sendOrderConfirmationEmail(OrderResponse orderResponse, String customerEmail);
 
     /**
      * Send order status update email to customer
+     *
+     * @param orderResponse the order details
+     * @param customerEmail the customer's email address
+     * @param oldStatus     the previous order status
+     * @param newStatus     the new order status
      */
     void sendOrderStatusUpdateEmail(OrderResponse orderResponse, String customerEmail, OrderStatus oldStatus, OrderStatus newStatus);
+
+    /**
+     * Send order cancellation email to customer
+     *
+     * @param orderResponse     the order details
+     * @param customerEmail     the customer's email address
+     * @param cancellationReason the reason for order cancellation
+     */
+    void sendOrderCancellationEmail(OrderResponse orderResponse, String customerEmail, String cancellationReason);
 }

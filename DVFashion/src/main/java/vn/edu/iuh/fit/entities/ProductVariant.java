@@ -58,8 +58,5 @@ public class ProductVariant {
 
     @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Size> sizes = new ArrayList<>();
-
-    @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<WishlistItem> wishlistItems = new ArrayList<>();
 }
 

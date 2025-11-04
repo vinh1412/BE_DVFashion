@@ -54,6 +54,9 @@ public class Payment {
     @Column(name = "approval_url")
     private String approvalUrl;
 
+    @Column(name = "paypal_capture_id")
+    private String paypalCaptureId;
+
     @Column(name = "captured_at")
     private LocalDateTime capturedAt;
 
