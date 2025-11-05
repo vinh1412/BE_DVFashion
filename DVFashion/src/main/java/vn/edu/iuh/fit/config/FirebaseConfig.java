@@ -12,8 +12,10 @@ import com.google.firebase.FirebaseOptions;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /*
@@ -37,11 +39,22 @@ public class FirebaseConfig {
         }
 
         // Nếu chưa tồn tại, thì khởi tạo mới
-        InputStream serviceAccount = getClass().getClassLoader()
-                .getResourceAsStream("firebase-service-account.json");
+//        InputStream serviceAccount = getClass().getClassLoader()
+//                .getResourceAsStream("firebase-service-account.json");
 
-        if (serviceAccount == null) {
-            throw new IOException("Firebase service account file not found in classpath");
+        InputStream serviceAccount;
+        String firebaseConfig = System.getenv("FIREBASE_CONFIG");
+
+        if (firebaseConfig != null && !firebaseConfig.isBlank()) {
+            serviceAccount = new ByteArrayInputStream(firebaseConfig.getBytes(StandardCharsets.UTF_8));
+        } else {
+            // Fallback: đọc file từ classpath (dùng khi chạy local)
+            serviceAccount = getClass().getClassLoader()
+                    .getResourceAsStream("firebase-service-account.json");
+
+            if (serviceAccount == null) {
+                throw new IOException("Firebase config not found in environment or classpath");
+            }
         }
 
         FirebaseOptions options = FirebaseOptions.builder()
