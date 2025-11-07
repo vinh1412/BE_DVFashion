@@ -19,6 +19,7 @@ import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.enums.OrderStatus;
 import vn.edu.iuh.fit.exceptions.CartLimitExceededException;
 import vn.edu.iuh.fit.exceptions.InsufficientStockException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
@@ -386,34 +387,40 @@ public class CartServiceImpl implements CartService {
 
     // Validate promotion constraints when adding/updating cart items
     private void validatePromotionConstraints(Product product, Long userId, int requestedQuantity) {
-        // Check if product has active promotion
+        // Kiểm tra sản phẩm có khuyến mãi đang hoạt động không
         Optional<PromotionProduct> activePromotion = promotionProductRepository
                 .findActivePromotionForProduct(product.getId());
 
         if (activePromotion.isPresent()) {
             PromotionProduct promotionProduct = activePromotion.get();
 
-            // Check promotion stock availability
+            // 1️⃣ Kiểm tra tồn kho khuyến mãi
             int availablePromotionStock = promotionProduct.getStockQuantity() - promotionProduct.getSoldQuantity();
             if (availablePromotionStock < requestedQuantity) {
-                throw new InsufficientStockException(
-                        String.format("Insufficient promotion stock. Available: %d, Requested: %d",
-                                availablePromotionStock, requestedQuantity));
+                throw new InsufficientStockException(String.format(
+                        "Insufficient promotion stock. Available: %d, Requested: %d",
+                        availablePromotionStock, requestedQuantity));
             }
 
-            // Check max quantity per user constraint
+            // 2️⃣ Kiểm tra giới hạn số lượng mua mỗi người (chỉ tính đơn đã thanh toán)
             if (promotionProduct.getMaxQuantityPerUser() != null) {
-                int userPurchasedQuantity = getUserPromotionPurchasedQuantity(userId, product.getId());
+                int userPurchasedQuantity = orderItemRepository.countUserPurchasedQuantityForPromotionProduct(
+                        userId,
+                        product.getId(),
+                        List.of(OrderStatus.DELIVERED.name(), OrderStatus.CONFIRMED.name(), OrderStatus.PROCESSING.name())
+                );
+
                 int totalUserQuantity = userPurchasedQuantity + requestedQuantity;
 
                 if (totalUserQuantity > promotionProduct.getMaxQuantityPerUser()) {
-                    throw new CartLimitExceededException(
-                            String.format("Maximum %d items per user for this promotion. You have already purchased %d",
-                                    promotionProduct.getMaxQuantityPerUser(), userPurchasedQuantity));
+                    throw new CartLimitExceededException(String.format(
+                            "Maximum %d items per user for this promotion. You have already purchased %d",
+                            promotionProduct.getMaxQuantityPerUser(), userPurchasedQuantity));
                 }
             }
         }
     }
+
 
     // Get total quantity user has purchased for product in current active promotion
     private int getUserPromotionPurchasedQuantity(Long userId, Long productId) {
