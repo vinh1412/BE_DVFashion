@@ -48,7 +48,7 @@ public record ProductRequest(
         @NotNull(message = "Category ID is required", groups = ValidationGroups.Create.class)
         Long categoryId,
 
-        Long promotionId,
+//        Long promotionId,
 
         @NotEmpty(message = "Product must have at least one variant", groups = ValidationGroups.Create.class)
         List<@Valid ProductVariantRequest> variants

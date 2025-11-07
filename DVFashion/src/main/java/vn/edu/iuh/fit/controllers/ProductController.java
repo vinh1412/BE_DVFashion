@@ -6,10 +6,12 @@
 
 package vn.edu.iuh.fit.controllers;
 
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,13 +24,16 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.services.ProductService;
 import vn.edu.iuh.fit.validators.ValidationGroups;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /*
- * @description:
+ * @description: Controller for managing products
  * @author: Tran Hien Vinh
  * @date:   28/08/2025
  * @version:    1.0
@@ -71,13 +76,13 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(response, "Product retrieved successfully"));
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllProductsNoPaging(
-            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
-
-        List<ProductResponse> products = productService.getAllProducts(language);
-        return ResponseEntity.ok(ApiResponse.success(products, "Products retrieved successfully"));
-    }
+//    @GetMapping("/all")
+//    public ResponseEntity<ApiResponse<List<ProductResponse>>> getAllProductsNoPaging(
+//            @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+//
+//        List<ProductResponse> products = productService.getAllProducts(language);
+//        return ResponseEntity.ok(ApiResponse.success(products, "Products retrieved successfully"));
+//    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getAllProducts(
@@ -119,5 +124,58 @@ public class ProductController {
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
         PageResponse<ProductResponse> products = productService.getProductsByCategoryIdPaging(categoryId, pageable, language);
         return ResponseEntity.ok(ApiResponse.success(products, "Products from category retrieved successfully with pagination."));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getAllProducts(
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "Page index must not be less than zero")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "Page size must not be less than one")
+            int size,
+
+            @RequestParam(name = "sort", required = false)
+            String[] sort,
+
+            @RequestParam(name = "search", required = false)
+            String search,
+
+            @RequestParam(name = "categoryId", required = false)
+            Long categoryId,
+
+            @RequestParam(name = "promotionId", required = false)
+            Long promotionId,
+
+            @RequestParam(name = "status", required = false)
+            ProductStatus status,
+
+            @RequestParam(name = "onSale", required = false)
+            Boolean onSale,
+
+            @RequestParam(name = "minPrice", required = false)
+            BigDecimal minPrice,
+
+            @RequestParam(name = "maxPrice", required = false)
+            BigDecimal maxPrice,
+
+            @RequestParam(name = "startDate", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) // yyyy-MM-dd
+            LocalDate startDate,
+
+            @RequestParam(name = "endDate", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) // yyyy-MM-dd
+            LocalDate endDate,
+
+            @RequestParam(name = "language", defaultValue = "VI")
+            Language language
+    ) {
+        PageResponse<ProductResponse> response = productService.getAllProducts(
+                page, size, sort, search, categoryId, promotionId, status,
+                onSale, minPrice, maxPrice, startDate, endDate, language
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(response, "Fetched products successfully"));
     }
 }

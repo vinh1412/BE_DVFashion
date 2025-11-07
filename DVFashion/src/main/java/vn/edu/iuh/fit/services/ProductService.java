@@ -12,7 +12,10 @@ import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.enums.ProductStatus;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /*
@@ -105,4 +108,29 @@ public interface ProductService {
      * @return A paginated response containing product responses associated with the category.
      */
     PageResponse<ProductResponse> getProductsByCategoryIdPaging(Long categoryId, Pageable pageable, Language language);
+
+    /**
+     * Retrieves a paginated list of products based on various filtering criteria in the specified language.
+     *
+     * @param page         The page number to retrieve.
+     * @param size         The number of products per page.
+     * @param sort         Sorting criteria.
+     * @param search       Search keyword for product name.
+     * @param categoryId   Filter by category ID.
+     * @param promotionId  Filter by promotion ID.
+     * @param status       Filter by product status.
+     * @param onSale       Filter by on-sale status.
+     * @param minPrice     Minimum price filter.
+     * @param maxPrice     Maximum price filter.
+     * @param startDate    Start date filter for creation date.
+     * @param endDate      End date filter for creation date.
+     * @param language     The language for the product details.
+     * @return A paginated response containing filtered product responses.
+     */
+    PageResponse<ProductResponse> getAllProducts(int page, int size, String[] sort,
+                                                 String search, Long categoryId, Long promotionId,
+                                                 ProductStatus status, Boolean onSale,
+                                                 BigDecimal minPrice, BigDecimal maxPrice,
+                                                 LocalDate startDate, LocalDate endDate,
+                                                 Language language);
 }
