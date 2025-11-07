@@ -63,10 +63,6 @@ public class Product {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "promotion_id")
-    private Promotion promotion;
-
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     private List<PromotionProduct> promotionProducts = new ArrayList<>();
 

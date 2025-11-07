@@ -9,10 +9,15 @@ package vn.edu.iuh.fit.services.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import vn.edu.iuh.fit.constants.SortFields;
+import vn.edu.iuh.fit.dtos.filters.FilterInfoProduct;
 import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.request.ProductVariantRequest;
 import vn.edu.iuh.fit.dtos.response.*;
@@ -25,8 +30,11 @@ import vn.edu.iuh.fit.exceptions.ResourceNotFoundException;
 import vn.edu.iuh.fit.mappers.ProductMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.*;
+import vn.edu.iuh.fit.specifications.ProductSpecification;
+import vn.edu.iuh.fit.utils.SortUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /*
@@ -61,24 +69,26 @@ public class ProductServiceImpl implements ProductService {
 
     private final UserInteractionService userInteractionService;
 
+    private final ProductSpecification productSpecification;
+
     @Transactional
     @Override
     public ProductResponse createProduct(ProductRequest request, Language inputLang, List<MultipartFile> variantImages) {
         // Check if Category exists
-        Category category= categoryRepository.findById(request.categoryId())
-                .orElseThrow(()-> new NotFoundException("Category not found"));
+        Category category = categoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new NotFoundException("Category not found"));
 
         // Check if Promotion exists (if provided)
-        Promotion promotion = null;
-        if (request.promotionId() != null) {
-            promotion = promotionRepository.findById(request.promotionId())
-                    .orElseThrow(() -> new NotFoundException("Promotion not found"));
-        }
+//        Promotion promotion = null;
+//        if (request.promotionId() != null) {
+//            promotion = promotionRepository.findById(request.promotionId())
+//                    .orElseThrow(() -> new NotFoundException("Promotion not found"));
+//        }
 
         // Create and save the Product entity
         Product product = new Product();
         product.setCategory(category);
-        product.setPromotion(promotion);
+//        product.setPromotion(promotion);
         product.setPrice(request.price());
         product.setSalePrice(request.salePrice());
         product.setOnSale(request.onSale());
@@ -140,11 +150,11 @@ public class ProductServiceImpl implements ProductService {
         }
 
         // Check if Promotion exists (if provided)
-        if (request.promotionId() != null) {
-            Promotion promotion = promotionRepository.findById(request.promotionId())
-                    .orElseThrow(() -> new NotFoundException("Promotion not found"));
-            product.setPromotion(promotion);
-        }
+    //        if (request.promotionId() != null) {
+    //            Promotion promotion = promotionRepository.findById(request.promotionId())
+    //                    .orElseThrow(() -> new NotFoundException("Promotion not found"));
+    //            product.setPromotion(promotion);
+    //        }
 
         // Update product basic properties
         if (request.price() != null) {
@@ -272,6 +282,47 @@ public class ProductServiceImpl implements ProductService {
         Page<ProductResponse> productResponses = products.map(product -> toResponse(product, language));
 
         return PageResponse.from(productResponses);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ProductResponse> getAllProducts(int page, int size, String[] sort, String search, Long categoryId, Long promotionId, ProductStatus status, Boolean onSale, BigDecimal minPrice, BigDecimal maxPrice, LocalDate startDate, LocalDate endDate, Language language) {
+        // Validate and build Sort object
+        Sort validSort = SortUtils.buildSort(
+                sort,
+                SortFields.PRODUCT_SORT_FIELDS,
+                SortFields.DEFAULT_PRODUCT_SORT
+        );
+
+        // Create Pageable
+        Pageable pageable = PageRequest.of(page, size, validSort);
+
+        // Build specification
+        Specification<Product> spec = productSpecification.build(
+                search, categoryId, promotionId, status, onSale,
+                minPrice, maxPrice, startDate, endDate
+        );
+
+        // Query products with pagination and filtering
+        Page<Product> productPage = productRepository.findAll(spec, pageable);
+
+        // Map to response DTOs
+        Page<ProductResponse> productResponses = productPage.map(product -> toResponse(product, language));
+
+        // Create FilterInfo
+        FilterInfoProduct filterInfo = FilterInfoProduct.builder()
+                .search(search)
+                .categoryId(categoryId)
+                .promotionId(promotionId)
+                .status(status)
+                .onSale(onSale)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .startDate(startDate)
+                .endDate(endDate)
+                .build();
+
+        return PageResponse.from(productResponses, filterInfo);
     }
 
     private ProductResponse toResponse(Product product, Language inputLang) {
