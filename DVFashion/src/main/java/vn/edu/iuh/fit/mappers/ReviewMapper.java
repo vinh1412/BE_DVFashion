@@ -13,11 +13,11 @@ import vn.edu.iuh.fit.dtos.response.ReviewResponse;
 import vn.edu.iuh.fit.dtos.response.UserSummaryResponse;
 import vn.edu.iuh.fit.entities.Review;
 import vn.edu.iuh.fit.entities.ReviewImage;
-import vn.edu.iuh.fit.entities.ReviewReply;
 import vn.edu.iuh.fit.entities.ReviewTranslation;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 

@@ -22,7 +22,9 @@ public record PageResponse<T>(
         long totalElements,
         int totalPages,
         List<String> sorts,
-        List<T> values
+        List<T> values,
+        Object filters,
+        boolean last
 ) {
 
     /**
@@ -41,7 +43,28 @@ public record PageResponse<T>(
                 page.getTotalElements(),
                 page.getTotalPages(),
                 sortInfos,
-                page.getContent()
+                page.getContent(),
+                null,
+                page.isLast()
+        );
+    }
+
+    public static <T> PageResponse<T> from(Page<T> page, Object filterInfo) {
+        List<String> sortInfos = page.getSort().isSorted()
+                ? page.getSort().stream()
+                .map(order -> order.getProperty() + ": " + order.getDirection())
+                .toList()
+                : null;
+
+        return new PageResponse<>(
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                sortInfos,
+                page.getContent(),
+                filterInfo,
+                page.isLast()
         );
     }
 }
