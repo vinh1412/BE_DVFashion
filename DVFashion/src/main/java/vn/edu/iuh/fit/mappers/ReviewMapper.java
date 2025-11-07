@@ -42,11 +42,12 @@ public class ReviewMapper {
         String productName = getProductName(review, responseLanguage);
         String variantName = review.getProductVariant().getColor();
 
-        List<ReviewReplyResponse> replies = Optional.ofNullable(review.getReplies())
-                .orElse(Collections.emptyList())
-                .stream()
-                .map(reply -> reviewReplyMapper.mapToReviewReplyResponseWithChildren(reply, responseLanguage))
-                .toList();
+        List<ReviewReplyResponse> replies =
+                Optional.ofNullable(review.getReplies())
+                        .orElseGet(List::of)
+                        .stream()
+                        .map(reply -> reviewReplyMapper.mapToReviewReplyResponseWithChildren(reply, responseLanguage))
+                        .toList();
 
         return new ReviewResponse(
                 review.getId(),
