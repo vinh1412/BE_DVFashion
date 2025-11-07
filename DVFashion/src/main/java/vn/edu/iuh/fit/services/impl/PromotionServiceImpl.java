@@ -112,6 +112,24 @@ public class PromotionServiceImpl implements PromotionService {
                 throw new BadRequestException("Product with ID " + productRequest.productId() + " is not active");
             }
 
+            boolean existsActivePromotion = product.getPromotionProducts().stream()
+                    .anyMatch(pp -> pp.isActive() &&
+                            pp.getPromotion() != null &&
+                            pp.getPromotion().isActive() &&
+                            pp.getPromotion().getStartDate().isBefore(LocalDateTime.now()) &&
+                            pp.getPromotion().getEndDate().isAfter(LocalDateTime.now()));
+
+            if (existsActivePromotion) {
+                throw new BadRequestException("Product with ID " + productRequest.productId() +
+                        " is already in an active promotion");
+            }
+
+            int totalProductStock = calculateTotalStockForProduct(product);
+            if (productRequest.stockQuantity() > totalProductStock) {
+                throw new BadRequestException("Stock quantity for promotion (" + productRequest.stockQuantity() +
+                        ") cannot exceed total available stock (" + totalProductStock + ") for product ID: " + productRequest.productId());
+            }
+
             BigDecimal originalPrice = (product.getSalePrice() != null && product.isOnSale())
                     ? product.getSalePrice()
                     : product.getPrice();
@@ -327,6 +345,18 @@ public class PromotionServiceImpl implements PromotionService {
         promotionRepository.delete(promotion);
     }
 
+    private int calculateTotalStockForProduct(Product product) {
+        if (product.getVariants() == null || product.getVariants().isEmpty()) {
+            return 0;
+        }
+
+        return product.getVariants().stream()
+                .filter(variant -> variant.getSizes() != null)
+                .flatMap(variant -> variant.getSizes().stream())  // duyệt qua tất cả sizes
+                .mapToInt(size -> size.getInventory() != null ? size.getInventory().getQuantityInStock() : 0)
+                .sum();
+    }
+
     // Helper method to build PromotionTranslation
     private PromotionTranslation buildTranslation(Promotion promotion, Language lang, String name, String description) {
         return PromotionTranslation.builder()
@@ -452,6 +482,13 @@ public class PromotionServiceImpl implements PromotionService {
                 throw new BadRequestException("Product with ID " + req.productId() + " is not active");
             }
 
+            // Validate stock quantity not exceed actual total inventory
+            int totalProductStock = calculateTotalStockForProduct(product);
+            if (req.stockQuantity() != null && req.stockQuantity() > totalProductStock) {
+                throw new BadRequestException("Stock quantity for promotion (" + req.stockQuantity() +
+                        ") cannot exceed total available stock (" + totalProductStock + ") for product ID: " + req.productId());
+            }
+
             // Determine original price
             BigDecimal originalPrice = (product.getSalePrice() != null && product.isOnSale())
                     ? product.getSalePrice()
@@ -518,6 +555,20 @@ public class PromotionServiceImpl implements PromotionService {
             }
             // === (3) If it is a new product => create new ===
             else {
+                // Check if product is already in another active promotion
+                boolean existsActivePromotion = product.getPromotionProducts().stream()
+                        .anyMatch(pp -> pp.isActive()
+                                && pp.getPromotion() != null
+                                && !pp.getPromotion().getId().equals(promotion.getId()) // bỏ qua promotion hiện tại
+                                && pp.getPromotion().isActive()
+                                && pp.getPromotion().getStartDate().isBefore(LocalDateTime.now())
+                                && pp.getPromotion().getEndDate().isAfter(LocalDateTime.now()));
+
+                if (existsActivePromotion) {
+                    throw new BadRequestException("Product with ID " + req.productId() +
+                            " is already in another active promotion");
+                }
+
                 // Validate that at least one of promotionPrice or discountPercentage is provided
                 if (promotionPrice == null && discountPercentage == null) {
                     throw new BadRequestException("Either promotionPrice or discountPercentage must be provided");
