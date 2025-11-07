@@ -8,10 +8,12 @@ package vn.edu.iuh.fit.mappers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import vn.edu.iuh.fit.dtos.response.ReviewReplyResponse;
 import vn.edu.iuh.fit.dtos.response.ReviewResponse;
 import vn.edu.iuh.fit.dtos.response.UserSummaryResponse;
 import vn.edu.iuh.fit.entities.Review;
 import vn.edu.iuh.fit.entities.ReviewImage;
+import vn.edu.iuh.fit.entities.ReviewReply;
 import vn.edu.iuh.fit.entities.ReviewTranslation;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.utils.LanguageUtils;
@@ -40,6 +42,13 @@ public class ReviewMapper {
         String productName = getProductName(review, responseLanguage);
         String variantName = review.getProductVariant().getColor();
 
+        List<ReviewReplyResponse> replies =
+                Optional.ofNullable(review.getReplies())
+                        .orElseGet(List::of)
+                        .stream()
+                        .map(reply -> reviewReplyMapper.mapToReviewReplyResponseWithChildren(reply, responseLanguage))
+                        .toList();
+
         return new ReviewResponse(
                 review.getId(),
                 review.getOrder().getId(),
@@ -56,9 +65,7 @@ public class ReviewMapper {
                 imageUrls,
                 adminComment,
                 userSummary,
-                review.getReplies().stream()
-                        .map(reply -> reviewReplyMapper.mapToReviewReplyResponseWithChildren(reply, responseLanguage))
-                        .toList()
+                replies
         );
     }
 
