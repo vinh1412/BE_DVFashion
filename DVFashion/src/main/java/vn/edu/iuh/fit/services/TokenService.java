@@ -33,7 +33,6 @@ public interface TokenService {
      * @param refreshToken the refresh token to search for
      * @return an Optional containing the Token if found and not revoked, or empty if not found
      */
-    @Query("SELECT t FROM Token t WHERE t.refreshToken = :refreshToken AND t.isRevoked = false")
     Token findByRefreshTokenAndRevokedFalse(String refreshToken);
 
     /**

@@ -44,7 +44,7 @@ public interface StatisticService {
      * @param year the year for which to calculate monthly revenue
      * @return list of RevenueDataPoint representing monthly revenue
      */
-    List<RevenueDataPoint> getMonthlyRevenue(int year);
+    List<RevenueDataPoint> getMonthlyRevenue(Integer year);
 
     /**
      * Total revenue statistics by year, based on delivered orders.

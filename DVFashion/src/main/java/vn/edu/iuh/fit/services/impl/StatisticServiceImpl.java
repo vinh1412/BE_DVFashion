@@ -73,6 +73,20 @@ public class StatisticServiceImpl implements StatisticService {
 
     @Override
     public List<RevenueDataPoint> getDailyRevenue(LocalDate startDate, LocalDate endDate) {
+        LocalDate today = LocalDate.now();
+
+        if (startDate == null && endDate == null) {
+            startDate = today;
+            endDate = today;
+        } else if (startDate == null) {
+            // If only endDate is passed → get 7 days before endDate
+            startDate = endDate.minusDays(6);
+        } else if (endDate == null) {
+            // If only pass startDate → get up to today
+            endDate = today;
+        }
+
+        // Convert LocalDate to LocalDateTime
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
@@ -87,8 +101,10 @@ public class StatisticServiceImpl implements StatisticService {
     }
 
     @Override
-    public List<RevenueDataPoint> getMonthlyRevenue(int year) {
-        List<Object[]> results = orderRepository.calculateMonthlyRevenue(OrderStatus.DELIVERED, year);
+    public List<RevenueDataPoint> getMonthlyRevenue(Integer year) {
+        int targetYear = (year != null) ? year : LocalDate.now().getYear();
+
+        List<Object[]> results = orderRepository.calculateMonthlyRevenue(OrderStatus.DELIVERED, targetYear);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
 
         return results.stream()
