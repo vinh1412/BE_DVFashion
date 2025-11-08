@@ -46,8 +46,8 @@ public class StatisticController {
 
     @GetMapping("/revenue/daily")
     public ResponseEntity<ApiResponse<List<RevenueDataPoint>>> getDailyRevenue(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
         List<RevenueDataPoint> revenueList = statisticService.getDailyRevenue(startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(revenueList, "Daily revenue retrieved successfully"));
@@ -55,7 +55,7 @@ public class StatisticController {
 
     @GetMapping("/revenue/monthly")
     public ResponseEntity<ApiResponse<List<RevenueDataPoint>>> getMonthlyRevenue(
-            @RequestParam(defaultValue = "2025") int year
+            @RequestParam(required = false) Integer year
     ) {
         List<RevenueDataPoint> revenueList = statisticService.getMonthlyRevenue(year);
         return ResponseEntity.ok(ApiResponse.success(revenueList, "Monthly revenue retrieved successfully"));
