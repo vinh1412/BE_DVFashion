@@ -133,7 +133,13 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, path("/cart/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/reviews/product/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/addresses/provinces/**")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/vouchers/customer")).permitAll()
                         .requestMatchers(HttpMethod.POST, path("/cart/**")).permitAll()
+                        .requestMatchers(path("/chat/rooms"),
+                                path("/chat/rooms/*/messages"),
+                                path("/chat/rooms/*/messages/upload"),
+                                path("/chat/rooms/*/read"),
+                                "/ws-chat/**").permitAll()
                         .requestMatchers( "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html").permitAll()

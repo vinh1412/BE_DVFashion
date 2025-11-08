@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.OrderItem;
 import vn.edu.iuh.fit.entities.OrderItemId;
 
+import java.util.List;
+
 /*
  * @description: Repository for managing order items
  * @author: Tran Hien Vinh
@@ -44,4 +46,20 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, OrderItemI
             "vn.edu.iuh.fit.enums.OrderStatus.SHIPPED, " +
             "vn.edu.iuh.fit.enums.OrderStatus.DELIVERED)")
     int sumQuantityByUserAndProductInActivePromotion(@Param("userId") Long userId, @Param("productId") Long productId);
+
+    @Query("""
+    SELECT COALESCE(SUM(oi.quantity), 0)
+    FROM OrderItem oi
+    JOIN Order o ON oi.order.id = o.id
+    JOIN Payment p ON o.id = p.order.id
+    WHERE o.customer.id = :userId
+      AND oi.productVariant.product.id = :productId
+      AND o.status IN :validStatuses
+      AND p.paymentStatus = 'COMPLETED'
+""")
+    int countUserPurchasedQuantityForPromotionProduct(
+            @Param("userId") Long userId,
+            @Param("productId") Long productId,
+            @Param("validStatuses") List<String> validStatuses);
+
 }
