@@ -8,6 +8,7 @@ package vn.edu.iuh.fit.specifications;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -19,6 +20,8 @@ import vn.edu.iuh.fit.enums.ProductStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /*
  * @description: Specification builder for Product entity
@@ -33,75 +36,59 @@ public class ProductSpecification {
                                         ProductStatus status, Boolean onSale, BigDecimal minPrice,
                                         BigDecimal maxPrice, LocalDate startDate, LocalDate endDate) {
 
-        Specification<Product> spec = (root, query, cb) -> null;
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
+            // Tìm kiếm theo tên sản phẩm (thông qua bảng translations)
+            if (StringUtils.hasText(search)) {
+                Join<Product, ProductTranslation> translationJoin = root.join("translations", JoinType.LEFT);
+                predicates.add(cb.like(cb.lower(translationJoin.get("name")), "%" + search.toLowerCase() + "%"));
+            }
 
-        // Search in product name (through translations)
-        if (StringUtils.hasText(search)) {
-            Specification<Product> searchSpec = (root, query, cb) -> {
-                Join<Product, ProductTranslation> translationJoin = root.join("productTranslations", JoinType.LEFT);
-                return cb.like(cb.lower(translationJoin.get("name")), "%" + search.toLowerCase() + "%");
-            };
-            spec = spec.and(searchSpec);
-        }
+            // Lọc theo danh mục
+            if (categoryId != null) {
+                predicates.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
 
-        // Filter by category
-        if (categoryId != null) {
-            Specification<Product> categorySpec = (root, query, cb) ->
-                    cb.equal(root.get("category").get("id"), categoryId);
-            spec = spec.and(categorySpec);
-        }
-
-        // Filter by promotion
-        if (promotionId != null) {
-            Specification<Product> promotionSpec = (root, query, cb) -> {
+            // Lọc theo khuyến mãi
+            if (promotionId != null) {
                 Join<Product, PromotionProduct> promotionProductJoin = root.join("promotionProducts", JoinType.INNER);
                 Join<PromotionProduct, Promotion> promotionJoin = promotionProductJoin.join("promotion", JoinType.INNER);
-                return cb.equal(promotionJoin.get("id"), promotionId);
-            };
-            spec = spec.and(promotionSpec);
-        }
+                predicates.add(cb.equal(promotionJoin.get("id"), promotionId));
+            }
 
-        // Filter by status
-        if (status != null) {
-            Specification<Product> statusSpec = (root, query, cb) ->
-                    cb.equal(root.get("status"), status);
-            spec = spec.and(statusSpec);
-        }
+            // Lọc theo trạng thái
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
 
-        // Filter by onSale
-        if (onSale != null) {
-            Specification<Product> onSaleSpec = (root, query, cb) ->
-                    cb.equal(root.get("onSale"), onSale);
-            spec = spec.and(onSaleSpec);
-        }
+            // Lọc theo đang giảm giá
+            if (onSale != null) {
+                predicates.add(cb.equal(root.get("onSale"), onSale));
+            }
 
-        // Filter by price range
-        if (minPrice != null) {
-            Specification<Product> minPriceSpec = (root, query, cb) ->
-                    cb.greaterThanOrEqualTo(root.get("price"), minPrice);
-            spec = spec.and(minPriceSpec);
-        }
+            // Lọc theo khoảng giá
+            if (minPrice != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("price"), minPrice));
+            }
 
-        if (maxPrice != null) {
-            Specification<Product> maxPriceSpec = (root, query, cb) ->
-                    cb.lessThanOrEqualTo(root.get("price"), maxPrice);
-            spec = spec.and(maxPriceSpec);
-        }
+            if (maxPrice != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("price"), maxPrice));
+            }
 
-        // Filter by date range
-        if (startDate != null) {
-            Specification<Product> startDateSpec = (root, query, cb) ->
-                    cb.greaterThanOrEqualTo(root.get("createdAt"), startDate.atStartOfDay());
-            spec = spec.and(startDateSpec);
-        }
+            // Lọc theo khoảng thời gian
+            if (startDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), startDate.atStartOfDay()));
+            }
 
-        if (endDate != null) {
-            Specification<Product> endDateSpec = (root, query, cb) ->
-                    cb.lessThanOrEqualTo(root.get("createdAt"), endDate.atTime(23, 59, 59));
-            spec = spec.and(endDateSpec);
-        }
+            if (endDate != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), endDate.atTime(23, 59, 59)));
+            }
 
-        return spec;
+            // Thêm DISTINCT để tránh trùng lặp kết quả do JOIN
+            query.distinct(true);
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 }
