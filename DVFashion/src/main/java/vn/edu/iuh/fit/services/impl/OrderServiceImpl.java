@@ -572,6 +572,25 @@ public class OrderServiceImpl implements OrderService {
             );
     }
 
+    @Override
+    public OrderStatisticsResponse getOrderStatistics() {
+        long totalOrders = orderRepository.countTotalOrders();
+
+        // Get counts order by status
+        List<Object[]> statusCounts = orderRepository.countOrdersByStatus();
+
+        Map<OrderStatus, Long> ordersByStatus = statusCounts.stream()
+                .collect(Collectors.toMap(
+                        row -> (OrderStatus) row[0],
+                        row -> (Long) row[1]
+                ));
+
+        return OrderStatisticsResponse.builder()
+                .totalOrders(totalOrders)
+                .ordersByStatus(ordersByStatus)
+                .build();
+    }
+
     private void validateCancellationEligibility(Order order) {
         // Check status - only PENDING or CONFIRMED can be cancelled
         if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {

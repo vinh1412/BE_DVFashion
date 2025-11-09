@@ -12,6 +12,7 @@ import vn.edu.iuh.fit.dtos.request.CancelOrderRequest;
 import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
+import vn.edu.iuh.fit.dtos.response.OrderStatisticsResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 
 import java.util.List;
@@ -129,4 +130,11 @@ public interface OrderService {
      * @return the updated order response after cancellation
      */
     OrderResponse cancelOrderByCustomer(String orderNumber, CancelOrderRequest request);
+
+    /**
+     * Get order statistics including total orders and orders by status.
+     *
+     * @return the order statistics response
+     */
+    OrderStatisticsResponse getOrderStatistics();
 }
