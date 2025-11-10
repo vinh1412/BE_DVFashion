@@ -21,6 +21,7 @@ import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
+import vn.edu.iuh.fit.dtos.response.OrderStatisticsResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.services.OrderService;
 
@@ -128,5 +129,13 @@ public class OrderController {
         OrderResponse response = orderService.cancelOrderByCustomer(orderNumber, request);
 
         return ResponseEntity.ok(ApiResponse.success(response, "Order cancelled successfully"));
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
+    public ResponseEntity<ApiResponse<OrderStatisticsResponse>> getOrderStatistics() {
+        OrderStatisticsResponse statistics = orderService.getOrderStatistics();
+
+        return ResponseEntity.ok(ApiResponse.success(statistics, "Order statistics fetched successfully"));
     }
 }

@@ -122,4 +122,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         ORDER BY FUNCTION('DATE_TRUNC', 'year', o.orderDate)
     """)
     List<Object[]> calculateYearlyRevenue(@Param("status") OrderStatus status);
+
+    /**
+     * Count total number of orders.
+     *
+     * @return total order count
+     */
+    @Query("SELECT COUNT(o) FROM Order o")
+    long countTotalOrders();
+
+    /**
+     * Count number of orders grouped by their status.
+     *
+     * @return list of object arrays where each array contains status and corresponding count
+     */
+    @Query("SELECT o.status, COUNT(o) FROM Order o GROUP BY o.status")
+    List<Object[]> countOrdersByStatus();
 }

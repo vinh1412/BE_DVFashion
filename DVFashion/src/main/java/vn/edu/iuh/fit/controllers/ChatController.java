@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.controllers;
 
 import com.cloudinary.Api;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +28,11 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.ChatMessageResponse;
 import vn.edu.iuh.fit.dtos.response.ChatRoomResponse;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.services.AIChatService;
 import vn.edu.iuh.fit.services.ChatService;
 
 import java.util.List;
+import java.util.Map;
 
 /*
  * @description: Controller for managing chat functionalities
@@ -42,9 +45,11 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ChatController {
-
     private final ChatService chatService;
+
     private final SimpMessagingTemplate messagingTemplate;
+
+    private final AIChatService aiChatService;
 
     @PostMapping("/rooms")
     public ResponseEntity<ApiResponse<ChatRoomResponse>> createChatRoom(
@@ -161,5 +166,12 @@ public class ChatController {
 
         // Broadcast typing indicator
         messagingTemplate.convertAndSend("/topic/chat/" + roomCode + "/typing", message);
+    }
+
+    @PostMapping("/ai")
+    public ResponseEntity<ApiResponse<JsonNode>> chatAI(@RequestBody Map<String, String> request) {
+        JsonNode response = aiChatService.sendToAI(request.get("message"));
+
+        return ResponseEntity.ok(ApiResponse.success(response, "AI chat response"));
     }
 }

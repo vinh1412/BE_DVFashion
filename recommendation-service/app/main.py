@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from app.controllers import recommendation_controller
+from app.controllers import chat_controller 
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -13,6 +14,12 @@ app.include_router(
     recommendation_controller.router, 
     prefix="/api/v1", 
     tags=["Recommendations"]
+)
+
+app.include_router(
+    chat_controller.router,
+    prefix="/api/v1",
+    tags=["Chatbot"]
 )
 
 if __name__ == "__main__":
