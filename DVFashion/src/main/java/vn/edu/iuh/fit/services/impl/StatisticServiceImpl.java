@@ -8,11 +8,19 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import vn.edu.iuh.fit.dtos.response.RevenueDataPoint;
+import vn.edu.iuh.fit.dtos.response.*;
+import vn.edu.iuh.fit.entities.Inventory;
+import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.OrderStatus;
+import vn.edu.iuh.fit.mappers.InventoryMapper;
+import vn.edu.iuh.fit.repositories.InventoryRepository;
 import vn.edu.iuh.fit.repositories.OrderRepository;
+import vn.edu.iuh.fit.repositories.PromotionRepository;
 import vn.edu.iuh.fit.services.StatisticService;
+import vn.edu.iuh.fit.utils.LanguageUtils;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -33,6 +41,12 @@ import java.util.List;
 @Slf4j
 public class StatisticServiceImpl implements StatisticService {
     private final OrderRepository orderRepository;
+
+    private final InventoryRepository inventoryRepository;
+
+    private final InventoryMapper inventoryMapper;
+
+    private final PromotionRepository promotionRepository;
 
     @Override
     public BigDecimal getRevenueStatistics(String period, LocalDate startDate, LocalDate endDate) {
@@ -130,6 +144,70 @@ public class StatisticServiceImpl implements StatisticService {
                     BigDecimal revenue = (BigDecimal) result[1]; // Revenue
                     return new RevenueDataPoint(year, revenue);
                 })
+                .toList();
+    }
+
+    @Override
+    public List<ProductSalesStatistic> getTop10BestSellingProducts() {
+        Language language= LanguageUtils.getCurrentLanguage();
+        List<Object[]> results = orderRepository.findBestSellingProductsByLanguage(OrderStatus.DELIVERED, language);
+
+        return results.stream()
+                .map(result -> new ProductSalesStatistic(
+                        ((Number) result[0]).longValue(), // Product ID
+                        (String) result[1],               // Product Name
+                        ((Number) result[2]).longValue(), // Total Quantity
+                        (BigDecimal) result[3]            // Total Revenue
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<ProductStockStatistic> getTopStockProducts(int limit) {
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<Object[]> results = inventoryRepository.findTopStockProductsByLanguage(currentLanguage, pageable);
+
+        return results.stream()
+                .map(result -> new ProductStockStatistic(
+                        ((Number) result[0]).longValue(), // productId
+                        (String) result[1],               // productName
+                        ((Number) result[2]).longValue()  // totalAvailableQuantity
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<InventoryResponse> getLowStockItems(int limit) {
+        // Get current language
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        // Create Pageable object to limit results
+        Pageable pageable = PageRequest.of(0, limit);
+
+        // Find items with inventory below the minimum level
+        List<Inventory> lowStockInventories = inventoryRepository.findLowStockItems(pageable);
+
+        log.info("Retrieved top {} low stock items", lowStockInventories.size());
+        return inventoryMapper.mapToInventoryResponseList(lowStockInventories, currentLanguage);
+    }
+
+    @Override
+    public List<PromotionRevenueStatistic> getTopPromotionsByRevenue(int limit) {
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<Object[]> results = promotionRepository.findTopPromotionsByRevenue(currentLanguage, pageable);
+
+        return results.stream()
+                .map(result -> new PromotionRevenueStatistic(
+                        ((Number) result[0]).longValue(),  // promotionId
+                        (String) result[1],                // promotionName
+                        (result[2] != null) ? ((Number) result[2]).doubleValue() : 0.0 // totalRevenue
+                ))
                 .toList();
     }
 }
