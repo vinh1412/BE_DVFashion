@@ -6,7 +6,7 @@
 
 package vn.edu.iuh.fit.services;
 
-import vn.edu.iuh.fit.dtos.response.RevenueDataPoint;
+import vn.edu.iuh.fit.dtos.response.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -52,4 +52,35 @@ public interface StatisticService {
      * @return list of RevenueDataPoint representing yearly revenue
      */
     List<RevenueDataPoint> getYearlyRevenue();
+
+    /**
+     * Get top 10 best-selling products based on quantity sold and total revenue.
+     *
+     * @return list of ProductSalesStatistic representing top 10 best-selling products
+     */
+    List<ProductSalesStatistic> getTop10BestSellingProducts();
+
+    /**
+     * Get top products with the highest stock quantity.
+     *
+     * @param limit the maximum number of products to retrieve
+     * @return list of ProductStockStatistic representing top stock products
+     */
+    List<ProductStockStatistic> getTopStockProducts(int limit);
+
+    /**
+     * Get products with low stock quantity.
+     *
+     * @param limit the maximum number of products to retrieve
+     * @return list of InventoryResponse representing low stock items
+     */
+    List<InventoryResponse> getLowStockItems(int limit);
+
+    /**
+     * Get top promotions based on total revenue generated from sold products.
+     *
+     * @param limit the maximum number of promotions to retrieve
+     * @return list of PromotionRevenueStatistic representing top promotions by revenue
+     */
+    List<PromotionRevenueStatistic> getTopPromotionsByRevenue(int limit);
 }
