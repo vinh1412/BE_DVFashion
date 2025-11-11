@@ -38,6 +38,7 @@ public class CartItemMapper {
 
         return new CartItemResponse(
                 item.getId(),
+                item.getProductVariant().getProduct().getId(),
                 productName,
                 item.getProductVariant().getColor(),
                 item.getSize().getSizeName(),
