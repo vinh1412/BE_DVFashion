@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.Order;
+import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.OrderStatus;
 
 import java.math.BigDecimal;
@@ -138,4 +139,36 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      */
     @Query("SELECT o.status, COUNT(o) FROM Order o GROUP BY o.status")
     List<Object[]> countOrdersByStatus();
+
+    /**
+     * Finds best-selling products based on order items for orders with a specific status.
+     *
+     * @param status   the status of the orders to consider (e.g., DELIVERED)
+     * @param language the language for product name translation
+     * @return a list of object arrays where each array contains:
+     *         - product ID
+     *         - product name
+     *         - total quantity sold
+     *         - total revenue generated
+     */
+    @Query("""
+    SELECT p.id AS productId,
+           pt.name AS productName,
+           SUM(oi.quantity) AS totalQuantity,
+           SUM(oi.quantity * oi.unitPrice) AS totalRevenue
+    FROM OrderItem oi
+    JOIN oi.order o
+    JOIN oi.productVariant pv
+    JOIN pv.product p
+    JOIN p.translations pt
+    WHERE o.status = :status
+      AND pt.language = :language
+    GROUP BY p.id, pt.name
+    ORDER BY totalQuantity DESC
+    """)
+    List<Object[]> findBestSellingProductsByLanguage(
+            @Param("status") OrderStatus status,
+            @Param("language") Language language
+    );
+
 }

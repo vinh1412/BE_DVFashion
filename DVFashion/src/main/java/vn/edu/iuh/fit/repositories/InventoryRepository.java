@@ -7,12 +7,14 @@
 package vn.edu.iuh.fit.repositories;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.Inventory;
+import vn.edu.iuh.fit.enums.Language;
 
 import java.util.List;
 import java.util.Optional;
@@ -129,4 +131,53 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             """)
     List<Inventory> findLowStockItems();
 
+    /**
+     * Finds top products with the highest available stock quantity.
+     * The available quantity is calculated as (quantityInStock - reservedQuantity).
+     * The results are ordered by available quantity in descending order.
+     *
+     * @param language the language for product name translation
+     * @param pageable pagination information
+     * @return a list of object arrays where each array contains:
+     *         - product ID
+     *         - product name
+     *         - total available quantity
+     */
+    @Query("""
+        SELECT p.id AS productId,
+               pt.name AS productName,
+               SUM(i.quantityInStock - i.reservedQuantity) AS totalAvailableQuantity
+        FROM Inventory i
+        JOIN i.size s
+        JOIN s.productVariant pv
+        JOIN pv.product p
+        JOIN p.translations pt
+        WHERE pt.language = :language
+        GROUP BY p.id, pt.name
+        ORDER BY totalAvailableQuantity DESC
+    """)
+    List<Object[]> findTopStockProductsByLanguage(
+            @Param("language") Language language,
+            Pageable pageable
+    );
+
+    /**
+     * Finds inventory items that are low in stock with pagination.
+     * An item is considered low in stock if its available quantity
+     * (quantityInStock - reservedQuantity) is less than or equal to its minimum stock level.
+     * The results are ordered by available quantity in ascending order.
+     *
+     * @param pageable pagination information
+     * @return a list of low stock inventory items
+     */
+    @Query("""
+                SELECT i FROM Inventory i
+                JOIN FETCH i.size s
+                JOIN FETCH s.productVariant pv
+                JOIN FETCH pv.product p
+                JOIN FETCH p.translations
+                WHERE (i.quantityInStock - i.reservedQuantity) <= i.minStockLevel
+                ORDER BY (i.quantityInStock - i.reservedQuantity) ASC
+            """)
+    List<Inventory> findLowStockItems(Pageable pageable);
 }
