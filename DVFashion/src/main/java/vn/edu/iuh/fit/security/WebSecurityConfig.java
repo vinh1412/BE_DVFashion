@@ -123,6 +123,24 @@ public class WebSecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(
+                                path("/ws-chat/**"),
+                                path("/ws-chat/info"),
+                                path("/ws-chat/info/**"),
+                                path("/ws-chat/*/websocket"),
+                                path("/ws-chat/*/xhr"),
+                                path("/ws-chat/*/xhr_send"),
+                                path("/ws-chat/*/xhr_streaming")
+                        ).permitAll()
+
+                        // Chat endpoints
+                        .requestMatchers(
+                                path("/chat/rooms"),
+                                path("/chat/rooms/**"),
+                                path("/chat/rooms/*/messages"),
+                                path("/chat/rooms/*/messages/upload"),
+                                path("/chat/rooms/*/read")
+                        ).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/brands/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/categories/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/products/**")).permitAll()
@@ -135,11 +153,7 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, path("/addresses/provinces/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/vouchers/customer")).permitAll()
                         .requestMatchers(HttpMethod.POST, path("/cart/**")).permitAll()
-                        .requestMatchers(path("/chat/rooms"),
-                                path("/chat/rooms/*/messages"),
-                                path("/chat/rooms/*/messages/upload"),
-                                path("/chat/rooms/*/read"),
-                                "/ws-chat/**").permitAll()
+
                         .requestMatchers( "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html").permitAll()
