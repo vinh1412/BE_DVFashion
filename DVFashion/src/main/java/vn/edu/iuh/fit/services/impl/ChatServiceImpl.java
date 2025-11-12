@@ -71,6 +71,8 @@ public class ChatServiceImpl implements ChatService {
                 .guestName(request.guestName())
                 .guestPhone(request.guestPhone())
                 .status(ChatRoomStatus.ACTIVE)
+                .unreadAdminCount(0)
+                .unreadCustomerCount(0)
                 .build();
 
         chatRoom = chatRoomRepository.save(chatRoom);
