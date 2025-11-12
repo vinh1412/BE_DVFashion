@@ -132,7 +132,7 @@ public class OrderController {
     }
 
     @GetMapping("/statistics")
-    @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     public ResponseEntity<ApiResponse<OrderStatisticsResponse>> getOrderStatistics() {
         OrderStatisticsResponse statistics = orderService.getOrderStatistics();
 

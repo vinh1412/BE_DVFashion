@@ -21,6 +21,7 @@ import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
+import vn.edu.iuh.fit.dtos.response.PromotionStatisticsResponse;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.services.PromotionService;
 
@@ -114,5 +115,12 @@ public class PromotionController {
     public ResponseEntity<ApiResponse<?>> deletePromotion(@PathVariable(name = "promotionId") Long promotionId) {
         promotionService.deletePromotion(promotionId);
         return ResponseEntity.ok(ApiResponse.noContent("Promotion deleted successfully."));
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    public ResponseEntity<ApiResponse<PromotionStatisticsResponse>> getPromotionStatistics() {
+        PromotionStatisticsResponse statistics = promotionService.getPromotionStatistics();
+        return ResponseEntity.ok(ApiResponse.success(statistics, "Promotion statistics retrieved successfully."));
     }
 }

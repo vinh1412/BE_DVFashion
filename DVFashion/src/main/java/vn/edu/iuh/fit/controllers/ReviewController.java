@@ -16,10 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.*;
-import vn.edu.iuh.fit.dtos.response.AdminReviewsResponse;
-import vn.edu.iuh.fit.dtos.response.ApiResponse;
-import vn.edu.iuh.fit.dtos.response.ProductReviewsResponse;
-import vn.edu.iuh.fit.dtos.response.ReviewResponse;
+import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.services.ReviewService;
 
 import java.util.List;

@@ -16,6 +16,7 @@ import vn.edu.iuh.fit.dtos.request.CreateVoucherRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
+import vn.edu.iuh.fit.dtos.response.VoucherStatisticsResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.*;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
@@ -35,10 +36,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /*
@@ -340,6 +338,48 @@ public class VoucherServiceImpl implements VoucherService {
                 .usedAt(LocalDateTime.now())
                 .build();
         voucherUsageRepository.save(usage);
+    }
+
+    @Override
+    public VoucherStatisticsResponse getVoucherStatistics() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Get total counts
+        long totalVouchers = voucherRepository.countTotalVouchers();
+
+        // Get counts by active status
+        long totalActiveVouchers = voucherRepository.countVouchersByActiveStatus(true);
+
+        // Get counts by inactive status
+        long totalInactiveVouchers = voucherRepository.countVouchersByActiveStatus(false);
+
+        // Get expired and currently active vouchers
+        long totalExpiredVouchers = voucherRepository.countExpiredVouchers(now);
+
+        // Get currently active vouchers
+        long totalCurrentlyActiveVouchers = voucherRepository.countCurrentlyActiveVouchers(now);
+
+        // Initialize map with all active statuses set to 0
+        Map<Boolean, Long> vouchersByActiveStatus = new HashMap<>();
+        vouchersByActiveStatus.put(true, 0L);
+        vouchersByActiveStatus.put(false, 0L);
+
+        // Get actual counts and override the default 0 values
+        List<Object[]> statusCounts = voucherRepository.countVouchersByAllActiveStatuses();
+        statusCounts.forEach(row -> {
+            Boolean active = (Boolean) row[0];
+            Long count = (Long) row[1];
+            vouchersByActiveStatus.put(active, count);
+        });
+
+        return VoucherStatisticsResponse.builder()
+                .totalVouchers(totalVouchers)
+                .totalActiveVouchers(totalActiveVouchers)
+                .totalInactiveVouchers(totalInactiveVouchers)
+                .totalExpiredVouchers(totalExpiredVouchers)
+                .totalCurrentlyActiveVouchers(totalCurrentlyActiveVouchers)
+                .vouchersByActiveStatus(vouchersByActiveStatus)
+                .build();
     }
 
     private void validateVoucherForDeletion(Voucher voucher) {

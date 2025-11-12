@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.CategoryRequest;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
+import vn.edu.iuh.fit.dtos.response.CategoryStatisticsResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.enums.Language;
 
@@ -75,4 +76,11 @@ public interface CategoryService {
      * @return a list of all CategoryResponse
      */
     List<CategoryResponse> getAllCategories(Language language);
+
+    /**
+     * Retrieves statistics about categories.
+     *
+     * @return a CategoryStatisticsResponse containing category statistics
+     */
+    CategoryStatisticsResponse getCategoryStatistics();
 }

@@ -19,6 +19,7 @@ import vn.edu.iuh.fit.dtos.request.UpdatePromotionProductRequest;
 import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
+import vn.edu.iuh.fit.dtos.response.PromotionStatisticsResponse;
 import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.ProductStatus;
@@ -343,6 +344,46 @@ public class PromotionServiceImpl implements PromotionService {
 
         // Delete the promotion (this will cascade delete remaining relationships)
         promotionRepository.delete(promotion);
+    }
+
+    @Override
+    public PromotionStatisticsResponse getPromotionStatistics() {
+        // Get total counts
+        long totalPromotions = promotionRepository.countTotalPromotions();
+
+        // Get counts by active status
+        long totalActivePromotions = promotionRepository.countPromotionsByActiveStatus(true);
+
+        // Get counts for inactive
+        long totalInactivePromotions = promotionRepository.countPromotionsByActiveStatus(false);
+
+        // Get counts for expired
+        long totalExpiredPromotions = promotionRepository.countExpiredPromotions();
+
+        // Get counts for currently active
+        long totalCurrentlyActivePromotions = promotionRepository.countCurrentlyActivePromotions();
+
+        // Initialize map with all active statuses set to 0
+        Map<Boolean, Long> promotionsByActiveStatus = new HashMap<>();
+        promotionsByActiveStatus.put(true, 0L);
+        promotionsByActiveStatus.put(false, 0L);
+
+        // Get actual counts and override the default 0 values
+        List<Object[]> statusCounts = promotionRepository.countPromotionsByAllActiveStatuses();
+        statusCounts.forEach(row -> {
+            Boolean active = (Boolean) row[0];
+            Long count = (Long) row[1];
+            promotionsByActiveStatus.put(active, count);
+        });
+
+        return PromotionStatisticsResponse.builder()
+                .totalPromotions(totalPromotions)
+                .totalActivePromotions(totalActivePromotions)
+                .totalInactivePromotions(totalInactivePromotions)
+                .totalExpiredPromotions(totalExpiredPromotions)
+                .totalCurrentlyActivePromotions(totalCurrentlyActivePromotions)
+                .promotionsByActiveStatus(promotionsByActiveStatus)
+                .build();
     }
 
     private int calculateTotalStockForProduct(Product product) {

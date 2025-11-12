@@ -23,6 +23,7 @@ import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
+import vn.edu.iuh.fit.dtos.response.ProductStatisticsResponse;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.services.ProductService;
@@ -177,5 +178,12 @@ public class ProductController {
         );
 
         return ResponseEntity.ok(ApiResponse.success(response, "Fetched products successfully"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/statistics")
+    public ResponseEntity<ApiResponse<ProductStatisticsResponse>> getProductStatistics() {
+        ProductStatisticsResponse productStatistics = productService.getProductStatistics();
+        return ResponseEntity.ok(ApiResponse.success(productStatistics, "Product statistics fetched successfully"));
     }
 }

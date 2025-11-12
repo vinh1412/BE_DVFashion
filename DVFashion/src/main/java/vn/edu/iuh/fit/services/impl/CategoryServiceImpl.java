@@ -13,10 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.CategoryRequest;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
+import vn.edu.iuh.fit.dtos.response.CategoryStatisticsResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.entities.Category;
 import vn.edu.iuh.fit.entities.CategoryTranslation;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.exceptions.AlreadyExistsException;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.mappers.CategoryMapper;
@@ -28,7 +30,9 @@ import vn.edu.iuh.fit.services.TranslationService;
 import vn.edu.iuh.fit.utils.ImageUtils;
 import vn.edu.iuh.fit.utils.TextUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /*
  * @description: Service implementation for managing categories
@@ -255,5 +259,45 @@ public class CategoryServiceImpl implements CategoryService {
         return categories.stream()
                 .map(category -> categoryMapper.toResponse(category, language))
                 .toList();
+    }
+
+    @Override
+    public CategoryStatisticsResponse getCategoryStatistics() {
+        // Get total number of categories
+        long totalCategories = categoryRepository.countTotalCategories();
+
+        // Get total number of active categories
+        long totalActiveCategories = categoryRepository.countCategoriesByActiveStatus(true);
+
+        // Get total number of inactive categories
+        long totalInactiveCategories = categoryRepository.countCategoriesByActiveStatus(false);
+
+        // Get total number of categories with any products
+        long totalCategoriesWithProducts = categoryRepository.countCategoriesWithAnyProducts();
+
+        // Get total number of categories with active products
+        long totalCategoriesWithActiveProducts = categoryRepository.countCategoriesWithProducts(ProductStatus.ACTIVE);
+
+        // Initialize map with all active statuses set to 0
+        Map<Boolean, Long> categoriesByActiveStatus = new HashMap<>();
+        categoriesByActiveStatus.put(true, 0L);
+        categoriesByActiveStatus.put(false, 0L);
+
+        // Get actual counts and override the default 0 values
+        List<Object[]> statusCounts = categoryRepository.countCategoriesByAllActiveStatuses();
+        statusCounts.forEach(row -> {
+            Boolean active = (Boolean) row[0];
+            Long count = (Long) row[1];
+            categoriesByActiveStatus.put(active, count);
+        });
+
+        return CategoryStatisticsResponse.builder()
+                .totalCategories(totalCategories)
+                .totalActiveCategories(totalActiveCategories)
+                .totalInactiveCategories(totalInactiveCategories)
+                .totalCategoriesWithProducts(totalCategoriesWithProducts)
+                .totalCategoriesWithActiveProducts(totalCategoriesWithActiveProducts)
+                .categoriesByActiveStatus(categoriesByActiveStatus)
+                .build();
     }
 }

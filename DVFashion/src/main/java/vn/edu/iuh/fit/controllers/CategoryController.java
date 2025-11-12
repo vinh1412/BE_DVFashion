@@ -18,9 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.request.CategoryRequest;
-import vn.edu.iuh.fit.dtos.response.ApiResponse;
-import vn.edu.iuh.fit.dtos.response.CategoryResponse;
-import vn.edu.iuh.fit.dtos.response.PageResponse;
+import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.services.CategoryService;
 import vn.edu.iuh.fit.validators.ValidationGroups;
@@ -84,5 +82,12 @@ public class CategoryController {
     public ResponseEntity<ApiResponse<?>> getAllCategoriesNoPaging(@RequestParam(value = "lang", defaultValue = "VI") Language language) {
         return ResponseEntity.ok(ApiResponse.success(categoryService.getAllCategories(language),
                 "Categories retrieved successfully."));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/statistics")
+    public ResponseEntity<ApiResponse<CategoryStatisticsResponse>> getCategoryStatistics() {
+        CategoryStatisticsResponse productStatistics = categoryService.getCategoryStatistics();
+        return ResponseEntity.ok(ApiResponse.success(productStatistics, "Product statistics fetched successfully"));
     }
 }
