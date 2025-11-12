@@ -107,4 +107,81 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
      * @return a page of products in the specified category
      */
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
+
+    /**
+     * Counts the total number of products.
+     *
+     * @return the total number of products
+     */
+    @Query("SELECT COUNT(p) FROM Product p")
+    long countTotalProducts();
+
+    /**
+     * Counts the number of products by their status.
+     *
+     * @param status the status to filter by
+     * @return the number of products with the specified status
+     */
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.status = :status")
+    long countProductsByStatus(@Param("status") ProductStatus status);
+
+    /**
+     * Counts the total number of product variants.
+     *
+     * @return the total number of product variants
+     */
+    @Query("SELECT COUNT(pv) FROM ProductVariant pv")
+    long countTotalProductVariants();
+
+    /**
+     * Counts the number of products that have low stock levels.
+     *
+     * @return the number of products with low stock
+     */
+    @Query("""
+        SELECT COUNT(DISTINCT pv.product.id)
+        FROM Inventory i
+        JOIN i.size.productVariant pv
+        WHERE i.quantityInStock <= i.minStockLevel
+    """)
+    long countProductsWithLowStock();
+
+    /**
+     * Counts the number of products that are out of stock.
+     *
+     * @return the number of out-of-stock products
+     */
+    @Query("""
+        SELECT COUNT(DISTINCT pv.product.id)
+        FROM Inventory i
+        JOIN i.size.productVariant pv
+        WHERE i.quantityInStock = 0
+    """)
+    long countOutOfStockProducts();
+
+    /**
+     * Counts the number of products that are currently on promotion.
+     *
+     * @return the number of products on promotion
+     */
+    @Query("SELECT p.status, COUNT(p) FROM Product p GROUP BY p.status")
+    List<Object[]> countProductsByAllStatuses();
+
+    /**
+     * Counts the number of products that are currently on active promotion.
+     *
+     * @return the number of products on active promotion
+     */
+    @Query("""
+        SELECT COUNT(DISTINCT pp.product.id)
+        FROM PromotionProduct pp
+        JOIN pp.promotion p
+        WHERE pp.active = true
+        AND p.active = true
+        AND p.startDate <= CURRENT_TIMESTAMP
+        AND p.endDate >= CURRENT_TIMESTAMP
+        AND pp.stockQuantity > pp.soldQuantity
+    """)
+    long countProductsOnActivePromotion();
+
 }

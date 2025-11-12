@@ -19,5 +19,7 @@ import java.util.Map;
 public record ReviewStatisticsByStatus(
         long totalReviews,
 
+        Double averageRating,
+
         Map<ReviewStatus, Long> statusCounts
 ) {}

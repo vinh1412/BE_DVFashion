@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.ProductRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
+import vn.edu.iuh.fit.dtos.response.ProductStatisticsResponse;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.ProductStatus;
 
@@ -133,4 +134,11 @@ public interface ProductService {
                                                  BigDecimal minPrice, BigDecimal maxPrice,
                                                  LocalDate startDate, LocalDate endDate,
                                                  Language language);
+
+    /**
+     * Retrieves product statistics.
+     *
+     * @return ProductStatisticsResponse containing various statistics about products.
+     */
+    ProductStatisticsResponse getProductStatistics();
 }

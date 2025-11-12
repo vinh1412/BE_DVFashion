@@ -68,4 +68,45 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
             @Param("language") Language language,
             Pageable pageable
     );
+
+    /**
+     * Counts the total number of promotions.
+     *
+     * @return the total number of promotions
+     */
+    @Query("SELECT COUNT(p) FROM Promotion p")
+    long countTotalPromotions();
+
+    /**
+     * Counts the number of promotions by their active status.
+     *
+     * @param active the active status to filter by
+     * @return the number of promotions with the specified active status
+     */
+    @Query("SELECT COUNT(p) FROM Promotion p WHERE p.active = :active")
+    long countPromotionsByActiveStatus(@Param("active") boolean active);
+
+    /**
+     * Counts the number of promotions grouped by their active status.
+     *
+     * @return a list of Object arrays, each containing the active status and the corresponding count
+     */
+    @Query("SELECT p.active, COUNT(p) FROM Promotion p GROUP BY p.active")
+    List<Object[]> countPromotionsByAllActiveStatuses();
+
+    /**
+     * Counts the number of expired promotions.
+     *
+     * @return the number of expired promotions
+     */
+    @Query("SELECT COUNT(p) FROM Promotion p WHERE p.endDate < CURRENT_TIMESTAMP")
+    long countExpiredPromotions();
+
+    /**
+     * Counts the number of currently active promotions.
+     *
+     * @return the number of currently active promotions
+     */
+    @Query("SELECT COUNT(p) FROM Promotion p WHERE p.startDate <= CURRENT_TIMESTAMP AND p.endDate >= CURRENT_TIMESTAMP AND p.active = true")
+    long countCurrentlyActivePromotions();
 }
