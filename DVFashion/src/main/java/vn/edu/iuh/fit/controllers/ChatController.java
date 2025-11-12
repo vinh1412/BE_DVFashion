@@ -28,6 +28,7 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.ChatMessageResponse;
 import vn.edu.iuh.fit.dtos.response.ChatRoomResponse;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.exceptions.BadRequestException;
 import vn.edu.iuh.fit.services.AIChatService;
 import vn.edu.iuh.fit.services.ChatService;
 
@@ -55,6 +56,10 @@ public class ChatController {
     public ResponseEntity<ApiResponse<ChatRoomResponse>> createChatRoom(
             @Valid @RequestBody CreateChatRoomRequest request,
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        // Validate guest name
+        if (request.guestName() == null || request.guestName().trim().isEmpty()) {
+            throw new BadRequestException("Guest name is required");
+        }
 
         ChatRoomResponse response = chatService.createGuestChatRoom(request, language);
 
