@@ -37,7 +37,7 @@ public class AIChatServiceImpl implements AIChatService {
 
     @Override
     public JsonNode sendToAI(String message) {
-        String apiUrl = recommendationServiceUrl + "/chat/ai";
+        String apiUrl = recommendationServiceUrl + "/chat";
         try {
             String body = mapper.writeValueAsString(Map.of("message", message));
             HttpHeaders headers = new HttpHeaders();

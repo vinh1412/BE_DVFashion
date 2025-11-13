@@ -86,6 +86,7 @@ public class WebSecurityConfig {
                 path("/payments/paypal/success"),
                 path("/payments/paypal/cancel"),
                 path("/shipping/calculate"),
+                path("/chat/ai"),
                 "/oauth2/**",
                 "/login/oauth2/**",
                 "/oauth2/authorization/**",
@@ -153,7 +154,6 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, path("/addresses/provinces/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/vouchers/customer")).permitAll()
                         .requestMatchers(HttpMethod.POST, path("/cart/**")).permitAll()
-                        .requestMatchers(path("/api/v1/chat")).permitAll()
 
                         .requestMatchers( "/v3/api-docs/**",
                                 "/swagger-ui/**",
