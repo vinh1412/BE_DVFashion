@@ -161,4 +161,13 @@ public interface ReviewRepository extends JpaRepository<Review, Long>, JpaSpecif
      * @return a list of reviews by the user
      */
     List<Review> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    /**
+     * Calculates the overall average rating across all reviews with a specific status.
+     *
+     * @param status the review status to filter by
+     * @return the overall average rating, or null if there are no matching reviews
+     */
+    @Query("SELECT AVG(r.rating) FROM Review r WHERE r.status = :status")
+    Double getOverallAverageRating(@Param("status") ReviewStatus status);
 }

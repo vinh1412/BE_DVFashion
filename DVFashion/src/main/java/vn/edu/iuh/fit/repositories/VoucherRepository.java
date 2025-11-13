@@ -81,4 +81,47 @@ public interface VoucherRepository extends JpaRepository<Voucher, Long> {
             "AND v.currentUsage < v.maxTotalUsage " +
             "AND (v.type = 'SHOP_WIDE' OR (v.type = 'PRODUCT_SPECIFIC' AND vp.active = true))")
     Page<Voucher> findAvailableVouchersForCustomersPaging(@Param("now") LocalDateTime now, Pageable pageable);
+
+    /**
+     * Count total number of vouchers.
+     *
+     * @return total number of vouchers
+     */
+    @Query("SELECT COUNT(v) FROM Voucher v")
+    long countTotalVouchers();
+
+    /**
+     * Count number of vouchers by their active status.
+     *
+     * @param active the active status to filter by
+     * @return number of vouchers with the specified active status
+     */
+    @Query("SELECT COUNT(v) FROM Voucher v WHERE v.active = :active")
+    long countVouchersByActiveStatus(@Param("active") boolean active);
+
+    /**
+     * Count number of vouchers grouped by their active status.
+     *
+     * @return a list of Object arrays, each containing the active status and the corresponding count
+     */
+    @Query("SELECT v.active, COUNT(v) FROM Voucher v GROUP BY v.active")
+    List<Object[]> countVouchersByAllActiveStatuses();
+
+    /**
+     * Count number of expired vouchers.
+     *
+     * @param now The current date and time.
+     * @return number of expired vouchers
+     */
+    @Query("SELECT COUNT(v) FROM Voucher v WHERE v.endDate < :now")
+    long countExpiredVouchers(@Param("now") LocalDateTime now);
+
+    /**
+     * Count number of currently active vouchers.
+     *
+     * @param now The current date and time.
+     * @return number of currently active vouchers
+     */
+    @Query("SELECT COUNT(v) FROM Voucher v WHERE v.active = true AND v.startDate <= :now AND v.endDate >= :now")
+    long countCurrentlyActiveVouchers(@Param("now") LocalDateTime now);
 }

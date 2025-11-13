@@ -941,6 +941,13 @@ public class ReviewServiceImpl implements ReviewService {
         // Get total reviews
         long totalReviews = reviewRepository.countAllReviews();
 
+        // Calculate overall average rating for all approved reviews
+        Double averageRating = 0.0;
+        if (totalReviews > 0) {
+            // You might want to only consider approved reviews for average rating
+            averageRating = calculateOverallAverageRating();
+        }
+
         // Get counts by status
         List<Object[]> statusData = reviewRepository.countReviewsByStatus();
         Map<ReviewStatus, Long> statusCounts = new HashMap<>();
@@ -957,7 +964,7 @@ public class ReviewServiceImpl implements ReviewService {
             statusCounts.put(status, count);
         }
 
-        return new ReviewStatisticsByStatus(totalReviews, statusCounts);
+        return new ReviewStatisticsByStatus(totalReviews, averageRating, statusCounts);
     }
 
     // Function to validate allowed status transitions
@@ -1041,5 +1048,10 @@ public class ReviewServiceImpl implements ReviewService {
                 }
             }
         }
+    }
+
+    // Calculate overall average rating for approved reviews
+    private Double calculateOverallAverageRating() {
+        return reviewRepository.getOverallAverageRating(ReviewStatus.APPROVED);
     }
 }

@@ -20,6 +20,7 @@ import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
 import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
+import vn.edu.iuh.fit.dtos.response.VoucherStatisticsResponse;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.services.VoucherService;
 
@@ -122,5 +123,12 @@ public class VoucherController {
 
         PageResponse<VoucherResponse> response = voucherService.getAvailableVouchersForCustomerPaging(pageable, language);
         return ResponseEntity.ok(ApiResponse.success(response, "Available vouchers retrieved successfully with pagination"));
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    public ResponseEntity<ApiResponse<VoucherStatisticsResponse>> getVoucherStatistics() {
+        VoucherStatisticsResponse statistics = voucherService.getVoucherStatistics();
+        return ResponseEntity.ok(ApiResponse.success(statistics, "Voucher statistics retrieved successfully"));
     }
 }
