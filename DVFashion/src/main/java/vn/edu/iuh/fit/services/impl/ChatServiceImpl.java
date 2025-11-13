@@ -270,6 +270,19 @@ public class ChatServiceImpl implements ChatService {
                 .toList();
     }
 
+    @Override
+    public String getChatRoomCodeByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+
+        ChatRoom chatRoom = chatRoomRepository.findByCustomerAndStatus(user, ChatRoomStatus.ACTIVE);
+        if (chatRoom == null) {
+            throw new NotFoundException("Active chat room not found for user id: " + userId);
+        }
+
+        return chatRoom.getRoomCode();
+    }
+
     private String generateRoomCode() {
         return "CHAT_" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
     }

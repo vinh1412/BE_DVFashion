@@ -3,11 +3,16 @@ from fastapi import FastAPI
 from app.controllers import recommendation_controller
 from app.controllers import chat_controller 
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables
 load_dotenv()
 
-app = FastAPI(title="Product Recommendation Service", version="1.0.0")
+app = FastAPI(
+    title="DVFashion Recommendation Service",
+    description="API for product recommendations and AI chat.",
+    version="1.0.0"
+)
 
 # Subscribe the recommendation controller
 app.include_router(

@@ -86,6 +86,15 @@ public class ChatController {
         return ResponseEntity.ok(ApiResponse.success(response, "Chat room retrieved successfully"));
     }
 
+    @GetMapping("/rooms/{userId}/room-code")
+    public ResponseEntity<ApiResponse<String>> getChatRoomCodeByUserId(
+            @PathVariable Long userId) {
+
+        String roomCode = chatService.getChatRoomCodeByUserId(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(roomCode, "Chat room code retrieved successfully"));
+    }
+
     @GetMapping("/rooms/{roomCode}/messages")
     public ResponseEntity<ApiResponse<List<ChatMessageResponse>>> getChatMessages(
             @PathVariable String roomCode,

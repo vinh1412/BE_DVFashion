@@ -86,6 +86,7 @@ public class WebSecurityConfig {
                 path("/payments/paypal/success"),
                 path("/payments/paypal/cancel"),
                 path("/shipping/calculate"),
+                path("/chat/ai"),
                 "/oauth2/**",
                 "/login/oauth2/**",
                 "/oauth2/authorization/**",
