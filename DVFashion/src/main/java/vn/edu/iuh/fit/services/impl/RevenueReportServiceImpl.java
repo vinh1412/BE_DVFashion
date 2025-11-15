@@ -47,7 +47,7 @@ public class RevenueReportServiceImpl implements RevenueReportService {
         List<Order> orders = orderRepository.findOrdersForReport(
                 startDate.atStartOfDay(),
                 endDate.atTime(23, 59, 59),
-                List.of(OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.SHIPPED, OrderStatus.DELIVERED)
+                List.of(OrderStatus.DELIVERED)
         );
 
         // Calculate overall metrics
@@ -389,22 +389,24 @@ public class RevenueReportServiceImpl implements RevenueReportService {
         sheet.addMergedRegion(new CellRangeAddress(rowNum, rowNum, 0, 7));
     }
 
+    private BigDecimal calculateOrderRevenue(Order order) {
+        BigDecimal productAmount = order.getItems().stream()
+                .map(item -> item.getUnitPrice()
+                        .subtract(item.getDiscount() != null ? item.getDiscount() : BigDecimal.ZERO)
+                        .multiply(BigDecimal.valueOf(item.getQuantity()))
+                )
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal shippingFee = order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO;
+        BigDecimal voucherDiscount = order.getVoucherDiscount() != null ? order.getVoucherDiscount() : BigDecimal.ZERO;
+
+        return productAmount.add(shippingFee).subtract(voucherDiscount);
+    }
+
     // Calculate total revenue from orders
     private BigDecimal calculateTotalRevenue(List<Order> orders) {
         return orders.stream()
-                .map(order -> {
-                    // Tính tổng từ orderItems
-                    BigDecimal orderTotal = order.getItems().stream()
-                            .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                    // Trừ discount nếu có
-                    if (order.getVoucherDiscount() != null) {
-                        orderTotal = orderTotal.subtract(order.getVoucherDiscount());
-                    }
-
-                    return orderTotal;
-                })
+                .map(this::calculateOrderRevenue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -576,7 +578,7 @@ public class RevenueReportServiceImpl implements RevenueReportService {
         List<Order> previousOrders = orderRepository.findOrdersForComparison(
                 previousStartDate.atStartOfDay(),
                 previousEndDate.atTime(23, 59, 59),
-                List.of(OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.SHIPPED, OrderStatus.DELIVERED)
+                List.of(OrderStatus.DELIVERED)
         );
 
         BigDecimal previousRevenue = calculateTotalRevenue(previousOrders);
