@@ -67,8 +67,8 @@ public class StatisticController {
 
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/revenue/yearly")
-    public ResponseEntity<ApiResponse<List<RevenueDataPoint>>> getYearlyRevenue() {
-        List<RevenueDataPoint> revenueList = statisticService.getYearlyRevenue();
+    public ResponseEntity<ApiResponse<List<RevenueDataPoint>>> getYearlyRevenue(@RequestParam(required = false) Integer year) {
+        List<RevenueDataPoint> revenueList = statisticService.getYearlyRevenue(year);
         return ResponseEntity.ok(ApiResponse.success(revenueList, "Yearly revenue retrieved successfully"));
     }
 

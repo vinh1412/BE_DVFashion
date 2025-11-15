@@ -51,7 +51,7 @@ public interface StatisticService {
      *
      * @return list of RevenueDataPoint representing yearly revenue
      */
-    List<RevenueDataPoint> getYearlyRevenue();
+    List<RevenueDataPoint> getYearlyRevenue(Integer year);
 
     /**
      * Get top 10 best-selling products based on quantity sold and total revenue.
