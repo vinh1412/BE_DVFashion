@@ -78,16 +78,42 @@ public class CategoryController {
         return ResponseEntity.ok(ApiResponse.success(categoryResponse, "Category retrieved successfully."));
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<ApiResponse<?>> getAllCategoriesNoPaging(@RequestParam(value = "lang", defaultValue = "VI") Language language) {
-        return ResponseEntity.ok(ApiResponse.success(categoryService.getAllCategories(language),
-                "Categories retrieved successfully."));
-    }
+//    @GetMapping("/all")
+//    public ResponseEntity<ApiResponse<?>> getAllCategoriesNoPaging(@RequestParam(value = "lang", defaultValue = "VI") Language language) {
+//        return ResponseEntity.ok(ApiResponse.success(categoryService.getAllCategories(language),
+//                "Categories retrieved successfully."));
+//    }
 
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/statistics")
     public ResponseEntity<ApiResponse<CategoryStatisticsResponse>> getCategoryStatistics() {
         CategoryStatisticsResponse productStatistics = categoryService.getCategoryStatistics();
         return ResponseEntity.ok(ApiResponse.success(productStatistics, "Product statistics fetched successfully"));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<PageResponse<CategoryResponse>>> getAllCategories(
+
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+
+            @RequestParam(name = "sort", required = false) String[] sort,
+
+            @RequestParam(required = false) String search,
+
+            @RequestParam(required = false) Boolean active,
+
+            @RequestParam(required = false) Boolean hasProducts,
+
+            @RequestParam(defaultValue = "VI", name = "lang") Language language
+    ) {
+
+        PageResponse<CategoryResponse> response = categoryService.getAllCategories(
+                        page, size, sort, search, active, hasProducts, language
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Fetched categories successfully")
+        );
     }
 }

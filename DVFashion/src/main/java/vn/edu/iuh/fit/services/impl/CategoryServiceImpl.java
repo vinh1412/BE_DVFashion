@@ -8,9 +8,14 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import vn.edu.iuh.fit.constants.SortFields;
+import vn.edu.iuh.fit.dtos.filters.FilterInfoCategory;
 import vn.edu.iuh.fit.dtos.request.CategoryRequest;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
 import vn.edu.iuh.fit.dtos.response.CategoryStatisticsResponse;
@@ -27,7 +32,9 @@ import vn.edu.iuh.fit.repositories.CategoryTranslationRepository;
 import vn.edu.iuh.fit.services.CategoryService;
 import vn.edu.iuh.fit.services.CloudinaryService;
 import vn.edu.iuh.fit.services.TranslationService;
+import vn.edu.iuh.fit.specifications.CategorySpecification;
 import vn.edu.iuh.fit.utils.ImageUtils;
+import vn.edu.iuh.fit.utils.SortUtils;
 import vn.edu.iuh.fit.utils.TextUtils;
 
 import java.util.HashMap;
@@ -52,6 +59,8 @@ public class CategoryServiceImpl implements CategoryService {
     private final TranslationService translationService;
 
     private final CategoryMapper categoryMapper;
+
+    private final CategorySpecification categorySpecification;
 
     @Override
     public CategoryResponse createCategory(CategoryRequest categoryRequest, MultipartFile imageFile, Language inputLang) {
@@ -299,5 +308,32 @@ public class CategoryServiceImpl implements CategoryService {
                 .totalCategoriesWithActiveProducts(totalCategoriesWithActiveProducts)
                 .categoriesByActiveStatus(categoriesByActiveStatus)
                 .build();
+    }
+
+    @Override
+    public PageResponse<CategoryResponse> getAllCategories(int page, int size, String[] sort, String search, Boolean active, Boolean hasProducts, Language language) {
+        Sort validSort = SortUtils.buildSort(
+                sort,
+                SortFields.CATEGORY_SORT_FIELDS,
+                SortFields.DEFAULT_CATEGORY_SORT
+        );
+
+        Pageable pageable = PageRequest.of(page, size, validSort);
+
+        Specification<Category> spec = categorySpecification.build(
+                search, active, hasProducts
+        );
+
+        Page<Category> pageData = categoryRepository.findAll(spec, pageable);
+
+        Page<CategoryResponse> responses = pageData.map(c -> categoryMapper.toResponse(c, language));
+
+        FilterInfoCategory filter = FilterInfoCategory.builder()
+                .search(search)
+                .active(active)
+                .hasProducts(hasProducts)
+                .build();
+
+        return PageResponse.from(responses, filter);
     }
 }
