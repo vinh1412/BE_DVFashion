@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.Inventory;
+import vn.edu.iuh.fit.entities.Order;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.OrderStatus;
 import vn.edu.iuh.fit.mappers.InventoryMapper;
@@ -29,6 +30,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /*
  * @description: Implementation of the StatisticService interface.
@@ -133,18 +136,54 @@ public class StatisticServiceImpl implements StatisticService {
     }
 
     @Override
-    public List<RevenueDataPoint> getYearlyRevenue() {
-        List<Object[]> results = orderRepository.calculateYearlyRevenue(OrderStatus.DELIVERED);
+    public List<RevenueDataPoint> getYearlyRevenue(Integer year) {
+        // Get target year
+        int targetYear = (year != null) ? year : LocalDate.now().getYear();
 
-        return results.stream()
-                .map(result -> {
-                    LocalDateTime yearDateTime = (LocalDateTime) result[0];
-                    String year = String.valueOf(yearDateTime.getYear()); // "2025"
+        LocalDateTime start = LocalDate.of(targetYear, 1, 1).atStartOfDay();
+        LocalDateTime end   = LocalDate.of(targetYear, 12, 31).atTime(23, 59, 59);
 
-                    BigDecimal revenue = (BigDecimal) result[1]; // Revenue
-                    return new RevenueDataPoint(year, revenue);
-                })
-                .toList();
+        List<Order> orders = orderRepository.findOrdersForReport(
+                start,
+                end,
+                List.of(OrderStatus.DELIVERED)
+        );
+
+        // If no orders found, return 0 revenue for the year
+        if (orders.isEmpty()) {
+            return List.of(
+                    new RevenueDataPoint(
+                            String.valueOf(targetYear),
+                            BigDecimal.ZERO
+                    )
+            );
+        }
+
+        // Calculate total revenue
+        BigDecimal revenue = orders.stream()
+                .map(this::calculateOrderRevenue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return List.of(
+                new RevenueDataPoint(
+                        String.valueOf(targetYear),
+                        revenue
+                )
+        );
+    }
+
+    private BigDecimal calculateOrderRevenue(Order order) {
+        BigDecimal productAmount = order.getItems().stream()
+                .map(item -> item.getUnitPrice()
+                        .subtract(item.getDiscount() != null ? item.getDiscount() : BigDecimal.ZERO)
+                        .multiply(BigDecimal.valueOf(item.getQuantity()))
+                )
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal shippingFee = order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO;
+        BigDecimal voucherDiscount = order.getVoucherDiscount() != null ? order.getVoucherDiscount() : BigDecimal.ZERO;
+
+        return productAmount.add(shippingFee).subtract(voucherDiscount);
     }
 
     @Override
