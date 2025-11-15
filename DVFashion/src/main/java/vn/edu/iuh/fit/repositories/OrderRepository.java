@@ -171,4 +171,29 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("language") Language language
     );
 
+    /**
+     * Finds orders within a specified date range and with specified statuses for reporting purposes.
+     *
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate   the end date of the range (inclusive)
+     * @param statuses  the list of order statuses to include
+     * @return a list of orders matching the criteria, ordered by order date
+     */
+    @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.status IN :statuses ORDER BY o.orderDate")
+    List<Order> findOrdersForReport(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate,
+                                    @Param("statuses") List<OrderStatus> statuses);
+
+    /**
+     * Finds orders within a specified date range and with specified statuses for comparison purposes.
+     *
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate   the end date of the range (inclusive)
+     * @param statuses  the list of order statuses to include
+     * @return a list of orders matching the criteria
+     */
+    @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.status IN :statuses")
+    List<Order> findOrdersForComparison(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate,
+                                        @Param("statuses") List<OrderStatus> statuses);
 }
