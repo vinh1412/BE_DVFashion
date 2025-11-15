@@ -93,7 +93,7 @@ public class RevenueReportServiceImpl implements RevenueReportService {
             sheet.getCTWorksheet()
                     .getSheetViews()
                     .getSheetViewArray(0)
-                    .setView(org.openxmlformats.schemas.spreadsheetml.x2006.main.STSheetViewType.PAGE_BREAK_PREVIEW);
+                    .setView(org.openxmlformats.schemas.spreadsheetml.x2006.main.STSheetViewType.NORMAL);
 
             sheet.setAutobreaks(true);
             sheet.getPrintSetup().setLandscape(true);
