@@ -55,6 +55,10 @@ public class ProductSpecification {
                 Join<Product, Category> catJoin =
                          root.join("category", JoinType.LEFT);
 
+                Join<Category, CategoryTranslation> cTransJoin =
+                        catJoin.join("translations", JoinType.LEFT);
+
+
                 List<Predicate> allWordAndPredicates = new ArrayList<>();
 
                 // Xử lý từng từ trong search
@@ -90,7 +94,7 @@ public class ProductSpecification {
 
                     // Category Name
                      perWordOrPreds.add(
-                            cb.like(cb.lower(catJoin.get("name")), keyword)
+                            cb.like(cb.lower(cTransJoin.get("name")), keyword)
                      );
 
                     // OR của 1 TỪ (ít nhất 1 field match)
