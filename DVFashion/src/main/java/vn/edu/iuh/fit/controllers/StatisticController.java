@@ -11,12 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.response.*;
+import vn.edu.iuh.fit.services.ForecastingService;
 import vn.edu.iuh.fit.services.StatisticService;
 
 import java.math.BigDecimal;
@@ -34,6 +32,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StatisticController {
     private final StatisticService statisticService;
+
+    private final ForecastingService forecastingService;
 
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/revenue")
@@ -104,5 +104,35 @@ public class StatisticController {
         List<PromotionRevenueStatistic> response = statisticService.getTopPromotionsByRevenue(limit);
 
         return ResponseEntity.ok(ApiResponse.success(response, "Top promotions by revenue retrieved successfully."));
+    }
+
+
+    @GetMapping("/internal/revenue-timeseries")
+    public ResponseEntity<ApiResponse<List<RevenueDataPoint>>> getRevenueTimeSeries(
+            @RequestParam(defaultValue = "DAILY") String period) {
+
+        // Gọi service đã có để lấy doanh thu hàng ngày
+        // Có thể bạn cần điều chỉnh service để lấy TẤT CẢ dữ liệu, không chỉ 1 khoảng
+        List<RevenueDataPoint> data = statisticService.getDailyRevenue(
+                LocalDate.of(2020, 1, 1), // Lấy từ một ngày đủ xa
+                LocalDate.now()
+        );
+        return ResponseEntity.ok(ApiResponse.success(data, "Revenue time series retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/revenue/forecast")
+    public ResponseEntity<ApiResponse<List<RevenueDataPoint>>> getRevenueForecast(
+            @RequestParam(defaultValue = "30") int days) {
+
+        List<RevenueDataPoint> forecast = forecastingService.getRevenueForecast(days);
+        return ResponseEntity.ok(ApiResponse.success(forecast, "Revenue forecast retrieved successfully"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @PostMapping("/revenue/forecast/retrain")
+    public ResponseEntity<ApiResponse<Void>> retrainForecastModel() {
+        forecastingService.triggerModelRetraining();
+        return ResponseEntity.ok(ApiResponse.noContent("Model retraining initiated"));
     }
 }

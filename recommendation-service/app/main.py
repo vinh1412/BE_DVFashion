@@ -1,7 +1,8 @@
 import os
 from fastapi import FastAPI
 from app.controllers import recommendation_controller
-from app.controllers import chat_controller 
+from app.controllers import chat_controller
+from app.controllers import forecasting_controller
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -25,6 +26,12 @@ app.include_router(
     chat_controller.router,
     prefix="/api/v1",
     tags=["Chatbot"]
+)
+
+app.include_router(
+    forecasting_controller.router,
+    prefix="/api/v1",
+    tags=["Forecasting"]
 )
 
 if __name__ == "__main__":
