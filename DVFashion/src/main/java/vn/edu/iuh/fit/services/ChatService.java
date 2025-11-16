@@ -96,4 +96,6 @@ public interface ChatService {
      * @return the list of chat room responses
      */
     List<ChatRoomResponse> getAdminChatRooms(int page, int size, Language language);
+
+    String getChatRoomCodeByUserId(Long userId);
 }

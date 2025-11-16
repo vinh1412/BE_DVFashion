@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 public record CartItemResponse(
         Long cartItemId,
 
+        Long productId,
+
         String productName,
 
         String color,

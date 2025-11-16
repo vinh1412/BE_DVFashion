@@ -74,7 +74,8 @@ class HybridRecommendationEngine:
             self.products_df['description'].fillna('') + ' ' +
             self.products_df['material'].fillna('') + ' ' +
             self.products_df['category_name'].fillna('') + ' ' +
-            self.products_df['color'].fillna('')
+            self.products_df['color'].fillna('') + ' ' +
+            self.products_df['size_name'].fillna('')
         )
         
         self.vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
@@ -379,5 +380,82 @@ class HybridRecommendationEngine:
 
         print("=" * 80 + "\n")
         return final_recommendations
-       
+    
+    def get_recommendations_by_text(
+    self,
+    query: str,
+    num_recommendations: int = 10
+    ) -> List[Dict]:
+        
+        """Gợi ý sản phẩm dựa trên truy vấn text (dành cho chatbot)."""
+        if self.vectorizer is None or self.tfidf_matrix is None:
+            print("⚠️ TF-IDF matrix chưa được khởi tạo.")
+            return []
+
+        print(f"🔍 Searching for: '{query}'")
+
+        try:
+            # Vector hóa truy vấn bằng TF-IDF
+            query_vector = self.vectorizer.transform([query])
+
+            # Tính độ tương đồng cosine với tất cả sản phẩm
+            similarities = cosine_similarity(query_vector, self.tfidf_matrix).flatten()
+
+            # Lấy top chỉ số có độ tương đồng cao nhất (bỏ trước phần ≤ 0)
+            positive_indices = np.where(similarities > 0)[0]
+            if len(positive_indices) == 0:
+                print("⚠️ No product found with similarity > 0.")
+                return []
+
+            # Lấy top N trong các sản phẩm có độ tương đồng dương
+            top_indices = similarities[positive_indices].argsort()[::-1][:num_recommendations]
+            top_indices = positive_indices[top_indices]
+
+            recommendations = []
+            for idx in top_indices:
+                sim_score = float(similarities[idx])
+                if sim_score <= 1e-6:
+                    continue  # bỏ các kết quả không khớp
+
+                product = self.products_df.iloc[idx]
+
+                # Lấy thông tin chi tiết (có kiểm tra null)
+                product_id = int(product.get("id"))
+                name = str(product.get("name", "")).strip()
+                category = str(product.get("category_name", "")).strip()
+                color = str(product.get("color", "")).strip()
+                size = str(product.get("size_name", "")).strip()
+                material = str(product.get("material", "")).strip()
+
+                # Lấy giá: nếu có sale_price thì dùng, nếu không thì price
+                base_price = product.get("sale_price") or product.get("price")
+                price = float(base_price) if pd.notna(base_price) else None
+
+                recommendations.append({
+                    "product_id": product_id,
+                    "name": name,
+                    "category": category,
+                    "color": color,
+                    "size": size,
+                    "material": material,
+                    "price": price,
+                    "similarity_score": sim_score,
+                    "recommendation_type": "TEXT_SEARCH"
+                })
+
+            # Loại bỏ trùng lặp (cùng sản phẩm nhiều size)
+            unique_recs = {r["product_id"]: r for r in recommendations}.values()
+
+            # Chuẩn hoá điểm similarity về [0,1]
+            normalized = self.normalize_recommendations(list(unique_recs))
+            
+            normalized = [r for r in normalized if r["similarity_score"] > 0]
+
+            print(f"✅ Found {len(normalized)} products for query: '{query}'")
+            return normalized
+
+        except Exception as e:
+            print(f"❌ Error in text search: {e}")
+            return []
+
 recommendation_engine = HybridRecommendationEngine()

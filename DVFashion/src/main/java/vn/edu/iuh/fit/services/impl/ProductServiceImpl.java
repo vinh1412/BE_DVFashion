@@ -35,7 +35,10 @@ import vn.edu.iuh.fit.utils.SortUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /*
  * @description: Service implementation for managing Products
@@ -323,6 +326,52 @@ public class ProductServiceImpl implements ProductService {
                 .build();
 
         return PageResponse.from(productResponses, filterInfo);
+    }
+
+    @Override
+    public ProductStatisticsResponse getProductStatistics() {
+        // Get total counts
+        long totalProducts = productRepository.countTotalProducts();
+
+        // Get total active/inactive products
+        long totalActiveProducts = productRepository.countProductsByStatus(ProductStatus.ACTIVE);
+        long totalInactiveProducts = productRepository.countProductsByStatus(ProductStatus.INACTIVE);
+
+        // Get total variants, low stock
+        long totalProductVariants = productRepository.countTotalProductVariants();
+
+        // Get total products with low stock
+        long totalProductsWithLowStock = productRepository.countProductsWithLowStock();
+
+        // Get total out of stock products
+        long totalOutOfStockProducts = productRepository.countOutOfStockProducts();
+
+        // Get total products on active promotion
+        long totalProductsOnPromotion = productRepository.countProductsOnActivePromotion();
+
+        Map<ProductStatus, Long> productsByStatus = new EnumMap<>(ProductStatus.class);
+        for (ProductStatus status : ProductStatus.values()) {
+            productsByStatus.put(status, 0L);
+        }
+
+        // Get counts by all statuses
+        List<Object[]> statusCounts = productRepository.countProductsByAllStatuses();
+        statusCounts.forEach(row -> {
+            ProductStatus status = (ProductStatus) row[0];
+            Long count = (Long) row[1];
+            productsByStatus.put(status, count);
+        });
+
+        return ProductStatisticsResponse.builder()
+                .totalProducts(totalProducts)
+                .totalActiveProducts(totalActiveProducts)
+                .totalInactiveProducts(totalInactiveProducts)
+                .totalProductVariants(totalProductVariants)
+                .totalProductsWithLowStock(totalProductsWithLowStock)
+                .totalOutOfStockProducts(totalOutOfStockProducts)
+                .totalProductsOnPromotion(totalProductsOnPromotion)
+                .productsByStatus(productsByStatus)
+                .build();
     }
 
     private ProductResponse toResponse(Product product, Language inputLang) {

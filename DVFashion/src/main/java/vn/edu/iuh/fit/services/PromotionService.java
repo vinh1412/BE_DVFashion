@@ -12,6 +12,7 @@ import vn.edu.iuh.fit.dtos.request.CreatePromotionRequest;
 import vn.edu.iuh.fit.dtos.request.UpdatePromotionRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.PromotionResponse;
+import vn.edu.iuh.fit.dtos.response.PromotionStatisticsResponse;
 import vn.edu.iuh.fit.enums.Language;
 
 import java.util.List;
@@ -99,4 +100,11 @@ public interface PromotionService {
      * @param promotionId The ID of the promotion to delete.
      */
     void deletePromotion(Long promotionId);
+
+    /**
+     * Retrieves promotion statistics.
+     *
+     * @return PromotionStatisticsResponse containing various statistics about promotions.
+     */
+    PromotionStatisticsResponse getPromotionStatistics();
 }

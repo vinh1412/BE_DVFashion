@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.Order;
+import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.OrderStatus;
 
 import java.math.BigDecimal;
@@ -122,4 +123,77 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         ORDER BY FUNCTION('DATE_TRUNC', 'year', o.orderDate)
     """)
     List<Object[]> calculateYearlyRevenue(@Param("status") OrderStatus status);
+
+    /**
+     * Count total number of orders.
+     *
+     * @return total order count
+     */
+    @Query("SELECT COUNT(o) FROM Order o")
+    long countTotalOrders();
+
+    /**
+     * Count number of orders grouped by their status.
+     *
+     * @return list of object arrays where each array contains status and corresponding count
+     */
+    @Query("SELECT o.status, COUNT(o) FROM Order o GROUP BY o.status")
+    List<Object[]> countOrdersByStatus();
+
+    /**
+     * Finds best-selling products based on order items for orders with a specific status.
+     *
+     * @param status   the status of the orders to consider (e.g., DELIVERED)
+     * @param language the language for product name translation
+     * @return a list of object arrays where each array contains:
+     *         - product ID
+     *         - product name
+     *         - total quantity sold
+     *         - total revenue generated
+     */
+    @Query("""
+    SELECT p.id AS productId,
+           pt.name AS productName,
+           SUM(oi.quantity) AS totalQuantity,
+           SUM(oi.quantity * oi.unitPrice) AS totalRevenue
+    FROM OrderItem oi
+    JOIN oi.order o
+    JOIN oi.productVariant pv
+    JOIN pv.product p
+    JOIN p.translations pt
+    WHERE o.status = :status
+      AND pt.language = :language
+    GROUP BY p.id, pt.name
+    ORDER BY totalQuantity DESC
+    """)
+    List<Object[]> findBestSellingProductsByLanguage(
+            @Param("status") OrderStatus status,
+            @Param("language") Language language
+    );
+
+    /**
+     * Finds orders within a specified date range and with specified statuses for reporting purposes.
+     *
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate   the end date of the range (inclusive)
+     * @param statuses  the list of order statuses to include
+     * @return a list of orders matching the criteria, ordered by order date
+     */
+    @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.status IN :statuses ORDER BY o.orderDate")
+    List<Order> findOrdersForReport(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate,
+                                    @Param("statuses") List<OrderStatus> statuses);
+
+    /**
+     * Finds orders within a specified date range and with specified statuses for comparison purposes.
+     *
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate   the end date of the range (inclusive)
+     * @param statuses  the list of order statuses to include
+     * @return a list of orders matching the criteria
+     */
+    @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.status IN :statuses")
+    List<Order> findOrdersForComparison(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate,
+                                        @Param("statuses") List<OrderStatus> statuses);
 }

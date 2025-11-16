@@ -8,11 +8,20 @@ package vn.edu.iuh.fit.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import vn.edu.iuh.fit.dtos.response.RevenueDataPoint;
+import vn.edu.iuh.fit.dtos.response.*;
+import vn.edu.iuh.fit.entities.Inventory;
+import vn.edu.iuh.fit.entities.Order;
+import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.OrderStatus;
+import vn.edu.iuh.fit.mappers.InventoryMapper;
+import vn.edu.iuh.fit.repositories.InventoryRepository;
 import vn.edu.iuh.fit.repositories.OrderRepository;
+import vn.edu.iuh.fit.repositories.PromotionRepository;
 import vn.edu.iuh.fit.services.StatisticService;
+import vn.edu.iuh.fit.utils.LanguageUtils;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -21,6 +30,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /*
  * @description: Implementation of the StatisticService interface.
@@ -33,6 +44,12 @@ import java.util.List;
 @Slf4j
 public class StatisticServiceImpl implements StatisticService {
     private final OrderRepository orderRepository;
+
+    private final InventoryRepository inventoryRepository;
+
+    private final InventoryMapper inventoryMapper;
+
+    private final PromotionRepository promotionRepository;
 
     @Override
     public BigDecimal getRevenueStatistics(String period, LocalDate startDate, LocalDate endDate) {
@@ -119,17 +136,117 @@ public class StatisticServiceImpl implements StatisticService {
     }
 
     @Override
-    public List<RevenueDataPoint> getYearlyRevenue() {
-        List<Object[]> results = orderRepository.calculateYearlyRevenue(OrderStatus.DELIVERED);
+    public List<RevenueDataPoint> getYearlyRevenue(Integer year) {
+        // Get target year
+        int targetYear = (year != null) ? year : LocalDate.now().getYear();
+
+        LocalDateTime start = LocalDate.of(targetYear, 1, 1).atStartOfDay();
+        LocalDateTime end   = LocalDate.of(targetYear, 12, 31).atTime(23, 59, 59);
+
+        List<Order> orders = orderRepository.findOrdersForReport(
+                start,
+                end,
+                List.of(OrderStatus.DELIVERED)
+        );
+
+        // If no orders found, return 0 revenue for the year
+        if (orders.isEmpty()) {
+            return List.of(
+                    new RevenueDataPoint(
+                            String.valueOf(targetYear),
+                            BigDecimal.ZERO
+                    )
+            );
+        }
+
+        // Calculate total revenue
+        BigDecimal revenue = orders.stream()
+                .map(this::calculateOrderRevenue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return List.of(
+                new RevenueDataPoint(
+                        String.valueOf(targetYear),
+                        revenue
+                )
+        );
+    }
+
+    private BigDecimal calculateOrderRevenue(Order order) {
+        BigDecimal productAmount = order.getItems().stream()
+                .map(item -> item.getUnitPrice()
+                        .subtract(item.getDiscount() != null ? item.getDiscount() : BigDecimal.ZERO)
+                        .multiply(BigDecimal.valueOf(item.getQuantity()))
+                )
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal shippingFee = order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO;
+        BigDecimal voucherDiscount = order.getVoucherDiscount() != null ? order.getVoucherDiscount() : BigDecimal.ZERO;
+
+        return productAmount.add(shippingFee).subtract(voucherDiscount);
+    }
+
+    @Override
+    public List<ProductSalesStatistic> getTop10BestSellingProducts() {
+        Language language= LanguageUtils.getCurrentLanguage();
+        List<Object[]> results = orderRepository.findBestSellingProductsByLanguage(OrderStatus.DELIVERED, language);
 
         return results.stream()
-                .map(result -> {
-                    LocalDateTime yearDateTime = (LocalDateTime) result[0];
-                    String year = String.valueOf(yearDateTime.getYear()); // "2025"
+                .map(result -> new ProductSalesStatistic(
+                        ((Number) result[0]).longValue(), // Product ID
+                        (String) result[1],               // Product Name
+                        ((Number) result[2]).longValue(), // Total Quantity
+                        (BigDecimal) result[3]            // Total Revenue
+                ))
+                .toList();
+    }
 
-                    BigDecimal revenue = (BigDecimal) result[1]; // Revenue
-                    return new RevenueDataPoint(year, revenue);
-                })
+    @Override
+    public List<ProductStockStatistic> getTopStockProducts(int limit) {
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<Object[]> results = inventoryRepository.findTopStockProductsByLanguage(currentLanguage, pageable);
+
+        return results.stream()
+                .map(result -> new ProductStockStatistic(
+                        ((Number) result[0]).longValue(), // productId
+                        (String) result[1],               // productName
+                        ((Number) result[2]).longValue()  // totalAvailableQuantity
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<InventoryResponse> getLowStockItems(int limit) {
+        // Get current language
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        // Create Pageable object to limit results
+        Pageable pageable = PageRequest.of(0, limit);
+
+        // Find items with inventory below the minimum level
+        List<Inventory> lowStockInventories = inventoryRepository.findLowStockItems(pageable);
+
+        log.info("Retrieved top {} low stock items", lowStockInventories.size());
+        return inventoryMapper.mapToInventoryResponseList(lowStockInventories, currentLanguage);
+    }
+
+    @Override
+    public List<PromotionRevenueStatistic> getTopPromotionsByRevenue(int limit) {
+        Language currentLanguage = LanguageUtils.getCurrentLanguage();
+
+        Pageable pageable = PageRequest.of(0, limit);
+
+        List<Object[]> results = promotionRepository.findTopPromotionsByRevenue(currentLanguage, pageable);
+
+        return results.stream()
+                .map(result -> new PromotionRevenueStatistic(
+                        ((Number) result[0]).longValue(),  // promotionId
+                        (String) result[1],                // promotionName
+                        (result[2] != null) ? ((Number) result[2]).doubleValue() : 0.0 // totalRevenue
+                ))
                 .toList();
     }
 }

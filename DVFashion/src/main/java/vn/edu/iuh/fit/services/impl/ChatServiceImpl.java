@@ -71,6 +71,8 @@ public class ChatServiceImpl implements ChatService {
                 .guestName(request.guestName())
                 .guestPhone(request.guestPhone())
                 .status(ChatRoomStatus.ACTIVE)
+                .unreadAdminCount(0)
+                .unreadCustomerCount(0)
                 .build();
 
         chatRoom = chatRoomRepository.save(chatRoom);
@@ -266,6 +268,19 @@ public class ChatServiceImpl implements ChatService {
         return roomsPage.getContent().stream()
                 .map(room -> chatMapper.mapToResponse(room, language))
                 .toList();
+    }
+
+    @Override
+    public String getChatRoomCodeByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+
+        ChatRoom chatRoom = chatRoomRepository.findByCustomerAndStatus(user, ChatRoomStatus.ACTIVE);
+        if (chatRoom == null) {
+            throw new NotFoundException("Active chat room not found for user id: " + userId);
+        }
+
+        return chatRoom.getRoomCode();
     }
 
     private String generateRoomCode() {

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.dtos.request.CategoryRequest;
 import vn.edu.iuh.fit.dtos.response.CategoryResponse;
+import vn.edu.iuh.fit.dtos.response.CategoryStatisticsResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.enums.Language;
 
@@ -75,4 +76,33 @@ public interface CategoryService {
      * @return a list of all CategoryResponse
      */
     List<CategoryResponse> getAllCategories(Language language);
+
+    /**
+     * Retrieves statistics about categories.
+     *
+     * @return a CategoryStatisticsResponse containing category statistics
+     */
+    CategoryStatisticsResponse getCategoryStatistics();
+
+    /**
+     * Retrieves a paginated list of categories with optional filters and sorting.
+     *
+     * @param page the page number to retrieve
+     * @param size the number of items per page
+     * @param sort the sorting criteria
+     * @param search the search keyword to filter categories by name or description
+     * @param active filter by active status if provided
+     * @param hasProducts filter categories that have products if true
+     * @param language the language for the category data
+     * @return a PageResponse containing the paginated list of CategoryResponse
+     */
+    PageResponse<CategoryResponse> getAllCategories(
+            int page,
+            int size,
+            String[] sort,
+            String search,
+            Boolean active,
+            Boolean hasProducts,
+            Language language
+    );
 }

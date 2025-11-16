@@ -22,4 +22,9 @@ public class SortFields {
             Set.of("id", "price", "salePrice", "createdAt", "updatedAt", "name");
 
     public static final String DEFAULT_PRODUCT_SORT = "createdAt";
+
+    public static final Set<String> CATEGORY_SORT_FIELDS =
+            Set.of("id", "active");
+
+    public static final String DEFAULT_CATEGORY_SORT = "id";
 }

@@ -11,6 +11,7 @@ import vn.edu.iuh.fit.dtos.request.CreateVoucherRequest;
 import vn.edu.iuh.fit.dtos.request.UpdateVoucherRequest;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.VoucherResponse;
+import vn.edu.iuh.fit.dtos.response.VoucherStatisticsResponse;
 import vn.edu.iuh.fit.entities.Order;
 import vn.edu.iuh.fit.entities.OrderItem;
 import vn.edu.iuh.fit.entities.User;
@@ -135,4 +136,11 @@ public interface VoucherService {
      * @param order   the order associated with the voucher usage
      */
     void recordUsage(Voucher voucher, User user, Order order);
+
+    /**
+     * Get voucher statistics including total vouchers, active vouchers, and expired vouchers.
+     *
+     * @return VoucherStatisticsResponse containing voucher statistics
+     */
+    VoucherStatisticsResponse getVoucherStatistics();
 }

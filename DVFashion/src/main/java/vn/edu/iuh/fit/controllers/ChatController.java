@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.controllers;
 
 import com.cloudinary.Api;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +28,12 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.ChatMessageResponse;
 import vn.edu.iuh.fit.dtos.response.ChatRoomResponse;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.exceptions.BadRequestException;
+import vn.edu.iuh.fit.services.AIChatService;
 import vn.edu.iuh.fit.services.ChatService;
 
 import java.util.List;
+import java.util.Map;
 
 /*
  * @description: Controller for managing chat functionalities
@@ -42,14 +46,20 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ChatController {
-
     private final ChatService chatService;
+
     private final SimpMessagingTemplate messagingTemplate;
+
+    private final AIChatService aiChatService;
 
     @PostMapping("/rooms")
     public ResponseEntity<ApiResponse<ChatRoomResponse>> createChatRoom(
             @Valid @RequestBody CreateChatRoomRequest request,
             @RequestParam(value = "lang", defaultValue = "VI") Language language) {
+        // Validate guest name
+        if (request.guestName() == null || request.guestName().trim().isEmpty()) {
+            throw new BadRequestException("Guest name is required");
+        }
 
         ChatRoomResponse response = chatService.createGuestChatRoom(request, language);
 
@@ -74,6 +84,15 @@ public class ChatController {
         ChatRoomResponse response = chatService.getChatRoomByCode(roomCode, language);
 
         return ResponseEntity.ok(ApiResponse.success(response, "Chat room retrieved successfully"));
+    }
+
+    @GetMapping("/rooms/{userId}/room-code")
+    public ResponseEntity<ApiResponse<String>> getChatRoomCodeByUserId(
+            @PathVariable Long userId) {
+
+        String roomCode = chatService.getChatRoomCodeByUserId(userId);
+
+        return ResponseEntity.ok(ApiResponse.success(roomCode, "Chat room code retrieved successfully"));
     }
 
     @GetMapping("/rooms/{roomCode}/messages")
@@ -161,5 +180,12 @@ public class ChatController {
 
         // Broadcast typing indicator
         messagingTemplate.convertAndSend("/topic/chat/" + roomCode + "/typing", message);
+    }
+
+    @PostMapping("/ai")
+    public ResponseEntity<ApiResponse<JsonNode>> chatAI(@RequestBody Map<String, String> request) {
+        JsonNode response = aiChatService.sendToAI(request.get("message"));
+
+        return ResponseEntity.ok(ApiResponse.success(response, "AI chat response"));
     }
 }

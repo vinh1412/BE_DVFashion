@@ -12,10 +12,7 @@ import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import vn.edu.iuh.fit.entities.Product;
-import vn.edu.iuh.fit.entities.ProductTranslation;
-import vn.edu.iuh.fit.entities.Promotion;
-import vn.edu.iuh.fit.entities.PromotionProduct;
+import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.enums.ProductStatus;
 
 import java.math.BigDecimal;
@@ -39,10 +36,77 @@ public class ProductSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Tìm kiếm theo tên sản phẩm (thông qua bảng translations)
+
+            // Tách keyword thành từng từ → match chính xác
             if (StringUtils.hasText(search)) {
-                Join<Product, ProductTranslation> translationJoin = root.join("translations", JoinType.LEFT);
-                predicates.add(cb.like(cb.lower(translationJoin.get("name")), "%" + search.toLowerCase() + "%"));
+
+                String[] words = search.toLowerCase().trim().split("\\s+");
+
+                // JOIN các bảng cần search
+                Join<Product, ProductTranslation> trJoin =
+                        root.join("translations", JoinType.LEFT);
+
+                Join<Product, ProductVariant> variantJoin =
+                        root.join("variants", JoinType.LEFT);
+
+                Join<ProductVariant, Size> sizeJoin =
+                        variantJoin.join("sizes", JoinType.LEFT);
+
+                Join<Product, Category> catJoin =
+                         root.join("category", JoinType.LEFT);
+
+                Join<Category, CategoryTranslation> cTransJoin =
+                        catJoin.join("translations", JoinType.LEFT);
+
+
+                List<Predicate> allWordAndPredicates = new ArrayList<>();
+
+                // Xử lý từng từ trong search
+                for (String word : words) {
+                    String keyword = "%" + word + "%";
+
+                    List<Predicate> perWordOrPreds = new ArrayList<>();
+
+                    // Name
+                    perWordOrPreds.add(
+                            cb.like(cb.lower(trJoin.get("name")), keyword)
+                    );
+
+                    // Description
+                    perWordOrPreds.add(
+                            cb.like(cb.lower(trJoin.get("description")), keyword)
+                    );
+
+                    // Material
+                    perWordOrPreds.add(
+                            cb.like(cb.lower(trJoin.get("material")), keyword)
+                    );
+
+                    // Color
+                    perWordOrPreds.add(
+                            cb.like(cb.lower(variantJoin.get("color")), keyword)
+                    );
+
+                    // Size
+                    perWordOrPreds.add(
+                            cb.like(cb.lower(sizeJoin.get("sizeName")), keyword)
+                    );
+
+                    // Category Name
+                     perWordOrPreds.add(
+                            cb.like(cb.lower(cTransJoin.get("name")), keyword)
+                     );
+
+                    // OR của 1 TỪ (ít nhất 1 field match)
+                    allWordAndPredicates.add(
+                            cb.or(perWordOrPreds.toArray(new Predicate[0]))
+                    );
+                }
+
+                // AND giữa các từ (tất cả từ phải match)
+                predicates.add(
+                        cb.and(allWordAndPredicates.toArray(new Predicate[0]))
+                );
             }
 
             // Lọc theo danh mục
