@@ -182,7 +182,7 @@ public class OrderServiceImpl implements OrderService {
             // Send order confirmation email (async to avoid blocking)
             try {
                 log.info("Sending order confirmation email to {}", customer.getEmail());
-                emailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
+//                emailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
             } catch (Exception e) {
                 log.error("Failed to send order confirmation email: {}", e.getMessage());
             }
