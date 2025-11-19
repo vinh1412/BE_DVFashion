@@ -196,4 +196,34 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findOrdersForComparison(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate,
                                         @Param("statuses") List<OrderStatus> statuses);
+
+    /**
+     * Fetches daily revenue series within a specified date range for orders with a specific status.
+     * @param status the status of the orders to consider (e.g., DELIVERED)
+     * @param start the start date and time of the range (inclusive)
+     * @param end the end date and time of the range (inclusive)
+     * @return a list of object arrays where each array contains:
+     *         - the date (day)
+     *         - the total revenue for that day
+     */
+    @Query("""
+        SELECT 
+            DATE(o.orderDate) AS day,
+            SUM(
+                (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+                + COALESCE(o.shippingFee, 0)
+                - COALESCE(o.voucherDiscount, 0)
+            ) AS daily_revenue
+        FROM Order o
+        JOIN o.items oi
+        WHERE o.status = :status
+          AND o.orderDate BETWEEN :start AND :end
+        GROUP BY DATE(o.orderDate)
+        ORDER BY DATE(o.orderDate) ASC
+    """)
+    List<Object[]> fetchDailyRevenueSeries(
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }
