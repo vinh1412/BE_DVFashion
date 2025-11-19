@@ -6,12 +6,17 @@
 
 package vn.edu.iuh.fit.services.impl;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import vn.edu.iuh.fit.constants.SortFields;
+import vn.edu.iuh.fit.dtos.filters.FilterInfoOrder;
 import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
@@ -25,9 +30,13 @@ import vn.edu.iuh.fit.mappers.OrderMapper;
 import vn.edu.iuh.fit.mappers.ShippingInfoMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.*;
+import vn.edu.iuh.fit.specifications.OrderSpecification;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 import vn.edu.iuh.fit.utils.OrderUtils;
+import vn.edu.iuh.fit.utils.SortUtils;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -77,6 +86,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final InventoryRepository inventoryRepository;
 
+    private final OrderSpecification orderSpecification;
 
     @Override
     @Transactional
@@ -589,6 +599,102 @@ public class OrderServiceImpl implements OrderService {
                 .totalOrders(totalOrders)
                 .ordersByStatus(ordersByStatus)
                 .build();
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getOrdersByStatus(OrderStatus status, int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        // Validate and build Sort
+        Sort validSort = SortUtils.buildSort(
+                sort,
+                SortFields.ORDER_SORT_FIELDS,
+                SortFields.DEFAULT_ORDER_SORT
+        );
+
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        }
+
+
+        if (endDate != null) {
+            endDateTime = endDate.atTime(23, 59, 59);
+        }
+
+        // Create Pageable
+        Pageable pageable = PageRequest.of(page, size, validSort);
+
+        // Build specification
+        Specification<Order> spec = orderSpecification.build(
+                search, status, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDateTime, endDateTime
+        );
+
+        // Query orders with pagination and filtering
+        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
+
+        // Map to response DTOs
+        Page<OrderResponse> orderResponses = orderPage.map(order ->
+                orderMapper.mapToOrderResponse(order, order.getCustomer().getEmail(), LanguageUtils.getCurrentLanguage())
+        );
+
+        FilterInfoOrder filterInfo = FilterInfoOrder.builder()
+                .search(search)
+                .status(status)
+                .paymentMethod(paymentMethod)
+                .paymentStatus(paymentStatus)
+                .customerId(customerId)
+                .minTotal(minTotal)
+                .maxTotal(maxTotal)
+                .startDate(startDateTime != null ? startDateTime.toLocalDate() : null)
+                .endDate(endDateTime != null ? endDateTime.toLocalDate() : null)
+                .build();
+
+
+        return PageResponse.from(orderResponses, filterInfo);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getPendingOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.PENDING, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getConfirmedOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.CONFIRMED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getProcessingOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.PROCESSING, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getShippedOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.SHIPPED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getDeliveredOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.DELIVERED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getCancelledOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.CANCELED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getReturnedOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.RETURNED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
     }
 
     private void validateCancellationEligibility(Order order) {
