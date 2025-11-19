@@ -14,7 +14,12 @@ import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
 import vn.edu.iuh.fit.dtos.response.OrderStatisticsResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
+import vn.edu.iuh.fit.enums.OrderStatus;
+import vn.edu.iuh.fit.enums.PaymentMethod;
+import vn.edu.iuh.fit.enums.PaymentStatus;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 /*
@@ -137,4 +142,81 @@ public interface OrderService {
      * @return the order statistics response
      */
     OrderStatisticsResponse getOrderStatistics();
+
+    /**
+     * Get orders filtered by various criteria including status, payment method, date range, etc.
+     *
+     * @param status         the order status to filter by
+     * @param page           the page number
+     * @param size           the page size
+     * @param sort           the sort criteria
+     * @param search         the search keyword
+     * @param paymentMethod  the payment method to filter by
+     * @param paymentStatus  the payment status to filter by
+     * @param customerId     the customer ID to filter by
+     * @param minTotal       the minimum total price to filter by
+     * @param maxTotal       the maximum total price to filter by
+     * @param startDate      the start date of the order date range
+     * @param endDate        the end date of the order date range
+     * @return page response of filtered order responses
+     */
+    PageResponse<OrderResponse> getOrdersByStatus(
+            OrderStatus status, int page, int size, String[] sort,
+            String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus,
+            Long customerId, BigDecimal minTotal, BigDecimal maxTotal,
+            LocalDate startDate, LocalDate endDate
+    );
+
+    /**
+     * Specific methods for each order status for convenience
+     */
+    PageResponse<OrderResponse> getPendingOrders(
+            int page, int size, String[] sort, String search,
+            PaymentMethod paymentMethod, PaymentStatus paymentStatus,
+            Long customerId, BigDecimal minTotal, BigDecimal maxTotal,
+            LocalDate startDate, LocalDate endDate
+    );
+
+    PageResponse<OrderResponse> getConfirmedOrders(
+            int page, int size, String[] sort, String search,
+            PaymentMethod paymentMethod, PaymentStatus paymentStatus,
+            Long customerId, BigDecimal minTotal, BigDecimal maxTotal,
+            LocalDate startDate, LocalDate endDate
+    );
+
+    PageResponse<OrderResponse> getProcessingOrders(
+            int page, int size, String[] sort, String search,
+            PaymentMethod paymentMethod, PaymentStatus paymentStatus,
+            Long customerId, BigDecimal minTotal, BigDecimal maxTotal,
+            LocalDate startDate, LocalDate endDate
+    );
+
+    PageResponse<OrderResponse> getShippedOrders(
+            int page, int size, String[] sort, String search,
+            PaymentMethod paymentMethod, PaymentStatus paymentStatus,
+            Long customerId, BigDecimal minTotal, BigDecimal maxTotal,
+            LocalDate startDate, LocalDate endDate
+    );
+
+    PageResponse<OrderResponse> getDeliveredOrders(
+            int page, int size, String[] sort, String search,
+            PaymentMethod paymentMethod, PaymentStatus paymentStatus,
+            Long customerId, BigDecimal minTotal, BigDecimal maxTotal,
+            LocalDate startDate, LocalDate endDate
+    );
+
+    PageResponse<OrderResponse> getCancelledOrders(
+            int page, int size, String[] sort, String search,
+            PaymentMethod paymentMethod, PaymentStatus paymentStatus,
+            Long customerId, BigDecimal minTotal, BigDecimal maxTotal,
+            LocalDate startDate, LocalDate endDate
+    );
+
+    PageResponse<OrderResponse> getReturnedOrders(
+            int page, int size, String[] sort, String search,
+            PaymentMethod paymentMethod, PaymentStatus paymentStatus,
+            Long customerId, BigDecimal minTotal, BigDecimal maxTotal,
+            LocalDate startDate, LocalDate endDate
+    );
+
 }

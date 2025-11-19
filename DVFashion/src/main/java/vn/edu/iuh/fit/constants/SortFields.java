@@ -27,4 +27,9 @@ public class SortFields {
             Set.of("id", "active");
 
     public static final String DEFAULT_CATEGORY_SORT = "id";
+
+    public static final Set<String> ORDER_SORT_FIELDS =
+            Set.of("id", "orderNumber", "orderDate", "status");
+
+    public static final String DEFAULT_ORDER_SORT = "orderDate";
 }

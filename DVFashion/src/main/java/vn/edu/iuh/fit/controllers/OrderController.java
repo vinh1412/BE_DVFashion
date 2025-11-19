@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,8 +24,13 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
 import vn.edu.iuh.fit.dtos.response.OrderStatisticsResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
+import vn.edu.iuh.fit.enums.PaymentMethod;
+import vn.edu.iuh.fit.enums.PaymentStatus;
 import vn.edu.iuh.fit.services.OrderService;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /*
@@ -113,12 +119,12 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orders, "All orders retrieved"));
     }
 
-    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
-    @GetMapping("/all")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders() {
-        List<OrderResponse> orders = orderService.getAllOrders();
-        return ResponseEntity.ok(ApiResponse.success(orders, "All orders retrieved"));
-    }
+//    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+//    @GetMapping("/all")
+//    public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders() {
+//        List<OrderResponse> orders = orderService.getAllOrders();
+//        return ResponseEntity.ok(ApiResponse.success(orders, "All orders retrieved"));
+//    }
 
     @PreAuthorize(RoleConstant.HAS_ROLE_CUSTOMER)
     @PutMapping("/{orderNumber}/cancel")
@@ -137,5 +143,159 @@ public class OrderController {
         OrderStatisticsResponse statistics = orderService.getOrderStatistics();
 
         return ResponseEntity.ok(ApiResponse.success(statistics, "Order statistics fetched successfully"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/all/pending")
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getPendingOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderDate,desc") String[] sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) BigDecimal minTotal,
+            @RequestParam(required = false) BigDecimal maxTotal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate endDate
+    ) {
+        PageResponse<OrderResponse> orders = orderService.getPendingOrders(
+                page, size, sort, search, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDate, endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success(orders, "Pending orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/all/confirmed")
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getConfirmedOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderDate,desc") String[] sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) BigDecimal minTotal,
+            @RequestParam(required = false) BigDecimal maxTotal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate endDate
+    ) {
+        PageResponse<OrderResponse> orders = orderService.getConfirmedOrders(
+                page, size, sort, search, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDate, endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success(orders, "Confirmed orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/all/processing")
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getProcessingOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderDate,desc") String[] sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) BigDecimal minTotal,
+            @RequestParam(required = false) BigDecimal maxTotal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate endDate
+    ) {
+        PageResponse<OrderResponse> orders = orderService.getProcessingOrders(
+                page, size, sort, search, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDate, endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success(orders, "Processing orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/all/shipped")
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getShippedOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderDate,desc") String[] sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) BigDecimal minTotal,
+            @RequestParam(required = false) BigDecimal maxTotal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate endDate
+    ) {
+        PageResponse<OrderResponse> orders = orderService.getShippedOrders(
+                page, size, sort, search, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDate, endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success(orders, "Shipped orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/all/delivered")
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getDeliveredOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderDate,desc") String[] sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) BigDecimal minTotal,
+            @RequestParam(required = false) BigDecimal maxTotal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate endDate
+    ) {
+        PageResponse<OrderResponse> orders = orderService.getDeliveredOrders(
+                page, size, sort, search, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDate, endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success(orders, "Delivered orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/all/cancelled")
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getCancelledOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderDate,desc") String[] sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) BigDecimal minTotal,
+            @RequestParam(required = false) BigDecimal maxTotal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate endDate
+    ) {
+        PageResponse<OrderResponse> orders = orderService.getCancelledOrders(
+                page, size, sort, search, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDate, endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success(orders, "Cancelled orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @GetMapping("/all/returned")
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getReturnedOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderDate,desc") String[] sort,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+            @RequestParam(required = false) PaymentStatus paymentStatus,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) BigDecimal minTotal,
+            @RequestParam(required = false) BigDecimal maxTotal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDate endDate
+    ) {
+        PageResponse<OrderResponse> orders = orderService.getReturnedOrders(
+                page, size, sort, search, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDate, endDate
+        );
+        return ResponseEntity.ok(ApiResponse.success(orders, "Returned orders retrieved"));
     }
 }
