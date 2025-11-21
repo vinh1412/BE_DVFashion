@@ -183,7 +183,7 @@ public class StatisticServiceImpl implements StatisticService {
         BigDecimal shippingFee = order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO;
         BigDecimal voucherDiscount = order.getVoucherDiscount() != null ? order.getVoucherDiscount() : BigDecimal.ZERO;
 
-        return productAmount.add(shippingFee).subtract(voucherDiscount);
+        return productAmount.subtract(voucherDiscount);
     }
 
     @Override
