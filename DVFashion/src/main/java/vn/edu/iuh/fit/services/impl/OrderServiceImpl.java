@@ -88,6 +88,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderSpecification orderSpecification;
 
+    private final OrderAutoTransitionService autoTransitionService;
+
     @Override
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -193,6 +195,10 @@ public class OrderServiceImpl implements OrderService {
             try {
                 log.info("Sending order confirmation email to {}", customer.getEmail());
 //                emailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
+
+                // Schedule auto transition to PROCESSING
+                autoTransitionService.scheduleAutoTransition(savedOrder,
+                        AutoTransitionType.CONFIRMED_TO_PROCESSING);
             } catch (Exception e) {
                 log.error("Failed to send order confirmation email: {}", e.getMessage());
             }
@@ -230,6 +236,10 @@ public class OrderServiceImpl implements OrderService {
         payment.setPaymentDate(LocalDateTime.now());
         payment.setCapturedAt(LocalDateTime.now());
         payment.setPaypalCaptureId(captureId);
+
+        // Schedule auto transition to PROCESSING
+        autoTransitionService.scheduleAutoTransition(order,
+                AutoTransitionType.CONFIRMED_TO_PROCESSING);
 
         // Save order
         orderRepository.save(order);
@@ -381,6 +391,12 @@ public class OrderServiceImpl implements OrderService {
                 processAdminCancellation(order, request.cancellationReason());
             } else {
                 applyOrderStatusTransition(order, targetStatus);
+            }
+
+            // Schedule auto transition if moved to CONFIRMED
+            if (targetStatus == OrderStatus.CONFIRMED) {
+                autoTransitionService.scheduleAutoTransition(order,
+                        AutoTransitionType.CONFIRMED_TO_PROCESSING);
             }
         }
 

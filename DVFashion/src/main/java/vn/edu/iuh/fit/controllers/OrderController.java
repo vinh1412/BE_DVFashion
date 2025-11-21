@@ -20,6 +20,7 @@ import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.enums.PaymentMethod;
 import vn.edu.iuh.fit.enums.PaymentStatus;
+import vn.edu.iuh.fit.services.OrderAutoTransitionService;
 import vn.edu.iuh.fit.services.OrderService;
 
 import java.math.BigDecimal;
@@ -38,6 +39,8 @@ import java.util.List;
 @RequestMapping("${web.base-path}/orders")
 public class OrderController {
     private final OrderService orderService;
+
+    private final OrderAutoTransitionService autoTransitionService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(@Valid @RequestBody CreateOrderRequest request) {
@@ -304,5 +307,10 @@ public class OrderController {
                 response.successfulUpdates(), response.failedUpdates());
 
         return ResponseEntity.ok(ApiResponse.success(response, message));
+    }
+
+    @PostMapping("/internal/trigger-auto-transition")
+    public void triggerAutoTransition() {
+        autoTransitionService.executeScheduledTransitions();
     }
 }
