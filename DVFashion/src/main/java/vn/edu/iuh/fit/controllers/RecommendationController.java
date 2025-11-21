@@ -81,4 +81,17 @@ public class RecommendationController {
         );
     }
 
+    @GetMapping("/today")
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> getTodayRecommendations(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(defaultValue = "10") int limit) {
+
+        List<ProductResponse> recommendations = recommendationService.getTodayRecommendations(userId, limit);
+
+        String message = userId != null
+                ? "Personalized today's recommendations retrieved successfully"
+                : "Popular products retrieved successfully";
+
+        return ResponseEntity.ok(ApiResponse.success(recommendations, message));
+    }
 }
