@@ -16,14 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
-import vn.edu.iuh.fit.dtos.request.AdminUpdateOrderRequest;
-import vn.edu.iuh.fit.dtos.request.CancelOrderRequest;
-import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
-import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
-import vn.edu.iuh.fit.dtos.response.ApiResponse;
-import vn.edu.iuh.fit.dtos.response.OrderResponse;
-import vn.edu.iuh.fit.dtos.response.OrderStatisticsResponse;
-import vn.edu.iuh.fit.dtos.response.PageResponse;
+import vn.edu.iuh.fit.dtos.request.*;
+import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.enums.PaymentMethod;
 import vn.edu.iuh.fit.enums.PaymentStatus;
 import vn.edu.iuh.fit.services.OrderService;
@@ -297,5 +291,18 @@ public class OrderController {
                 customerId, minTotal, maxTotal, startDate, endDate
         );
         return ResponseEntity.ok(ApiResponse.success(orders, "Returned orders retrieved"));
+    }
+
+    @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
+    @PutMapping("/batch/status")
+    public ResponseEntity<ApiResponse<BatchUpdateOrderStatusResponse>> batchUpdateOrderStatus(
+            @Valid @RequestBody BatchUpdateOrderStatusRequest request) {
+
+        BatchUpdateOrderStatusResponse response = orderService.batchUpdateOrderStatus(request);
+
+        String message = String.format("Batch update completed. Success: %d, Failed: %d",
+                response.successfulUpdates(), response.failedUpdates());
+
+        return ResponseEntity.ok(ApiResponse.success(response, message));
     }
 }

@@ -7,10 +7,8 @@
 package vn.edu.iuh.fit.services;
 
 import org.springframework.data.domain.Pageable;
-import vn.edu.iuh.fit.dtos.request.AdminUpdateOrderRequest;
-import vn.edu.iuh.fit.dtos.request.CancelOrderRequest;
-import vn.edu.iuh.fit.dtos.request.CreateOrderRequest;
-import vn.edu.iuh.fit.dtos.request.UpdateOrderByUserRequest;
+import vn.edu.iuh.fit.dtos.request.*;
+import vn.edu.iuh.fit.dtos.response.BatchUpdateOrderStatusResponse;
 import vn.edu.iuh.fit.dtos.response.OrderResponse;
 import vn.edu.iuh.fit.dtos.response.OrderStatisticsResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
@@ -219,4 +217,5 @@ public interface OrderService {
             LocalDate startDate, LocalDate endDate
     );
 
+    BatchUpdateOrderStatusResponse batchUpdateOrderStatus(BatchUpdateOrderStatusRequest request);
 }
