@@ -179,4 +179,51 @@ public interface UserProductInteractionRepository extends JpaRepository<UserProd
                 ORDER BY viewCount DESC
             """)
     List<Object[]> findMostViewedProductByUser(@Param("userId") Long userId, Pageable pageable);
+
+   /**
+     * Finds today's interactions by a user.
+     *
+     * @param userId   The ID of the user.
+     * @param pageable Pagination information.
+     * @return A list of object arrays, each containing product ID, interaction type, and the latest interaction date.
+     */
+    @Query("""
+        SELECT DISTINCT upi.product.id, upi.interactionType, MAX(upi.createdAt) as latestInteraction
+        FROM UserProductInteraction upi
+        WHERE upi.user.id = :userId
+          AND upi.createdAt BETWEEN :startOfDay AND :endOfDay
+        GROUP BY upi.product.id, upi.interactionType
+        ORDER BY MAX(upi.createdAt) DESC
+    """)
+    List<Object[]> findTodayInteractionsByUser(
+            @Param("userId") Long userId,
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay,
+            Pageable pageable
+    );
+
+    /**
+     * Finds today's interactions by a user filtered by interaction type.
+     *
+     * @param userId          The ID of the user.
+     * @param interactionType The type of interaction.
+     * @param pageable        Pagination information.
+     * @return A list of object arrays, each containing product ID and the latest interaction date.
+     */
+    @Query("""
+        SELECT DISTINCT upi.product.id, MAX(upi.createdAt) as latestInteraction
+        FROM UserProductInteraction upi
+        WHERE upi.user.id = :userId
+          AND upi.interactionType = :interactionType
+          AND upi.createdAt BETWEEN :startOfDay AND :endOfDay
+        GROUP BY upi.product.id
+        ORDER BY MAX(upi.createdAt) DESC
+    """)
+    List<Object[]> findTodayInteractionsByUserAndType(
+            @Param("userId") Long userId,
+            @Param("interactionType") InteractionType interactionType,
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("endOfDay") LocalDateTime endOfDay,
+            Pageable pageable
+    );
 }

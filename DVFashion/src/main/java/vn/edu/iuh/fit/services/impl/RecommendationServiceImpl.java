@@ -34,6 +34,7 @@ import vn.edu.iuh.fit.services.RecommendationService;
 import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -344,6 +345,57 @@ public class RecommendationServiceImpl implements RecommendationService {
             log.error("Error getting today's recommendations for user {}: {}", userId, e.getMessage());
             // Fallback to popular products
             return getTopPopularProducts(limit);
+        }
+    }
+
+    @Override
+    public List<ProductResponse> getTodayUserInteractions(InteractionType interactionType, int limit) {
+        try {
+            // Get current logged-in user
+            UserResponse currentUser = userService.getCurrentUser();
+            if (currentUser == null) {
+                log.info("No logged-in user found for today's interactions");
+                return Collections.emptyList();
+            }
+
+            Pageable pageable = PageRequest.of(0, limit);
+            Language language = LanguageUtils.getCurrentLanguage();
+            List<Object[]> interactions;
+
+            LocalDate today = LocalDate.now();
+            LocalDateTime start = today.atStartOfDay();
+            LocalDateTime end = today.atTime(23, 59, 59);
+
+            // Fetch today's interactions based on type
+            if (interactionType != null) {
+                // Get specific interaction type for today
+                interactions = userProductInteractionRepository
+                        .findTodayInteractionsByUserAndType(currentUser.getId(), interactionType, start, end, pageable);
+            } else {
+                // Get all interaction types for today
+                interactions = userProductInteractionRepository
+                        .findTodayInteractionsByUser(currentUser.getId(), start, end, pageable);
+            }
+
+            if (interactions.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            return interactions.stream()
+                    .map(interaction -> {
+                        Long productId = (Long) interaction[0];
+                        try {
+                            return productService.getProductById(productId, language);
+                        } catch (Exception e) {
+                            log.warn("Product {} not found: {}", productId, e.getMessage());
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .toList();
+
+        } catch (Exception e) {
+            return Collections.emptyList();
         }
     }
 
