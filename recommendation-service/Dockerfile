@@ -1,42 +1,31 @@
-# --- BASE: Python 3.10 (Prophet only works <= 3.10) ---
+# --- Python 3.10 (Prophet chạy ổn nhất) ---
 FROM python:3.10-slim
 
-# --- System packages needed for Prophet & PyStan ---
+# --- Install minimal system dependencies ---
 RUN apt-get update && apt-get install -y \
     build-essential \
-    python3-dev \
     g++ \
-    libssl-dev \
-    libatlas-base-dev \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# --- Set working folder ---
 WORKDIR /app
 
 # --- Install Python dependencies ---
-# Upgrade pip first
 RUN pip install --upgrade pip
 
-# Prophet dependencies
-RUN pip install pystan==2.19.1.1 prophet==1.2.1
+# Không cần pystan / cmdstan
+RUN pip install prophet==1.1.5
 
-# Other dependencies
-RUN pip install \
-    numpy==1.26.4 \
-    pandas==2.0.3 \
-    scikit-learn==1.3.2 \
-    fastapi==0.104.1 \
-    uvicorn[standard]==0.24.0 \
-    psycopg2-binary==2.9.9 \
-    sqlalchemy==2.0.23 \
-    python-dotenv==1.0.0 \
-    google-generativeai>=0.8.3
+# Các thư viện còn lại
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-# --- Copy project files into container ---
+# Copy project files
 COPY . .
 
-# --- Expose port ---
+# Create model folder if missing
+RUN mkdir -p /app/model
+
 EXPOSE 8001
 
-# --- Start the API ---
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
