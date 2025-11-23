@@ -122,8 +122,20 @@ def load_model_and_forecast(days_to_predict: int = 30):
             with open(MODEL_FILE_PATH, 'r') as fin:
                 model = model_from_json(json.load(fin))
 
-    # 1. Tạo dataframe cho dự báo tương lai
-    future_df = model.make_future_dataframe(periods=days_to_predict, freq='D')
+    # 1. Tạo dataframe cho dự báo tương lai từ ngày hiện tại
+    from datetime import datetime, timedelta
+
+    # Lấy ngày hiện tại
+    today = pd.Timestamp.now().normalize()
+
+    # Tạo các ngày trong tương lai (từ ngày mai)
+    future_dates = pd.date_range(
+        start=today + timedelta(days=1),
+        periods=days_to_predict,
+        freq='D'
+    )
+
+    future_df = pd.DataFrame({'ds': future_dates})
 
     # 2. Dự báo (kết quả vẫn đang ở thang đo LOG)
     forecast = model.predict(future_df)

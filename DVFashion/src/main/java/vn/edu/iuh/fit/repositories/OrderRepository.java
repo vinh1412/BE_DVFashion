@@ -65,12 +65,14 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
      * @return the total revenue as a BigDecimal, or null if no revenue
      */
     @Query("""
-        SELECT SUM(o.payment.amount) 
-        FROM Order o 
+        SELECT SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            - COALESCE(o.voucherDiscount, 0)
+        )
+        FROM Order o
+        JOIN o.items oi
         WHERE o.status = :status 
-            AND o.orderDate 
-            BETWEEN :startDate 
-            AND :endDate
+          AND o.orderDate BETWEEN :startDate AND :endDate
     """)
     BigDecimal calculateRevenue(@Param("status") OrderStatus status,
                                 @Param("startDate") LocalDateTime startDate,
@@ -84,9 +86,15 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
      * @return A list of objects, where each object array contains the date and the total revenue for that date.
      */
     @Query("""
-        SELECT FUNCTION('DATE', o.orderDate), SUM(o.payment.amount)
+        SELECT FUNCTION('DATE', o.orderDate),
+               SUM(
+                    (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+                    - COALESCE(o.voucherDiscount, 0)
+               )
         FROM Order o
-        WHERE o.status = :status AND o.orderDate BETWEEN :startDate AND :endDate
+        JOIN o.items oi
+        WHERE o.status = :status
+          AND o.orderDate BETWEEN :startDate AND :endDate
         GROUP BY FUNCTION('DATE', o.orderDate)
         ORDER BY FUNCTION('DATE', o.orderDate)
     """)
@@ -101,8 +109,13 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
      * @return A list of objects, where each object array contains the month number and the total revenue for that month.
      */
     @Query("""
-        SELECT FUNCTION('DATE_TRUNC', 'month', o.orderDate), SUM(o.payment.amount)
+        SELECT FUNCTION('DATE_TRUNC', 'month', o.orderDate),
+               SUM(
+                    (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+                    - COALESCE(o.voucherDiscount, 0)
+               )
         FROM Order o
+        JOIN o.items oi
         WHERE o.status = :status
           AND FUNCTION('DATE_TRUNC', 'year', o.orderDate) = FUNCTION('DATE_TRUNC', 'year', CAST(:year || '-01-01' AS date))
         GROUP BY FUNCTION('DATE_TRUNC', 'month', o.orderDate)
@@ -117,8 +130,13 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
      * @return A list of objects, where each object array contains the year and the total revenue for that year.
      */
     @Query("""
-        SELECT FUNCTION('DATE_TRUNC', 'year', o.orderDate), SUM(o.payment.amount)
+        SELECT FUNCTION('DATE_TRUNC', 'year', o.orderDate),
+               SUM(
+                    (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+                    - COALESCE(o.voucherDiscount, 0)
+               )
         FROM Order o
+        JOIN o.items oi
         WHERE o.status = :status
         GROUP BY FUNCTION('DATE_TRUNC', 'year', o.orderDate)
         ORDER BY FUNCTION('DATE_TRUNC', 'year', o.orderDate)
