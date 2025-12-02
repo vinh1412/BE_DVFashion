@@ -24,6 +24,8 @@ import vn.edu.iuh.fit.services.EmailService;
 import vn.edu.iuh.fit.services.OtpAuthService;
 import vn.edu.iuh.fit.services.UserService;
 
+import java.util.Map;
+
 
 /*
  * @description: Controller for handling authentication requests
@@ -125,5 +127,10 @@ public class AuthController {
     public ResponseEntity<ApiResponse<?>> verifyOTPForSignUp(@Valid @RequestBody VerifyOtpRequest request) {
         String phoneNumber = otpAuthService.verifyOtpForSignUp(request);
         return ResponseEntity.ok(ApiResponse.success("Phone number "+phoneNumber+" verification successful!"));
+    }
+
+    @GetMapping("/health")
+    public Map<String, String> health() {
+        return Map.of("status", "OK");
     }
 }

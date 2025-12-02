@@ -106,6 +106,8 @@ recommendation-service/
     venv\Scripts\activate
     # Trên macOS/Linux
     source venv/bin/activate
+    # Git bash
+    source venv/Scripts/activate
     ```
 
 3.  **Cài đặt các thư viện cần thiết**
