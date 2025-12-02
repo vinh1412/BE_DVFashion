@@ -48,7 +48,7 @@ spring:
           model: gemini-2.0-flash
   # Email Configuration
   mail:
-    host: smtp.gmail.com
+    host: smtp-relay.brevo.com
     port: 587
     username: ${GMAIL_USERNAME}
     password: ${GMAIL_APP_PASSWORD}
@@ -124,3 +124,10 @@ ghn:
   token: ${GHN_TOKEN}
   shop-id: ${GHN_SHOP_ID}
   shop-name: ${GHN_SHOP_NAME}
+
+# Brevo (formerly Sendinblue) configuration
+brevo:
+  api-key: ${BREVO_API_KEY}
+  sender-email: ${SENDER_EMAIL}
+  sender-name: ${SENDER_NAME}
+  brevo-base-url: ${BREVO_BASE_URL}

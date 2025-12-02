@@ -90,6 +90,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderAutoTransitionService autoTransitionService;
 
+    private final BrevoEmailService brevoEmailService;
+
     @Override
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
@@ -195,6 +197,7 @@ public class OrderServiceImpl implements OrderService {
             try {
                 log.info("Sending order confirmation email to {}", customer.getEmail());
 //                emailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
+                brevoEmailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
 
                 // Schedule auto transition to PROCESSING
                 autoTransitionService.scheduleAutoTransition(savedOrder,
