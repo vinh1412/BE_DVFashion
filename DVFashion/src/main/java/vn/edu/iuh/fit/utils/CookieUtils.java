@@ -9,6 +9,7 @@ package vn.edu.iuh.fit.utils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.experimental.UtilityClass;
+import vn.edu.iuh.fit.config.CookieEnvConfig;
 
 /*
  * @description: Utility class for managing cookies in HTTP responses
@@ -18,12 +19,25 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class CookieUtils {
+    private static boolean IS_PROD = false;
+
+    public static void init(CookieEnvConfig config) {
+        IS_PROD = config.isProd();
+    }
+
     public static void addCookie(HttpServletResponse response, String name, String value, int maxAge, boolean httpOnly) {
         Cookie cookie = new Cookie(name, value);
         cookie.setPath("/");
         cookie.setHttpOnly(httpOnly);
-        cookie.setSecure(false); // if using HTTPS, set this to true
-        cookie.setAttribute("SameSite", "Strict");
+
+        if (IS_PROD) {
+            cookie.setSecure(true);
+            cookie.setAttribute("SameSite", "None");
+        } else {
+            cookie.setSecure(false);
+            cookie.setAttribute("SameSite", "Strict");
+        }
+
         cookie.setMaxAge(maxAge);
         response.addCookie(cookie);
     }
@@ -32,8 +46,13 @@ public class CookieUtils {
         Cookie cookie = new Cookie(name, null);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setAttribute("SameSite", "Strict");
+        if (IS_PROD) {
+            cookie.setSecure(true);
+            cookie.setAttribute("SameSite", "None");
+        } else {
+            cookie.setSecure(false);
+            cookie.setAttribute("SameSite", "Strict");
+        }
         cookie.setMaxAge(0);
         response.addCookie(cookie);
     }

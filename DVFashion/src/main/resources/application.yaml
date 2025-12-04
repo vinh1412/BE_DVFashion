@@ -103,6 +103,8 @@ cloudinary:
 # Url for resetting password
 app:
   reset-password-url: ${RESET_PASSWORD_URL}
+  cookie:
+    env: ${APP_COOKIE_ENV}
 
 # Recommendation service configuration
 recommendation:
