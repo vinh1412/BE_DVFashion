@@ -26,7 +26,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "payments")
+@Table(name = "payments",
+        indexes = {
+                @Index(name = "idx_payment_status", columnList = "payment_status"),
+                @Index(name = "idx_payment_order_id", columnList = "order_id"),
+                @Index(name = "idx_payment_transaction_id", columnList = "transaction_id"),
+                @Index(name = "idx_payment_paypal_payment_id", columnList = "paypal_payment_id")
+        })
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

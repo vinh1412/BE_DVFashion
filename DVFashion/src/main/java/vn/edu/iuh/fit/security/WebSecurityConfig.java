@@ -90,6 +90,7 @@ public class WebSecurityConfig {
                 "/oauth2/**",
                 "/login/oauth2/**",
                 "/oauth2/authorization/**",
+                path("/auth/health"),
         };
     }
 

@@ -30,7 +30,15 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Builder
-@Table(name = "orders")
+@Table(name = "orders",
+        indexes = {
+                @Index(name = "idx_order_order_number", columnList = "order_number"),
+                @Index(name = "idx_order_customer_id", columnList = "customer_id"),
+                @Index(name = "idx_order_status", columnList = "status"),
+                @Index(name = "idx_order_order_date", columnList = "order_date"),
+                @Index(name = "idx_order_status_order_date", columnList = "status, order_date"),
+                @Index(name = "idx_order_voucher_id", columnList = "voucher_id")
+        })
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

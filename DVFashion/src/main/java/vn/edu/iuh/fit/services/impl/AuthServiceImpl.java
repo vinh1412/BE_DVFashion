@@ -127,7 +127,7 @@ public class AuthServiceImpl implements AuthService {
             CookieUtils.addCookie(response, "accessToken", accessToken, jwtUtils.getTokenMaxAge(accessToken), true); // 30 minutes
             CookieUtils.addCookie(response, "refreshToken", refreshToken, jwtUtils.getTokenMaxAge(refreshToken), true); // 7 days
             // Return sign-in response
-            CookieUtils.addCookie(response, "isAuthenticated", "true", jwtUtils.getTokenMaxAge(refreshToken), false);
+//            CookieUtils.addCookie(response, "isAuthenticated", "true", jwtUtils.getTokenMaxAge(refreshToken), false);
 
             return SignInResponse.builder()
                     .id(userPrincipal.getId())
@@ -222,7 +222,7 @@ public class AuthServiceImpl implements AuthService {
         // Delete cookies
         CookieUtils.deleteCookie(response, "accessToken");
         CookieUtils.deleteCookie(response, "refreshToken");
-        CookieUtils.deleteCookie(response, "isAuthenticated");
+//        CookieUtils.deleteCookie(response, "isAuthenticated");
 
     }
 
