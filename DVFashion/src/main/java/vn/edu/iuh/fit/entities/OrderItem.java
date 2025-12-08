@@ -24,7 +24,13 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Entity
 @Builder
-@Table(name = "order_items")
+@Table(name = "order_items",
+        indexes = {
+                @Index(name = "idx_order_item_order_id", columnList = "order_id"),
+                @Index(name = "idx_order_item_product_variant_id", columnList = "product_variant_id"),
+                @Index(name = "idx_order_item_size_id", columnList = "size_id"),
+                @Index(name = "idx_order_item_variant_size", columnList = "product_variant_id, size_id")
+        })
 public class OrderItem {
     @EmbeddedId
     private OrderItemId id;
