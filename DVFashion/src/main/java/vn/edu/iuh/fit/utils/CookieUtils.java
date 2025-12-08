@@ -33,6 +33,7 @@ public class CookieUtils {
         if (IS_PROD) {
             cookie.setSecure(true);
             cookie.setAttribute("SameSite", "None");
+            cookie.setDomain("devcode.id.vn");
         } else {
             cookie.setSecure(false);
             cookie.setAttribute("SameSite", "Strict");
@@ -49,6 +50,7 @@ public class CookieUtils {
         if (IS_PROD) {
             cookie.setSecure(true);
             cookie.setAttribute("SameSite", "None");
+            cookie.setDomain("devcode.id.vn");
         } else {
             cookie.setSecure(false);
             cookie.setAttribute("SameSite", "Strict");

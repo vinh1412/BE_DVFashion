@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: DVFashion
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
   # Database
   datasource:
     url: ${DB_URL}
@@ -19,6 +21,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         show_sql: true
         format_sql: true
+        jdbc.time_zone: Asia/Ho_Chi_Minh
   # OAuth2 Client Configuration
   security:
     oauth2:
@@ -117,8 +120,8 @@ paypal:
   client-id: ${PAYPAL_CLIENT_ID}
   client-secret: ${PAYPAL_CLIENT_SECRET}
   mode: ${PAYPAL_MODE}
-  success-url: http://localhost:8080/api/v1/payments/paypal/success
-  cancel-url: http://localhost:8080/api/v1/payments/paypal/cancel
+  success-url: ${PAYMENT_SUCCESS_URL:http://localhost:8080/api/v1/payments/paypal/success}
+  cancel-url: ${PAYMENT_CANCEL_URL:http://localhost:8080/api/v1/payments/paypal/cancel}
 
 # GHN (Giao Hàng Nhanh) configuration
 ghn:
