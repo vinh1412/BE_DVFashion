@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -43,25 +44,24 @@ public class RevenueReportServiceImpl implements RevenueReportService {
 
     @Override
     public RevenueReportResponse getRevenueReport(ReportPeriodType periodType, LocalDate startDate, LocalDate endDate) {
-        // Get orders within the date range and with relevant statuses
-        List<Order> orders = orderRepository.findOrdersForReport(
-                startDate.atStartOfDay(),
-                endDate.atTime(23, 59, 59),
-                List.of(OrderStatus.DELIVERED)
-        );
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+        OrderStatus status = OrderStatus.DELIVERED;
 
-        // Calculate overall metrics
-        BigDecimal totalRevenue = calculateTotalRevenue(orders);
-        long totalOrders = orders.size();
+        // Tính toán metrics tổng quát bằng query - NHANH HỚN
+        BigDecimal totalRevenue = orderRepository.calculateTotalRevenueInPeriod(status, startDateTime, endDateTime);
+        long totalOrders = orderRepository.countOrdersInPeriod(status, startDateTime, endDateTime);
         BigDecimal averageOrderValue = totalOrders > 0 ?
                 totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP) :
                 BigDecimal.ZERO;
 
-        // Create periodical details
-        List<RevenueReportResponse.RevenueDetailResponse> details = createRevenueDetails(orders, periodType, startDate, endDate);
+        // Lấy chi tiết theo period bằng query - NHANH HƠN
+        List<RevenueReportResponse.RevenueDetailResponse> details =
+                createRevenueDetailsOptimized(periodType, startDateTime, endDateTime, status);
 
-        // Compare with previous period
-        RevenueReportResponse.RevenueComparisonResponse comparison = createComparison(totalRevenue, periodType, startDate, endDate);
+        // So sánh với kỳ trước
+        RevenueReportResponse.RevenueComparisonResponse comparison =
+                createComparisonOptimized(totalRevenue, periodType, startDate, endDate);
 
         return RevenueReportResponse.builder()
                 .reportTitle("BÁO CÁO DOANH THU " + periodType.getDisplayName().toUpperCase())
@@ -74,6 +74,147 @@ public class RevenueReportServiceImpl implements RevenueReportService {
                 .averageOrderValue(averageOrderValue)
                 .details(details)
                 .comparison(comparison)
+                .build();
+    }
+
+    private List<RevenueReportResponse.RevenueDetailResponse> createRevenueDetailsOptimized(
+            ReportPeriodType periodType, LocalDateTime startDateTime, LocalDateTime endDateTime, OrderStatus status) {
+
+        // Gọi query phù hợp theo periodType
+        List<Object[]> queryResults = switch (periodType) {
+            case DAILY -> orderRepository.getRevenueStatsByDay(status, startDateTime, endDateTime);
+            case MONTHLY -> orderRepository.getRevenueStatsByMonth(status, startDateTime, endDateTime);
+            case QUARTERLY -> orderRepository.getRevenueStatsByQuarter(status, startDateTime, endDateTime);
+            case YEARLY -> orderRepository.getRevenueStatsByYear(status, startDateTime, endDateTime);
+        };
+
+        // Tạo map từ kết quả query
+        Map<String, RevenueReportResponse.RevenueDetailResponse> resultMap = new LinkedHashMap<>();
+
+        for (Object[] row : queryResults) {
+            String period = (String) row[0];
+            long totalOrders = ((Number) row[1]).longValue();
+            BigDecimal totalRevenue = (BigDecimal) row[2];
+            BigDecimal totalProducts = new BigDecimal(((Number) row[3]).toString());
+
+            BigDecimal avgOrderValue = totalOrders > 0 ?
+                    totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP) :
+                    BigDecimal.ZERO;
+
+            resultMap.put(period, RevenueReportResponse.RevenueDetailResponse.builder()
+                    .period(period)
+                    .date(parsePeriodToDate(period, periodType))
+                    .totalOrders(totalOrders)
+                    .totalRevenue(totalRevenue)
+                    .totalProducts(totalProducts)
+                    .averageOrderValue(avgOrderValue)
+                    .growthRate(null) // Sẽ tính sau
+                    .build());
+        }
+
+        // Điền các period trống (nếu có)
+        List<String> allPeriods = generatePeriods(periodType, startDateTime.toLocalDate(), endDateTime.toLocalDate());
+        List<RevenueReportResponse.RevenueDetailResponse> details = new ArrayList<>();
+
+        RevenueReportResponse.RevenueDetailResponse previousDetail = null;
+
+        for (String period : allPeriods) {
+            RevenueReportResponse.RevenueDetailResponse detail = resultMap.getOrDefault(period,
+                    RevenueReportResponse.RevenueDetailResponse.builder()
+                            .period(period)
+                            .date(parsePeriodToDate(period, periodType))
+                            .totalOrders(0L)
+                            .totalRevenue(BigDecimal.ZERO)
+                            .totalProducts(BigDecimal.ZERO)
+                            .averageOrderValue(BigDecimal.ZERO)
+                            .growthRate(null)
+                            .build()
+            );
+
+            // Tính growth rate
+            if (previousDetail != null && previousDetail.totalRevenue().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal growth = detail.totalRevenue().subtract(previousDetail.totalRevenue())
+                        .divide(previousDetail.totalRevenue(), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+
+                detail = RevenueReportResponse.RevenueDetailResponse.builder()
+                        .period(detail.period())
+                        .date(detail.date())
+                        .totalOrders(detail.totalOrders())
+                        .totalRevenue(detail.totalRevenue())
+                        .totalProducts(detail.totalProducts())
+                        .averageOrderValue(detail.averageOrderValue())
+                        .growthRate(growth)
+                        .build();
+            }
+
+            details.add(detail);
+            previousDetail = detail;
+        }
+
+        return details;
+    }
+
+    // Method mới - tối ưu hóa comparison
+    private RevenueReportResponse.RevenueComparisonResponse createComparisonOptimized(
+            BigDecimal currentRevenue, ReportPeriodType periodType, LocalDate startDate, LocalDate endDate) {
+
+        // Tính ngày của kỳ trước
+        LocalDate previousStartDate;
+        LocalDate previousEndDate;
+        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+
+        switch (periodType) {
+            case DAILY -> {
+                previousStartDate = startDate.minusDays(daysBetween);
+                previousEndDate = endDate.minusDays(daysBetween);
+            }
+            case MONTHLY -> {
+                previousStartDate = startDate.minusMonths(1);
+                previousEndDate = endDate.minusMonths(1);
+            }
+            case QUARTERLY -> {
+                previousStartDate = startDate.minusMonths(3);
+                previousEndDate = endDate.minusMonths(3);
+            }
+            case YEARLY -> {
+                previousStartDate = startDate.minusYears(1);
+                previousEndDate = endDate.minusYears(1);
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + periodType);
+        }
+
+        // Dùng query để tính doanh thu kỳ trước - NHANH HƠN
+        BigDecimal previousRevenue = orderRepository.calculateTotalRevenueInPeriod(
+                OrderStatus.DELIVERED,
+                previousStartDate.atStartOfDay(),
+                previousEndDate.atTime(23, 59, 59)
+        );
+
+        // Tính toán tăng trưởng
+        BigDecimal growthAmount = currentRevenue.subtract(previousRevenue);
+        BigDecimal growthPercentage = BigDecimal.ZERO;
+        String growthStatus = "Không thay đổi";
+
+        if (previousRevenue.compareTo(BigDecimal.ZERO) > 0) {
+            growthPercentage = growthAmount.divide(previousRevenue, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            if (growthPercentage.compareTo(BigDecimal.ZERO) > 0) {
+                growthStatus = "Tăng trưởng";
+            } else if (growthPercentage.compareTo(BigDecimal.ZERO) < 0) {
+                growthStatus = "Giảm";
+            }
+        } else if (currentRevenue.compareTo(BigDecimal.ZERO) > 0) {
+            growthPercentage = BigDecimal.valueOf(100);
+            growthStatus = "Tăng trưởng";
+        }
+
+        return RevenueReportResponse.RevenueComparisonResponse.builder()
+                .previousPeriodRevenue(previousRevenue)
+                .growthAmount(growthAmount)
+                .growthPercentage(growthPercentage)
+                .growthStatus(growthStatus)
                 .build();
     }
 
@@ -404,11 +545,11 @@ public class RevenueReportServiceImpl implements RevenueReportService {
     }
 
     // Calculate total revenue from orders
-    private BigDecimal calculateTotalRevenue(List<Order> orders) {
-        return orders.stream()
-                .map(this::calculateOrderRevenue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
+//    private BigDecimal calculateTotalRevenue(List<Order> orders) {
+//        return orders.stream()
+//                .map(this::calculateOrderRevenue)
+//                .reduce(BigDecimal.ZERO, BigDecimal::add);
+//    }
 
     // Format currency
     private String formatCurrency(BigDecimal amount) {
@@ -422,58 +563,58 @@ public class RevenueReportServiceImpl implements RevenueReportService {
     }
 
     // Create revenue details per period
-    private List<RevenueReportResponse.RevenueDetailResponse> createRevenueDetails(
-            List<Order> orders, ReportPeriodType periodType, LocalDate startDate, LocalDate endDate) {
-
-        Map<String, List<Order>> groupedOrders = groupOrdersByPeriod(orders, periodType);
-        List<RevenueReportResponse.RevenueDetailResponse> details = new ArrayList<>();
-
-        // Create a list of periods by report type
-        List<String> periods = generatePeriods(periodType, startDate, endDate);
-
-        RevenueReportResponse.RevenueDetailResponse previousDetail = null;
-
-        for (String period : periods) {
-            List<Order> periodOrders = groupedOrders.getOrDefault(period, Collections.emptyList());
-
-            BigDecimal periodRevenue = calculateTotalRevenue(periodOrders);
-            long periodOrderCount = periodOrders.size();
-
-            // Calculate total products sold
-            BigDecimal totalProducts = periodOrders.stream()
-                    .flatMap(order -> order.getItems().stream())
-                    .map(item -> BigDecimal.valueOf(item.getQuantity()))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            BigDecimal avgOrderValue = periodOrderCount > 0 ?
-                    periodRevenue.divide(BigDecimal.valueOf(periodOrderCount), 2, RoundingMode.HALF_UP) :
-                    BigDecimal.ZERO;
-
-            // Calculate growth rate
-            BigDecimal growthRate = null;
-            if (previousDetail != null && previousDetail.totalRevenue().compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal growth = periodRevenue.subtract(previousDetail.totalRevenue())
-                        .divide(previousDetail.totalRevenue(), 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100));
-                growthRate = growth;
-            }
-
-            RevenueReportResponse.RevenueDetailResponse detail = RevenueReportResponse.RevenueDetailResponse.builder()
-                    .period(period)
-                    .date(parsePeriodToDate(period, periodType))
-                    .totalOrders(periodOrderCount)
-                    .totalRevenue(periodRevenue)
-                    .totalProducts(totalProducts)
-                    .averageOrderValue(avgOrderValue)
-                    .growthRate(growthRate)
-                    .build();
-
-            details.add(detail);
-            previousDetail = detail;
-        }
-
-        return details;
-    }
+//    private List<RevenueReportResponse.RevenueDetailResponse> createRevenueDetails(
+//            List<Order> orders, ReportPeriodType periodType, LocalDate startDate, LocalDate endDate) {
+//
+//        Map<String, List<Order>> groupedOrders = groupOrdersByPeriod(orders, periodType);
+//        List<RevenueReportResponse.RevenueDetailResponse> details = new ArrayList<>();
+//
+//        // Create a list of periods by report type
+//        List<String> periods = generatePeriods(periodType, startDate, endDate);
+//
+//        RevenueReportResponse.RevenueDetailResponse previousDetail = null;
+//
+//        for (String period : periods) {
+//            List<Order> periodOrders = groupedOrders.getOrDefault(period, Collections.emptyList());
+//
+//            BigDecimal periodRevenue = calculateTotalRevenue(periodOrders);
+//            long periodOrderCount = periodOrders.size();
+//
+//            // Calculate total products sold
+//            BigDecimal totalProducts = periodOrders.stream()
+//                    .flatMap(order -> order.getItems().stream())
+//                    .map(item -> BigDecimal.valueOf(item.getQuantity()))
+//                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+//
+//            BigDecimal avgOrderValue = periodOrderCount > 0 ?
+//                    periodRevenue.divide(BigDecimal.valueOf(periodOrderCount), 2, RoundingMode.HALF_UP) :
+//                    BigDecimal.ZERO;
+//
+//            // Calculate growth rate
+//            BigDecimal growthRate = null;
+//            if (previousDetail != null && previousDetail.totalRevenue().compareTo(BigDecimal.ZERO) > 0) {
+//                BigDecimal growth = periodRevenue.subtract(previousDetail.totalRevenue())
+//                        .divide(previousDetail.totalRevenue(), 4, RoundingMode.HALF_UP)
+//                        .multiply(BigDecimal.valueOf(100));
+//                growthRate = growth;
+//            }
+//
+//            RevenueReportResponse.RevenueDetailResponse detail = RevenueReportResponse.RevenueDetailResponse.builder()
+//                    .period(period)
+//                    .date(parsePeriodToDate(period, periodType))
+//                    .totalOrders(periodOrderCount)
+//                    .totalRevenue(periodRevenue)
+//                    .totalProducts(totalProducts)
+//                    .averageOrderValue(avgOrderValue)
+//                    .growthRate(growthRate)
+//                    .build();
+//
+//            details.add(detail);
+//            previousDetail = detail;
+//        }
+//
+//        return details;
+//    }
 
     // Group orders by period
     private Map<String, List<Order>> groupOrdersByPeriod(List<Order> orders, ReportPeriodType periodType) {
@@ -545,69 +686,69 @@ public class RevenueReportServiceImpl implements RevenueReportService {
     }
 
     // Create comparison with previous period
-    private RevenueReportResponse.RevenueComparisonResponse createComparison(
-            BigDecimal currentRevenue, ReportPeriodType periodType, LocalDate startDate, LocalDate endDate) {
-
-        // Calculate previous period dates
-        LocalDate previousStartDate;
-        LocalDate previousEndDate;
-
-        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate) + 1;
-
-        switch (periodType) {
-            case DAILY -> {
-                previousStartDate = startDate.minusDays(daysBetween);
-                previousEndDate = endDate.minusDays(daysBetween);
-            }
-            case MONTHLY -> {
-                previousStartDate = startDate.minusMonths(1);
-                previousEndDate = endDate.minusMonths(1);
-            }
-            case QUARTERLY -> {
-                previousStartDate = startDate.minusMonths(3);
-                previousEndDate = endDate.minusMonths(3);
-            }
-            case YEARLY -> {
-                previousStartDate = startDate.minusYears(1);
-                previousEndDate = endDate.minusYears(1);
-            }
-            default -> throw new IllegalStateException("Unexpected value: " + periodType);
-        }
-
-        // Get orders for previous period
-        List<Order> previousOrders = orderRepository.findOrdersForComparison(
-                previousStartDate.atStartOfDay(),
-                previousEndDate.atTime(23, 59, 59),
-                List.of(OrderStatus.DELIVERED)
-        );
-
-        BigDecimal previousRevenue = calculateTotalRevenue(previousOrders);
-
-        // Calculate growth
-        BigDecimal growthAmount = currentRevenue.subtract(previousRevenue);
-
-        BigDecimal growthPercentage = BigDecimal.ZERO;
-        String growthStatus = "Không thay đổi";
-
-        if (previousRevenue.compareTo(BigDecimal.ZERO) > 0) {
-            growthPercentage = growthAmount.divide(previousRevenue, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-
-            if (growthPercentage.compareTo(BigDecimal.ZERO) > 0) {
-                growthStatus = "Tăng trưởng";
-            } else if (growthPercentage.compareTo(BigDecimal.ZERO) < 0) {
-                growthStatus = "Giảm";
-            }
-        } else if (currentRevenue.compareTo(BigDecimal.ZERO) > 0) {
-            growthPercentage = BigDecimal.valueOf(100);
-            growthStatus = "Tăng trưởng";
-        }
-
-        return RevenueReportResponse.RevenueComparisonResponse.builder()
-                .previousPeriodRevenue(previousRevenue)
-                .growthAmount(growthAmount)
-                .growthPercentage(growthPercentage)
-                .growthStatus(growthStatus)
-                .build();
-    }
+//    private RevenueReportResponse.RevenueComparisonResponse createComparison(
+//            BigDecimal currentRevenue, ReportPeriodType periodType, LocalDate startDate, LocalDate endDate) {
+//
+//        // Calculate previous period dates
+//        LocalDate previousStartDate;
+//        LocalDate previousEndDate;
+//
+//        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+//
+//        switch (periodType) {
+//            case DAILY -> {
+//                previousStartDate = startDate.minusDays(daysBetween);
+//                previousEndDate = endDate.minusDays(daysBetween);
+//            }
+//            case MONTHLY -> {
+//                previousStartDate = startDate.minusMonths(1);
+//                previousEndDate = endDate.minusMonths(1);
+//            }
+//            case QUARTERLY -> {
+//                previousStartDate = startDate.minusMonths(3);
+//                previousEndDate = endDate.minusMonths(3);
+//            }
+//            case YEARLY -> {
+//                previousStartDate = startDate.minusYears(1);
+//                previousEndDate = endDate.minusYears(1);
+//            }
+//            default -> throw new IllegalStateException("Unexpected value: " + periodType);
+//        }
+//
+//        // Get orders for previous period
+//        List<Order> previousOrders = orderRepository.findOrdersForComparison(
+//                previousStartDate.atStartOfDay(),
+//                previousEndDate.atTime(23, 59, 59),
+//                List.of(OrderStatus.DELIVERED)
+//        );
+//
+//        BigDecimal previousRevenue = calculateTotalRevenue(previousOrders);
+//
+//        // Calculate growth
+//        BigDecimal growthAmount = currentRevenue.subtract(previousRevenue);
+//
+//        BigDecimal growthPercentage = BigDecimal.ZERO;
+//        String growthStatus = "Không thay đổi";
+//
+//        if (previousRevenue.compareTo(BigDecimal.ZERO) > 0) {
+//            growthPercentage = growthAmount.divide(previousRevenue, 4, RoundingMode.HALF_UP)
+//                    .multiply(BigDecimal.valueOf(100));
+//
+//            if (growthPercentage.compareTo(BigDecimal.ZERO) > 0) {
+//                growthStatus = "Tăng trưởng";
+//            } else if (growthPercentage.compareTo(BigDecimal.ZERO) < 0) {
+//                growthStatus = "Giảm";
+//            }
+//        } else if (currentRevenue.compareTo(BigDecimal.ZERO) > 0) {
+//            growthPercentage = BigDecimal.valueOf(100);
+//            growthStatus = "Tăng trưởng";
+//        }
+//
+//        return RevenueReportResponse.RevenueComparisonResponse.builder()
+//                .previousPeriodRevenue(previousRevenue)
+//                .growthAmount(growthAmount)
+//                .growthPercentage(growthPercentage)
+//                .growthStatus(growthStatus)
+//                .build();
+//    }
 }
