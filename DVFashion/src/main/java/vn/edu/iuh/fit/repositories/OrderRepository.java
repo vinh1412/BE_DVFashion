@@ -245,4 +245,178 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    // Trong OrderRepository.java
+
+   /**
+     * Calculate total revenue in a given period for orders with a specific status.
+     *
+     * @param status    the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate   the end date and time of the period (inclusive)
+     * @return the total revenue as a BigDecimal
+     */
+    @Query("""
+    SELECT COALESCE(SUM(
+        (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+        + COALESCE(o.shippingFee, 0)
+        - COALESCE(o.voucherDiscount, 0)
+    ), 0)
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    """)
+    BigDecimal calculateTotalRevenueInPeriod(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+    /**
+     * Get revenue statistics grouped by day
+     *
+     * @param status    the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the end date and time of the period (inclusive)
+     * @param endDate   the end date and time of the period (inclusive)
+     * @return a list of object arrays where each array contains:
+     */
+    @Query("""
+    SELECT 
+        TO_CHAR(o.orderDate, 'DD/MM/YYYY') AS period,
+        COUNT(DISTINCT o.id) AS totalOrders,
+        COALESCE(SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            + COALESCE(o.shippingFee, 0)
+            - COALESCE(o.voucherDiscount, 0)
+        ), 0) AS totalRevenue,
+        COALESCE(SUM(oi.quantity), 0) AS totalProducts
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    GROUP BY TO_CHAR(o.orderDate, 'DD/MM/YYYY')
+    ORDER BY TO_CHAR(o.orderDate, 'DD/MM/YYYY')
+""")
+    List<Object[]> getRevenueStatsByDay(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+
+    /**
+     * Get revenue statistics grouped by month
+     *
+     * @param status   the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate the end date and time of the period (inclusive)
+     * @return a list of object arrays where each array contains:
+     */
+    @Query("""
+    SELECT 
+        TO_CHAR(date_trunc('month', o.orderDate), 'MM/YYYY') AS period,
+        COUNT(DISTINCT o.id) AS totalOrders,
+        COALESCE(SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            + COALESCE(o.shippingFee, 0)
+            - COALESCE(o.voucherDiscount, 0)
+        ), 0) AS totalRevenue,
+        COALESCE(SUM(oi.quantity), 0) AS totalProducts
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    GROUP BY date_trunc('month', o.orderDate)
+    ORDER BY date_trunc('month', o.orderDate)
+""")
+    List<Object[]> getRevenueStatsByMonth(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+
+    /**
+     *  Get revenue statistics grouped by quarter
+     *
+     * @param status  the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate the end date and time of the period (inclusive)
+     * @return a list of object arrays where each array contains:
+     */
+    @Query("""
+    SELECT 
+        CONCAT('Q', EXTRACT(QUARTER FROM o.orderDate), '/', EXTRACT(YEAR FROM o.orderDate)) as period,
+        COUNT(DISTINCT o.id) as totalOrders,
+        COALESCE(SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            + COALESCE(o.shippingFee, 0)
+            - COALESCE(o.voucherDiscount, 0)
+        ), 0) as totalRevenue,
+        COALESCE(SUM(oi.quantity), 0) as totalProducts
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    GROUP BY EXTRACT(YEAR FROM o.orderDate), EXTRACT(QUARTER FROM o.orderDate)
+    ORDER BY EXTRACT(YEAR FROM o.orderDate), EXTRACT(QUARTER FROM o.orderDate)
+    """)
+    List<Object[]> getRevenueStatsByQuarter(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+    /**
+     * Get revenue statistics grouped by year
+     *
+     * @param status   the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate the end date and time of the period (inclusive)
+     * @return a list of object arrays where each array contains:
+     */
+    @Query("""
+    SELECT 
+        TO_CHAR(date_trunc('year', o.orderDate), 'YYYY') AS period,
+        COUNT(DISTINCT o.id) AS totalOrders,
+        COALESCE(SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            + COALESCE(o.shippingFee, 0)
+            - COALESCE(o.voucherDiscount, 0)
+        ), 0) AS totalRevenue,
+        COALESCE(SUM(oi.quantity), 0) AS totalProducts
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    GROUP BY date_trunc('year', o.orderDate)
+    ORDER BY date_trunc('year', o.orderDate)
+""")
+    List<Object[]> getRevenueStatsByYear(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+
+    /**
+     * Count number of orders in a given period for orders with a specific status.
+     *
+     * @param status    the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate   the end date and time of the period (inclusive)
+     * @return the count of orders as a long
+     */
+    @Query("""
+    SELECT COUNT(o)
+    FROM Order o
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    """)
+    long countOrdersInPeriod(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
 }
