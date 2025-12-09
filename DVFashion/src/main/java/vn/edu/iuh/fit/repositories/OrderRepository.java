@@ -259,7 +259,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("""
     SELECT COALESCE(SUM(
         (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
-        + COALESCE(o.shippingFee, 0)
         - COALESCE(o.voucherDiscount, 0)
     ), 0)
     FROM Order o
@@ -287,7 +286,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
         COUNT(DISTINCT o.id) AS totalOrders,
         COALESCE(SUM(
             (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
-            + COALESCE(o.shippingFee, 0)
             - COALESCE(o.voucherDiscount, 0)
         ), 0) AS totalRevenue,
         COALESCE(SUM(oi.quantity), 0) AS totalProducts
@@ -319,7 +317,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
         COUNT(DISTINCT o.id) AS totalOrders,
         COALESCE(SUM(
             (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
-            + COALESCE(o.shippingFee, 0)
             - COALESCE(o.voucherDiscount, 0)
         ), 0) AS totalRevenue,
         COALESCE(SUM(oi.quantity), 0) AS totalProducts
@@ -351,7 +348,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
         COUNT(DISTINCT o.id) as totalOrders,
         COALESCE(SUM(
             (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
-            + COALESCE(o.shippingFee, 0)
             - COALESCE(o.voucherDiscount, 0)
         ), 0) as totalRevenue,
         COALESCE(SUM(oi.quantity), 0) as totalProducts
@@ -382,7 +378,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
         COUNT(DISTINCT o.id) AS totalOrders,
         COALESCE(SUM(
             (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
-            + COALESCE(o.shippingFee, 0)
             - COALESCE(o.voucherDiscount, 0)
         ), 0) AS totalRevenue,
         COALESCE(SUM(oi.quantity), 0) AS totalProducts
