@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.response.*;
+import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.services.RecommendationService;
 
 import java.util.List;
@@ -79,6 +80,34 @@ public class RecommendationController {
         return ResponseEntity.ok(
                 ApiResponse.success(stats, "Product recommendation statistics retrieved successfully")
         );
+    }
+
+    @GetMapping("/today")
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> getTodayRecommendations(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(defaultValue = "10") int limit) {
+
+        List<ProductResponse> recommendations = recommendationService.getTodayRecommendations(userId, limit);
+
+        String message = userId != null
+                ? "Personalized today's recommendations retrieved successfully"
+                : "Popular products retrieved successfully";
+
+        return ResponseEntity.ok(ApiResponse.success(recommendations, message));
+    }
+
+    @GetMapping("/user/today-interactions")
+    public ResponseEntity<ApiResponse<List<ProductResponse>>> getTodayUserInteractions(
+            @RequestParam(required = false) InteractionType interactionType,
+            @RequestParam(defaultValue = "20") int limit) {
+
+        List<ProductResponse> products = recommendationService.getTodayUserInteractions(interactionType, limit);
+
+        String message = interactionType != null
+                ? String.format("Today's %s interactions retrieved successfully", interactionType.name().toLowerCase())
+                : "Today's all interactions retrieved successfully";
+
+        return ResponseEntity.ok(ApiResponse.success(products, message));
     }
 
 }

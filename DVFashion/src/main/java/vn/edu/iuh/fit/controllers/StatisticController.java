@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.constants.RoleConstant;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.services.ForecastingService;
+import vn.edu.iuh.fit.services.InternalRevenueTimeSeriesService;
 import vn.edu.iuh.fit.services.StatisticService;
 
 import java.math.BigDecimal;
@@ -34,6 +35,8 @@ public class StatisticController {
     private final StatisticService statisticService;
 
     private final ForecastingService forecastingService;
+
+    private final InternalRevenueTimeSeriesService revenueService;
 
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping("/revenue")
@@ -108,16 +111,13 @@ public class StatisticController {
 
 
     @GetMapping("/internal/revenue-timeseries")
-    public ResponseEntity<ApiResponse<List<RevenueDataPoint>>> getRevenueTimeSeries(
-            @RequestParam(defaultValue = "DAILY") String period) {
+    public ResponseEntity<ApiResponse<List<RevenueDataPoint>>> getRevenueTimeSeries() {
+        LocalDate start = LocalDate.of(2020, 1, 1);
+        LocalDate end   = LocalDate.now();
 
-        // Gọi service đã có để lấy doanh thu hàng ngày
-        // Có thể bạn cần điều chỉnh service để lấy TẤT CẢ dữ liệu, không chỉ 1 khoảng
-        List<RevenueDataPoint> data = statisticService.getDailyRevenue(
-                LocalDate.of(2020, 1, 1), // Lấy từ một ngày đủ xa
-                LocalDate.now()
-        );
-        return ResponseEntity.ok(ApiResponse.success(data, "Revenue time series retrieved"));
+        List<RevenueDataPoint> data = revenueService.getFullDailyRevenue(start, end);
+
+        return ResponseEntity.ok(ApiResponse.success(data, "Revenue time series retrieved successfully"));
     }
 
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)

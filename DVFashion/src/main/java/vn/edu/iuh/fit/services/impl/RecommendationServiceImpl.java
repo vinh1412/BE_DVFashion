@@ -24,6 +24,7 @@ import vn.edu.iuh.fit.entities.Product;
 import vn.edu.iuh.fit.entities.RecommendationLog;
 import vn.edu.iuh.fit.enums.InteractionType;
 import vn.edu.iuh.fit.enums.Language;
+import vn.edu.iuh.fit.enums.ProductStatus;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.repositories.ProductRepository;
 import vn.edu.iuh.fit.repositories.RecommendationLogRepository;
@@ -33,7 +34,9 @@ import vn.edu.iuh.fit.services.RecommendationService;
 import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -324,6 +327,306 @@ public class RecommendationServiceImpl implements RecommendationService {
         } catch (Exception e) {
             log.error("Error getting product recommendation stats: {}", e.getMessage());
             return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public List<ProductResponse> getTodayRecommendations(Long userId, int limit) {
+        try {
+            if (userId == null) {
+                // User not logged in - return top popular products
+                return getTopPopularProducts(limit);
+            }
+
+            // User logged in - get personalized recommendations
+            return getPersonalizedTodayRecommendations(userId, limit);
+
+        } catch (Exception e) {
+            log.error("Error getting today's recommendations for user {}: {}", userId, e.getMessage());
+            // Fallback to popular products
+            return getTopPopularProducts(limit);
+        }
+    }
+
+    @Override
+    public List<ProductResponse> getTodayUserInteractions(InteractionType interactionType, int limit) {
+        try {
+            // Get current logged-in user
+            UserResponse currentUser = userService.getCurrentUser();
+            if (currentUser == null) {
+                log.info("No logged-in user found for today's interactions");
+                return Collections.emptyList();
+            }
+
+            Pageable pageable = PageRequest.of(0, limit);
+            Language language = LanguageUtils.getCurrentLanguage();
+            List<Object[]> interactions;
+
+            LocalDate today = LocalDate.now();
+            LocalDateTime start = today.atStartOfDay();
+            LocalDateTime end = today.atTime(23, 59, 59);
+
+            // Fetch today's interactions based on type
+            if (interactionType != null) {
+                // Get specific interaction type for today
+                interactions = userProductInteractionRepository
+                        .findTodayInteractionsByUserAndType(currentUser.getId(), interactionType, start, end, pageable);
+            } else {
+                // Get all interaction types for today
+                interactions = userProductInteractionRepository
+                        .findTodayInteractionsByUser(currentUser.getId(), start, end, pageable);
+            }
+
+            if (interactions.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            return interactions.stream()
+                    .map(interaction -> {
+                        Long productId = (Long) interaction[0];
+                        try {
+                            return productService.getProductById(productId, language);
+                        } catch (Exception e) {
+                            log.warn("Product {} not found: {}", productId, e.getMessage());
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .toList();
+
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    // Get top popular products based on overall interactions
+    private List<ProductResponse> getTopPopularProducts(int limit) {
+        try {
+            Language language = LanguageUtils.getCurrentLanguage();
+            Pageable pageable = PageRequest.of(0, limit);
+
+            // Get products ordered by interaction count (view, cart, purchase)
+            List<Object[]> popularProducts = userProductInteractionRepository
+                    .findTopProductsByInteractionCount(pageable);
+
+            if (popularProducts.isEmpty()) {
+                // Fallback to newest products if no interaction data
+                return productRepository.findByStatusOrderByCreatedAtDesc(
+                                ProductStatus.ACTIVE, pageable)
+                        .stream()
+                        .map(product -> productService.getProductById(product.getId(), language))
+                        .collect(Collectors.toList());
+            }
+
+            return popularProducts.stream()
+                    .map(result -> {
+                        Long productId = (Long) result[0];
+                        try {
+                            return productService.getProductById(productId, language);
+                        } catch (Exception e) {
+                            log.warn("Product {} not found: {}", productId, e.getMessage());
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("Error getting top popular products: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    // Get personalized recommendations for logged-in user
+    private List<ProductResponse> getPersonalizedTodayRecommendations(Long userId, int limit) {
+        try {
+            // Verify user exists
+            userService.findById(userId);
+
+            // Strategy 1: Get recommendations based on user's recent interactions
+            List<ProductResponse> recentInteractionBasedRecs = getRecommendationsFromRecentInteractions(userId, limit);
+
+            if (!recentInteractionBasedRecs.isEmpty()) {
+                return recentInteractionBasedRecs;
+            }
+
+            // Strategy 2: Get recommendations based on user's purchase history
+            List<ProductResponse> purchaseHistoryBasedRecs = getRecommendationsFromPurchaseHistory(userId, limit);
+
+            if (!purchaseHistoryBasedRecs.isEmpty()) {
+                return purchaseHistoryBasedRecs;
+            }
+
+            // Strategy 3: Get recommendations based on user's category preferences
+            List<ProductResponse> categoryBasedRecs = getRecommendationsFromCategoryPreferences(userId, limit);
+
+            if (!categoryBasedRecs.isEmpty()) {
+                return categoryBasedRecs;
+            }
+
+            // Fallback: Get hybrid recommendations with user's most viewed product
+            Long mostViewedProductId = getMostViewedProductByUser(userId);
+            if (mostViewedProductId != null) {
+                return getHybridRecommendations(userId, mostViewedProductId, limit);
+            }
+
+            // Final fallback: Popular products
+            return getTopPopularProducts(limit);
+
+        } catch (Exception e) {
+            log.error("Error getting personalized recommendations for user {}: {}", userId, e.getMessage());
+            return getTopPopularProducts(limit);
+        }
+    }
+
+    // Recommendation strategies
+    private List<ProductResponse> getRecommendationsFromRecentInteractions(Long userId, int limit) {
+        try {
+            // Get user's recent interactions (last 7 days)
+            LocalDateTime recentDate = LocalDateTime.now().minusDays(7);
+            Pageable pageable = PageRequest.of(0, 5); // Get top 5 recent interactions
+
+            List<Object[]> recentInteractions = userProductInteractionRepository
+                    .findRecentInteractionsByUser(userId, recentDate, pageable);
+
+            if (recentInteractions.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            Language language = LanguageUtils.getCurrentLanguage();
+            List<ProductResponse> recommendations = new ArrayList<>();
+
+            // For each recent interaction, get similar products
+            for (Object[] interaction : recentInteractions) {
+                Long productId = (Long) interaction[0];
+
+                try {
+                    // Get recommendations for this product (content-based)
+                    List<ProductResponse> productRecs = getRecommendations(productId, 2);
+                    recommendations.addAll(productRecs);
+
+                    if (recommendations.size() >= limit) {
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to get recommendations for product {}: {}", productId, e.getMessage());
+                }
+            }
+
+            // Remove duplicates and limit results
+            return recommendations.stream()
+                    .distinct()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("Error getting recommendations from recent interactions for user {}: {}", userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    // Get recommendations based on user's purchase history
+    private List<ProductResponse> getRecommendationsFromPurchaseHistory(Long userId, int limit) {
+        try {
+            // Get user's purchase history (last 30 days)
+            LocalDateTime recentDate = LocalDateTime.now().minusDays(30);
+            Pageable pageable = PageRequest.of(0, 3);
+
+            List<Object[]> purchaseHistory = userProductInteractionRepository
+                    .findPurchaseHistoryByUser(userId, recentDate, pageable);
+
+            if (purchaseHistory.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            Language language = LanguageUtils.getCurrentLanguage();
+            List<ProductResponse> recommendations = new ArrayList<>();
+
+            // For each purchased product, get similar products
+            for (Object[] purchase : purchaseHistory) {
+                Long productId = (Long) purchase[0];
+
+                try {
+                    List<ProductResponse> productRecs = getRecommendations(productId, 3);
+                    recommendations.addAll(productRecs);
+
+                    if (recommendations.size() >= limit) {
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to get recommendations for purchased product {}: {}", productId, e.getMessage());
+                }
+            }
+
+            return recommendations.stream()
+                    .distinct()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("Error getting recommendations from purchase history for user {}: {}", userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    // Get recommendations based on user's preferred categories
+    private List<ProductResponse> getRecommendationsFromCategoryPreferences(Long userId, int limit) {
+        try {
+            // Get user's preferred categories based on interactions
+            Pageable pageable = PageRequest.of(0, 3);
+            List<Object[]> preferredCategories = userProductInteractionRepository
+                    .findPreferredCategoriesByUser(userId, pageable);
+
+            if (preferredCategories.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            Language language = LanguageUtils.getCurrentLanguage();
+            List<ProductResponse> recommendations = new ArrayList<>();
+
+            // Get products from preferred categories
+            for (Object[] categoryData : preferredCategories) {
+                Long categoryId = (Long) categoryData[0];
+
+                try {
+                    List<Product> categoryProducts = productRepository
+                            .findTopProductsByCategory(categoryId, ProductStatus.ACTIVE, PageRequest.of(0, 3));
+
+                    List<ProductResponse> categoryRecs = categoryProducts.stream()
+                            .map(product -> productService.getProductById(product.getId(), language))
+                            .collect(Collectors.toList());
+
+                    recommendations.addAll(categoryRecs);
+
+                    if (recommendations.size() >= limit) {
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to get products for category {}: {}", categoryId, e.getMessage());
+                }
+            }
+
+            return recommendations.stream()
+                    .distinct()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.error("Error getting recommendations from category preferences for user {}: {}", userId, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    // Get the most viewed product by the user
+    private Long getMostViewedProductByUser(Long userId) {
+        try {
+            List<Object[]> mostViewed = userProductInteractionRepository
+                    .findMostViewedProductByUser(userId, PageRequest.of(0, 1));
+
+            return mostViewed.isEmpty() ? null : (Long) mostViewed.get(0)[0];
+        } catch (Exception e) {
+            log.error("Error getting most viewed product for user {}: {}", userId, e.getMessage());
+            return null;
         }
     }
 

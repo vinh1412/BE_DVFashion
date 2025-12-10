@@ -6,12 +6,17 @@
 
 package vn.edu.iuh.fit.services.impl;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import vn.edu.iuh.fit.constants.SortFields;
+import vn.edu.iuh.fit.dtos.filters.FilterInfoOrder;
 import vn.edu.iuh.fit.dtos.request.*;
 import vn.edu.iuh.fit.dtos.response.*;
 import vn.edu.iuh.fit.entities.*;
@@ -25,9 +30,13 @@ import vn.edu.iuh.fit.mappers.OrderMapper;
 import vn.edu.iuh.fit.mappers.ShippingInfoMapper;
 import vn.edu.iuh.fit.repositories.*;
 import vn.edu.iuh.fit.services.*;
+import vn.edu.iuh.fit.specifications.OrderSpecification;
 import vn.edu.iuh.fit.utils.LanguageUtils;
 import vn.edu.iuh.fit.utils.OrderUtils;
+import vn.edu.iuh.fit.utils.SortUtils;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -77,6 +86,11 @@ public class OrderServiceImpl implements OrderService {
 
     private final InventoryRepository inventoryRepository;
 
+    private final OrderSpecification orderSpecification;
+
+    private final OrderAutoTransitionService autoTransitionService;
+
+    private final BrevoEmailService brevoEmailService;
 
     @Override
     @Transactional
@@ -182,7 +196,12 @@ public class OrderServiceImpl implements OrderService {
             // Send order confirmation email (async to avoid blocking)
             try {
                 log.info("Sending order confirmation email to {}", customer.getEmail());
-                emailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
+//                emailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
+                brevoEmailService.sendOrderConfirmationEmail(orderResponse, customer.getEmail());
+
+                // Schedule auto transition to PROCESSING
+                autoTransitionService.scheduleAutoTransition(savedOrder,
+                        AutoTransitionType.CONFIRMED_TO_PROCESSING);
             } catch (Exception e) {
                 log.error("Failed to send order confirmation email: {}", e.getMessage());
             }
@@ -220,6 +239,10 @@ public class OrderServiceImpl implements OrderService {
         payment.setPaymentDate(LocalDateTime.now());
         payment.setCapturedAt(LocalDateTime.now());
         payment.setPaypalCaptureId(captureId);
+
+        // Schedule auto transition to PROCESSING
+        autoTransitionService.scheduleAutoTransition(order,
+                AutoTransitionType.CONFIRMED_TO_PROCESSING);
 
         // Save order
         orderRepository.save(order);
@@ -371,6 +394,12 @@ public class OrderServiceImpl implements OrderService {
                 processAdminCancellation(order, request.cancellationReason());
             } else {
                 applyOrderStatusTransition(order, targetStatus);
+            }
+
+            // Schedule auto transition if moved to CONFIRMED
+            if (targetStatus == OrderStatus.CONFIRMED) {
+                autoTransitionService.scheduleAutoTransition(order,
+                        AutoTransitionType.CONFIRMED_TO_PROCESSING);
             }
         }
 
@@ -589,6 +618,279 @@ public class OrderServiceImpl implements OrderService {
                 .totalOrders(totalOrders)
                 .ordersByStatus(ordersByStatus)
                 .build();
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getOrdersByStatus(OrderStatus status, int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        // Validate and build Sort
+        Sort validSort = SortUtils.buildSort(
+                sort,
+                SortFields.ORDER_SORT_FIELDS,
+                SortFields.DEFAULT_ORDER_SORT
+        );
+
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (startDate != null) {
+            startDateTime = startDate.atStartOfDay();
+        }
+
+
+        if (endDate != null) {
+            endDateTime = endDate.atTime(23, 59, 59);
+        }
+
+        // Create Pageable
+        Pageable pageable = PageRequest.of(page, size, validSort);
+
+        // Build specification
+        Specification<Order> spec = orderSpecification.build(
+                search, status, paymentMethod, paymentStatus,
+                customerId, minTotal, maxTotal, startDateTime, endDateTime
+        );
+
+        // Query orders with pagination and filtering
+        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
+
+        // Map to response DTOs
+        Page<OrderResponse> orderResponses = orderPage.map(order ->
+                orderMapper.mapToOrderResponse(order, order.getCustomer().getEmail(), LanguageUtils.getCurrentLanguage())
+        );
+
+        FilterInfoOrder filterInfo = FilterInfoOrder.builder()
+                .search(search)
+                .status(status)
+                .paymentMethod(paymentMethod)
+                .paymentStatus(paymentStatus)
+                .customerId(customerId)
+                .minTotal(minTotal)
+                .maxTotal(maxTotal)
+                .startDate(startDateTime != null ? startDateTime.toLocalDate() : null)
+                .endDate(endDateTime != null ? endDateTime.toLocalDate() : null)
+                .build();
+
+
+        return PageResponse.from(orderResponses, filterInfo);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getPendingOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.PENDING, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getConfirmedOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.CONFIRMED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getProcessingOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.PROCESSING, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getShippedOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.SHIPPED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getDeliveredOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.DELIVERED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getCancelledOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.CANCELED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    public PageResponse<OrderResponse> getReturnedOrders(int page, int size, String[] sort, String search, PaymentMethod paymentMethod, PaymentStatus paymentStatus, Long customerId, BigDecimal minTotal, BigDecimal maxTotal, LocalDate startDate, LocalDate endDate) {
+        return getOrdersByStatus(OrderStatus.RETURNED, page, size, sort, search,
+                paymentMethod, paymentStatus, customerId, minTotal, maxTotal, startDate, endDate);
+    }
+
+    @Override
+    @Transactional
+    public BatchUpdateOrderStatusResponse batchUpdateOrderStatus(BatchUpdateOrderStatusRequest request) {
+        log.info("Starting batch update for {} orders to status {}",
+                request.orderNumbers().size(), request.targetStatus());
+
+        OrderStatus targetStatus;
+        try {
+            targetStatus = OrderStatus.valueOf(request.targetStatus());
+        } catch (IllegalArgumentException e) {
+            throw new OrderException("Invalid target status: " + request.targetStatus());
+        }
+
+        // Prepare results
+        List<BatchUpdateOrderStatusResponse.OrderUpdateResult> results = new ArrayList<>();
+        int successCount = 0;
+        int failCount = 0;
+
+        // Validate all orders exist and belong to allowed transitions
+        List<Order> ordersToUpdate = validateBatchUpdateEligibility(request.orderNumbers(), targetStatus);
+
+        // Process each order
+        for (Order order : ordersToUpdate) {
+            try {
+                OrderStatus oldStatus = order.getStatus();
+
+                // Validate transition is allowed
+                if (!isTransitionAllowed(oldStatus, targetStatus)) {
+                    results.add(BatchUpdateOrderStatusResponse.OrderUpdateResult.builder()
+                            .orderNumber(order.getOrderNumber())
+                            .success(false)
+                            .oldStatus(oldStatus)
+                            .newStatus(oldStatus)
+                            .errorMessage("Invalid status transition: " + oldStatus + " -> " + targetStatus)
+                            .build());
+                    failCount++;
+                    continue;
+                }
+
+                // Apply status transition
+                applyOrderStatusTransition(order, targetStatus);
+
+                // Add notes if provided
+                if (request.notes() != null && !request.notes().trim().isEmpty()) {
+                    String existingNotes = order.getNotes() != null ? order.getNotes() : "";
+                    String batchNote = "BATCH UPDATE: " + request.notes().trim();
+
+                    if (!existingNotes.isEmpty()) {
+                        order.setNotes(existingNotes + " | " + batchNote);
+                    } else {
+                        order.setNotes(batchNote);
+                    }
+                }
+
+                // Save order
+                orderRepository.save(order);
+
+                results.add(BatchUpdateOrderStatusResponse.OrderUpdateResult.builder()
+                        .orderNumber(order.getOrderNumber())
+                        .success(true)
+                        .oldStatus(oldStatus)
+                        .newStatus(targetStatus)
+                        .errorMessage(null)
+                        .build());
+                successCount++;
+
+                log.info("Successfully updated order {} from {} to {}",
+                        order.getOrderNumber(), oldStatus, targetStatus);
+
+            } catch (Exception e) {
+                results.add(BatchUpdateOrderStatusResponse.OrderUpdateResult.builder()
+                        .orderNumber(order.getOrderNumber())
+                        .success(false)
+                        .oldStatus(order.getStatus())
+                        .newStatus(order.getStatus())
+                        .errorMessage("Update failed: " + e.getMessage())
+                        .build());
+                failCount++;
+
+                log.error("Failed to update order {}: {}", order.getOrderNumber(), e.getMessage());
+            }
+        }
+
+        log.info("Batch update completed. Success: {}, Failed: {}", successCount, failCount);
+
+        return BatchUpdateOrderStatusResponse.builder()
+                .totalOrders(request.orderNumbers().size())
+                .successfulUpdates(successCount)
+                .failedUpdates(failCount)
+                .results(results)
+                .build();
+    }
+
+    // Helper methods for batch update validation and processing
+    private List<Order> validateBatchUpdateEligibility(List<String> orderNumbers, OrderStatus targetStatus) {
+        // Check for duplicates
+        Set<String> uniqueOrderNumbers = new HashSet<>(orderNumbers);
+        if (uniqueOrderNumbers.size() != orderNumbers.size()) {
+            throw new OrderException("Duplicate order numbers found in request");
+        }
+
+        // Fetch all orders
+        List<Order> orders = new ArrayList<>();
+        List<String> notFoundOrders = new ArrayList<>();
+
+        for (String orderNumber : orderNumbers) {
+            Optional<Order> orderOpt = orderRepository.findByOrderNumber(orderNumber);
+            if (orderOpt.isPresent()) {
+                orders.add(orderOpt.get());
+            } else {
+                notFoundOrders.add(orderNumber);
+            }
+        }
+
+        if (!notFoundOrders.isEmpty()) {
+            throw new NotFoundException("Orders not found: " + String.join(", ", notFoundOrders));
+        }
+
+        // Validate business rules
+        validateBatchUpdateBusinessRules(orders, targetStatus);
+
+        return orders;
+    }
+
+    // Business rules validation for batch updates
+    private void validateBatchUpdateBusinessRules(List<Order> orders, OrderStatus targetStatus) {
+        // Rule 1: Cannot batch update to PENDING status
+        if (targetStatus == OrderStatus.PENDING) {
+            throw new OrderException("Cannot batch update orders to PENDING status");
+        }
+
+        // Rule 2: For CANCELED status, all orders must be PENDING or CONFIRMED
+        if (targetStatus == OrderStatus.CANCELED) {
+            List<String> invalidOrders = orders.stream()
+                    .filter(order -> order.getStatus() != OrderStatus.PENDING &&
+                            order.getStatus() != OrderStatus.CONFIRMED)
+                    .map(Order::getOrderNumber)
+                    .toList();
+
+            if (!invalidOrders.isEmpty()) {
+                throw new OrderException("Cannot cancel orders with status other than PENDING or CONFIRMED: " +
+                        String.join(", ", invalidOrders));
+            }
+        }
+
+        // Rule 3: For DELIVERED status, all orders must be SHIPPED
+        if (targetStatus == OrderStatus.DELIVERED) {
+            List<String> invalidOrders = orders.stream()
+                    .filter(order -> order.getStatus() != OrderStatus.SHIPPED)
+                    .map(Order::getOrderNumber)
+                    .toList();
+
+            if (!invalidOrders.isEmpty()) {
+                throw new OrderException("Cannot mark orders as DELIVERED unless they are SHIPPED: " +
+                        String.join(", ", invalidOrders));
+            }
+        }
+
+        // Rule 4: Cannot update terminal statuses (CANCELED, RETURNED)
+        List<String> terminalOrders = orders.stream()
+                .filter(order -> order.getStatus() == OrderStatus.CANCELED ||
+                        order.getStatus() == OrderStatus.RETURNED)
+                .map(Order::getOrderNumber)
+                .toList();
+
+        if (!terminalOrders.isEmpty()) {
+            throw new OrderException("Cannot update orders with terminal status (CANCELED/RETURNED): " +
+                    String.join(", ", terminalOrders));
+        }
+    }
+
+    // Check if status transition is allowed
+    private boolean isTransitionAllowed(OrderStatus current, OrderStatus target) {
+        Set<OrderStatus> allowedNext = ALLOWED_STATUS_FLOW.getOrDefault(current, Set.of());
+        return allowedNext.contains(target);
     }
 
     private void validateCancellationEligibility(Order order) {

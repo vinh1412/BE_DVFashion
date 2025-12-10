@@ -659,43 +659,72 @@ public class VoucherServiceImpl implements VoucherService {
         }
     }
 
-    // Update voucher products
     private void updateVoucherProducts(Voucher voucher, List<Long> newProductIds) {
-        // Get current product IDs
+        // Lấy danh sách productId hiện tại
         Set<Long> currentProductIds = voucher.getVoucherProducts().stream()
                 .map(vp -> vp.getProduct().getId())
                 .collect(Collectors.toSet());
 
-        Set<Long> newProductIdSet = new HashSet<>(newProductIds);
+        // Xóa các sản phẩm không còn trong newProductIds
+        List<VoucherProduct> toRemove = voucher.getVoucherProducts().stream()
+                .filter(vp -> !newProductIds.contains(vp.getProduct().getId()))
+                .collect(Collectors.toList());
+        toRemove.forEach(vp -> {
+            voucher.getVoucherProducts().remove(vp);
+            voucherProductRepository.delete(vp);
+        });
 
-        // Find products to remove (in current but not in new)
-        Set<Long> productsToRemove = currentProductIds.stream()
-                .filter(id -> !newProductIdSet.contains(id))
-                .collect(Collectors.toSet());
-
-        // Find products to add (in new but not in current)
-        Set<Long> productsToAdd = newProductIdSet.stream()
-                .filter(id -> !currentProductIds.contains(id))
-                .collect(Collectors.toSet());
-
-        // Remove products
-        voucher.getVoucherProducts().removeIf(vp -> productsToRemove.contains(vp.getProduct().getId()));
-
-        // Add new products
-        for (Long productId : productsToAdd) {
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new NotFoundException("Product not found with ID: " + productId));
-
-            VoucherProduct voucherProduct = VoucherProduct.builder()
-                    .voucher(voucher)
-                    .product(product)
-                    .active(true)
-                    .build();
-
-            voucher.getVoucherProducts().add(voucherProduct);
-            voucherProductRepository.save(voucherProduct);
+        // Thêm mới các sản phẩm chưa có
+        for (Long pid : newProductIds) {
+            if (!currentProductIds.contains(pid)) {
+                Product product = productRepository.findById(pid)
+                        .orElseThrow(() -> new NotFoundException("Product not found: " + pid));
+                VoucherProduct vp = new VoucherProduct();
+                vp.setVoucher(voucher);
+                vp.setProduct(product);
+                vp.setActive(true);
+                voucher.getVoucherProducts().add(vp);
+            }
         }
     }
+
+    // Update voucher products
+//    private void updateVoucherProducts(Voucher voucher, List<Long> newProductIds) {
+//        // Get current product IDs
+//        Set<Long> currentProductIds = voucher.getVoucherProducts().stream()
+//                .map(vp -> vp.getProduct().getId())
+//                .collect(Collectors.toSet());
+//
+//        Set<Long> newProductIdSet = new HashSet<>(newProductIds);
+//
+//        // Find products to remove (in current but not in new)
+//        Set<Long> productsToRemove = currentProductIds.stream()
+//                .filter(id -> !newProductIdSet.contains(id))
+//                .collect(Collectors.toSet());
+//
+//        // Find products to add (in new but not in current)
+//        Set<Long> productsToAdd = newProductIdSet.stream()
+//                .filter(id -> !currentProductIds.contains(id))
+//                .collect(Collectors.toSet());
+//
+//        // Remove products
+//        voucher.getVoucherProducts().removeIf(vp -> productsToRemove.contains(vp.getProduct().getId()));
+//
+//        // Add new products
+//        for (Long productId : productsToAdd) {
+//            Product product = productRepository.findById(productId)
+//                    .orElseThrow(() -> new NotFoundException("Product not found with ID: " + productId));
+//
+//            VoucherProduct voucherProduct = VoucherProduct.builder()
+//                    .voucher(voucher)
+//                    .product(product)
+//                    .active(true)
+//                    .build();
+//
+//            voucher.getVoucherProducts().add(voucherProduct);
+//            voucherProductRepository.save(voucherProduct);
+//        }
+//    }
 
     // Validation code
     private void validateVoucherCode(String code) {

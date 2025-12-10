@@ -19,8 +19,7 @@ import vn.edu.iuh.fit.dtos.response.ApiResponse;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
 import vn.edu.iuh.fit.dtos.response.UserProductInteractionResponse;
 import vn.edu.iuh.fit.enums.InteractionType;
-import vn.edu.iuh.fit.services.impl.UserInteractionServiceImpl;
-
+import vn.edu.iuh.fit.services.UserInteractionService;
 import java.time.LocalDate;
 
 /*
@@ -33,7 +32,7 @@ import java.time.LocalDate;
 @RequestMapping("${web.base-path}/user-product-interactions")
 @RequiredArgsConstructor
 public class UserProductInteractionController {
-    private final UserInteractionServiceImpl userInteractionService;
+    private final UserInteractionService userInteractionService;
 
     @PreAuthorize(RoleConstant.HAS_ROLE_ADMIN)
     @GetMapping

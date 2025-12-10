@@ -184,4 +184,30 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     """)
     long countProductsOnActivePromotion();
 
+    /**
+     * Finds top products by category ID with a specific status, ordered by creation date descending.
+     *
+     * @param categoryId the ID of the category
+     * @param status     the status of the products to filter
+     * @param pageable   pagination information
+     * @return a list of top products in the specified category with the given status
+     */
+    @Query("""
+    SELECT p FROM Product p
+    WHERE p.category.id = :categoryId
+    AND p.status = :status
+    ORDER BY p.createdAt DESC
+""")
+    List<Product> findTopProductsByCategory(@Param("categoryId") Long categoryId,
+                                            @Param("status") ProductStatus status,
+                                            Pageable pageable);
+
+    /**
+     * Finds products by status, ordered by creation date descending.
+     *
+     * @param status   the status of the products to filter
+     * @param pageable pagination information
+     * @return a list of products with the specified status ordered by creation date descending
+     */
+    List<Product> findByStatusOrderByCreatedAtDesc(ProductStatus status, Pageable pageable);
 }

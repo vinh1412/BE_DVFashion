@@ -9,6 +9,7 @@ package vn.edu.iuh.fit.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -28,7 +29,7 @@ import java.util.Optional;
  * @version:    1.0
  */
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
+public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
     /**
      * Find an order by its unique order number.
      *
@@ -64,12 +65,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return the total revenue as a BigDecimal, or null if no revenue
      */
     @Query("""
-        SELECT SUM(o.payment.amount) 
-        FROM Order o 
+        SELECT SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            - COALESCE(o.voucherDiscount, 0)
+        )
+        FROM Order o
+        JOIN o.items oi
         WHERE o.status = :status 
-            AND o.orderDate 
-            BETWEEN :startDate 
-            AND :endDate
+          AND o.orderDate BETWEEN :startDate AND :endDate
     """)
     BigDecimal calculateRevenue(@Param("status") OrderStatus status,
                                 @Param("startDate") LocalDateTime startDate,
@@ -83,9 +86,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return A list of objects, where each object array contains the date and the total revenue for that date.
      */
     @Query("""
-        SELECT FUNCTION('DATE', o.orderDate), SUM(o.payment.amount)
+        SELECT FUNCTION('DATE', o.orderDate),
+               SUM(
+                    (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+                    - COALESCE(o.voucherDiscount, 0)
+               )
         FROM Order o
-        WHERE o.status = :status AND o.orderDate BETWEEN :startDate AND :endDate
+        JOIN o.items oi
+        WHERE o.status = :status
+          AND o.orderDate BETWEEN :startDate AND :endDate
         GROUP BY FUNCTION('DATE', o.orderDate)
         ORDER BY FUNCTION('DATE', o.orderDate)
     """)
@@ -100,8 +109,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return A list of objects, where each object array contains the month number and the total revenue for that month.
      */
     @Query("""
-        SELECT FUNCTION('DATE_TRUNC', 'month', o.orderDate), SUM(o.payment.amount)
+        SELECT FUNCTION('DATE_TRUNC', 'month', o.orderDate),
+               SUM(
+                    (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+                    - COALESCE(o.voucherDiscount, 0)
+               )
         FROM Order o
+        JOIN o.items oi
         WHERE o.status = :status
           AND FUNCTION('DATE_TRUNC', 'year', o.orderDate) = FUNCTION('DATE_TRUNC', 'year', CAST(:year || '-01-01' AS date))
         GROUP BY FUNCTION('DATE_TRUNC', 'month', o.orderDate)
@@ -116,8 +130,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * @return A list of objects, where each object array contains the year and the total revenue for that year.
      */
     @Query("""
-        SELECT FUNCTION('DATE_TRUNC', 'year', o.orderDate), SUM(o.payment.amount)
+        SELECT FUNCTION('DATE_TRUNC', 'year', o.orderDate),
+               SUM(
+                    (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+                    - COALESCE(o.voucherDiscount, 0)
+               )
         FROM Order o
+        JOIN o.items oi
         WHERE o.status = :status
         GROUP BY FUNCTION('DATE_TRUNC', 'year', o.orderDate)
         ORDER BY FUNCTION('DATE_TRUNC', 'year', o.orderDate)
@@ -196,4 +215,203 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findOrdersForComparison(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate,
                                         @Param("statuses") List<OrderStatus> statuses);
+
+    /**
+     * Fetches daily revenue series within a specified date range for orders with a specific status.
+     * @param status the status of the orders to consider (e.g., DELIVERED)
+     * @param start the start date and time of the range (inclusive)
+     * @param end the end date and time of the range (inclusive)
+     * @return a list of object arrays where each array contains:
+     *         - the date (day)
+     *         - the total revenue for that day
+     */
+    @Query("""
+        SELECT 
+            DATE(o.orderDate) AS day,
+            SUM(
+                (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+                + COALESCE(o.shippingFee, 0)
+                - COALESCE(o.voucherDiscount, 0)
+            ) AS daily_revenue
+        FROM Order o
+        JOIN o.items oi
+        WHERE o.status = :status
+          AND o.orderDate BETWEEN :start AND :end
+        GROUP BY DATE(o.orderDate)
+        ORDER BY DATE(o.orderDate) ASC
+    """)
+    List<Object[]> fetchDailyRevenueSeries(
+            @Param("status") OrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
+    // Trong OrderRepository.java
+
+   /**
+     * Calculate total revenue in a given period for orders with a specific status.
+     *
+     * @param status    the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate   the end date and time of the period (inclusive)
+     * @return the total revenue as a BigDecimal
+     */
+    @Query("""
+    SELECT COALESCE(SUM(
+        (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+        - COALESCE(o.voucherDiscount, 0)
+    ), 0)
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    """)
+    BigDecimal calculateTotalRevenueInPeriod(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+    /**
+     * Get revenue statistics grouped by day
+     *
+     * @param status    the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the end date and time of the period (inclusive)
+     * @param endDate   the end date and time of the period (inclusive)
+     * @return a list of object arrays where each array contains:
+     */
+    @Query("""
+    SELECT 
+        TO_CHAR(o.orderDate, 'DD/MM/YYYY') AS period,
+        COUNT(DISTINCT o.id) AS totalOrders,
+        COALESCE(SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            - COALESCE(o.voucherDiscount, 0)
+        ), 0) AS totalRevenue,
+        COALESCE(SUM(oi.quantity), 0) AS totalProducts
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    GROUP BY TO_CHAR(o.orderDate, 'DD/MM/YYYY')
+    ORDER BY TO_CHAR(o.orderDate, 'DD/MM/YYYY')
+""")
+    List<Object[]> getRevenueStatsByDay(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+
+    /**
+     * Get revenue statistics grouped by month
+     *
+     * @param status   the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate the end date and time of the period (inclusive)
+     * @return a list of object arrays where each array contains:
+     */
+    @Query("""
+    SELECT 
+        TO_CHAR(date_trunc('month', o.orderDate), 'MM/YYYY') AS period,
+        COUNT(DISTINCT o.id) AS totalOrders,
+        COALESCE(SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            - COALESCE(o.voucherDiscount, 0)
+        ), 0) AS totalRevenue,
+        COALESCE(SUM(oi.quantity), 0) AS totalProducts
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    GROUP BY date_trunc('month', o.orderDate)
+    ORDER BY date_trunc('month', o.orderDate)
+""")
+    List<Object[]> getRevenueStatsByMonth(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+
+    /**
+     *  Get revenue statistics grouped by quarter
+     *
+     * @param status  the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate the end date and time of the period (inclusive)
+     * @return a list of object arrays where each array contains:
+     */
+    @Query("""
+    SELECT 
+        CONCAT('Q', EXTRACT(QUARTER FROM o.orderDate), '/', EXTRACT(YEAR FROM o.orderDate)) as period,
+        COUNT(DISTINCT o.id) as totalOrders,
+        COALESCE(SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            - COALESCE(o.voucherDiscount, 0)
+        ), 0) as totalRevenue,
+        COALESCE(SUM(oi.quantity), 0) as totalProducts
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    GROUP BY EXTRACT(YEAR FROM o.orderDate), EXTRACT(QUARTER FROM o.orderDate)
+    ORDER BY EXTRACT(YEAR FROM o.orderDate), EXTRACT(QUARTER FROM o.orderDate)
+    """)
+    List<Object[]> getRevenueStatsByQuarter(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+    /**
+     * Get revenue statistics grouped by year
+     *
+     * @param status   the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate the end date and time of the period (inclusive)
+     * @return a list of object arrays where each array contains:
+     */
+    @Query("""
+    SELECT 
+        TO_CHAR(date_trunc('year', o.orderDate), 'YYYY') AS period,
+        COUNT(DISTINCT o.id) AS totalOrders,
+        COALESCE(SUM(
+            (oi.unitPrice - COALESCE(oi.discount, 0)) * oi.quantity
+            - COALESCE(o.voucherDiscount, 0)
+        ), 0) AS totalRevenue,
+        COALESCE(SUM(oi.quantity), 0) AS totalProducts
+    FROM Order o
+    JOIN o.items oi
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    GROUP BY date_trunc('year', o.orderDate)
+    ORDER BY date_trunc('year', o.orderDate)
+""")
+    List<Object[]> getRevenueStatsByYear(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+
+    /**
+     * Count number of orders in a given period for orders with a specific status.
+     *
+     * @param status    the status of the orders to consider (e.g., DELIVERED)
+     * @param startDate the start date and time of the period (inclusive)
+     * @param endDate   the end date and time of the period (inclusive)
+     * @return the count of orders as a long
+     */
+    @Query("""
+    SELECT COUNT(o)
+    FROM Order o
+    WHERE o.status = :status
+      AND o.orderDate BETWEEN :startDate AND :endDate
+    """)
+    long countOrdersInPeriod(
+            @Param("status") OrderStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
 }

@@ -90,6 +90,7 @@ public class WebSecurityConfig {
                 "/oauth2/**",
                 "/login/oauth2/**",
                 "/oauth2/authorization/**",
+                path("/auth/health"),
         };
     }
 
@@ -154,6 +155,7 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, path("/addresses/provinces/**")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/vouchers/customer")).permitAll()
                         .requestMatchers(HttpMethod.GET, path("/statistics/internal/revenue-timeseries")).permitAll()
+                        .requestMatchers(HttpMethod.GET, path("/recommendations/today")).permitAll()
                         .requestMatchers(HttpMethod.POST, path("/cart/**")).permitAll()
 
                         .requestMatchers( "/v3/api-docs/**",

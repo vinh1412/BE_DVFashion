@@ -146,4 +146,12 @@ public interface InventoryService {
      * @param order the order for which to process return stock
      */
     void processReturnStock(Order order);
+
+    /**
+     * Restore stock for a confirmed order when it is cancelled.
+     *
+     * @param order the cancelled order
+     * @param user the user performing restoration (admin or system)
+     */
+    void restoreStockForConfirmedCancellation(Order order, User user);
 }

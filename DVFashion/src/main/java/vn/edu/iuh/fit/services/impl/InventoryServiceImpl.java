@@ -506,6 +506,59 @@ public class InventoryServiceImpl implements InventoryService {
         log.info("Finished processing stock return for Order #{}", order.getOrderNumber());
     }
 
+    @Override
+    public void restoreStockForConfirmedCancellation(Order order, User user) {
+        if (order == null || order.getItems() == null) {
+            log.warn("Order or items are null, cannot restore stock.");
+            return;
+        }
+
+        log.info("Restoring stock for CONFIRMED cancellation of order {}", order.getOrderNumber());
+
+        for (OrderItem item : order.getItems()) {
+
+            // Get size ID and quantity from the order item
+            Long sizeId = item.getSize().getId();
+            int quantity = item.getQuantity();
+
+            String referenceNumber = "CANCEL-" + order.getOrderNumber()
+                    + "-PRV-" + item.getId().getProductVariantId()
+                    + "-S-" + sizeId;
+
+            // Find inventory with lock
+            Optional<Inventory> invOpt = inventoryRepository.findBySizeIdWithLock(sizeId);
+
+            if (invOpt.isEmpty()) {
+                log.error("Inventory not found for size {} when restoring cancelled CONFIRMED order {}", sizeId, order.getOrderNumber());
+                continue;
+            }
+
+            // Restore stock quantity
+            Inventory inventory = invOpt.get();
+
+            // Update stock quantity
+            int oldQuantity = inventory.getQuantityInStock();
+            inventory.setQuantityInStock(oldQuantity + quantity);
+            inventoryRepository.save(inventory);
+
+            // Create stock transaction
+            StockTransaction txn = StockTransaction.builder()
+                    .inventory(inventory)
+                    .transactionType(StockTransactionType.RETURN)
+                    .quantity(quantity)
+                    .orderId(order.getId())
+                    .referenceNumber(referenceNumber)
+                    .notes("Stock returned from CONFIRMED -> CANCELED order")
+                    .createdBy(user)
+                    .build();
+
+            stockTransactionRepository.save(txn);
+
+            log.info("Restored {} units for size {} (oldStock={}, newStock={})",
+                    quantity, sizeId, oldQuantity, inventory.getQuantityInStock());
+        }
+    }
+
     // Helper method to create a new inventory record for a size
     private Inventory createInventoryForSize(Size size) {
         return Inventory.builder()

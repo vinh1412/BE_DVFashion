@@ -10,6 +10,7 @@ import vn.edu.iuh.fit.dtos.response.ProductRecommendationStatsResponse;
 import vn.edu.iuh.fit.dtos.response.ProductResponse;
 import vn.edu.iuh.fit.dtos.response.RecommendationAnalyticsResponse;
 import vn.edu.iuh.fit.dtos.response.TopRecommendedProductResponse;
+import vn.edu.iuh.fit.enums.InteractionType;
 
 import java.util.List;
 
@@ -64,4 +65,25 @@ public interface RecommendationService {
      * @return A list of product recommendation statistics.
      */
     List<ProductRecommendationStatsResponse> getProductRecommendationStats(int limit, Integer days);
+
+// Thêm vào RecommendationService interface
+    /**
+     * Get today's recommendations for user.
+     * If user is not logged in, returns top popular products.
+     * If user is logged in, returns personalized recommendations for today.
+     *
+     * @param userId The ID of the user (null if not logged in).
+     * @param limit  The number of recommendations to retrieve.
+     * @return A list of today's recommendations.
+     */
+    List<ProductResponse> getTodayRecommendations(Long userId, int limit);
+
+    /**
+     * Get today's user interactions with products.
+     *
+     * @param interactionType The type of interaction (optional - if null, returns all types).
+     * @param limit The number of products to retrieve.
+     * @return A list of products the user interacted with today.
+     */
+    List<ProductResponse> getTodayUserInteractions(InteractionType interactionType, int limit);
 }

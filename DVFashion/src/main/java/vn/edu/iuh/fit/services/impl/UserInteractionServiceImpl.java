@@ -16,22 +16,32 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.dtos.response.PageResponse;
+import vn.edu.iuh.fit.dtos.response.ProductResponse;
 import vn.edu.iuh.fit.dtos.response.UserProductInteractionResponse;
+import vn.edu.iuh.fit.dtos.response.UserResponse;
 import vn.edu.iuh.fit.entities.Product;
 import vn.edu.iuh.fit.entities.User;
 import vn.edu.iuh.fit.entities.UserProductInteraction;
 import vn.edu.iuh.fit.enums.InteractionType;
+import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.exceptions.NotFoundException;
 import vn.edu.iuh.fit.repositories.ProductRepository;
 import vn.edu.iuh.fit.repositories.UserProductInteractionRepository;
 import vn.edu.iuh.fit.repositories.UserRepository;
+import vn.edu.iuh.fit.services.ProductService;
 import vn.edu.iuh.fit.services.UserInteractionService;
+import vn.edu.iuh.fit.services.UserService;
 import vn.edu.iuh.fit.specifications.UserProductInteractionSpecification;
+import vn.edu.iuh.fit.utils.LanguageUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /*
  * @description: Service implementation for tracking user interactions with products

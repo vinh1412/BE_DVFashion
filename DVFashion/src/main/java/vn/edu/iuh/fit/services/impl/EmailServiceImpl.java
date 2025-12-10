@@ -58,6 +58,9 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.reset-password-url}")
     private String resetPasswordUrl;
 
+    @Value("${brevo.sender-email}")
+    private String senderEmail;
+
     @Override
     public void sendPasswordResetEmail(ForgotPasswordRequest request) {
         // Check if user exists
@@ -87,6 +90,7 @@ public class EmailServiceImpl implements EmailService {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+            helper.setFrom(senderEmail);
 
             String htmlContent = """
                                     <html>
@@ -194,6 +198,7 @@ public class EmailServiceImpl implements EmailService {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+            helper.setFrom(senderEmail);
 
             String htmlContent = """
                                     <html>
@@ -271,6 +276,7 @@ public class EmailServiceImpl implements EmailService {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+            helper.setFrom(senderEmail);
 
             String itemsHtml = buildOrderItemsHtml(orderResponse.items()); // Giữ nguyên helper method của bạn
 
@@ -426,6 +432,7 @@ public class EmailServiceImpl implements EmailService {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+            helper.setFrom(senderEmail);
 
             String statusMessage = getStatusUpdateMessage(newStatus);
             String statusColor = getStatusColor(newStatus);
@@ -554,6 +561,7 @@ public class EmailServiceImpl implements EmailService {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+            helper.setFrom(senderEmail);
 
             String htmlContent = """
                 <html>
