@@ -7,6 +7,7 @@
 package vn.edu.iuh.fit.services.impl;
 
 import vn.edu.iuh.fit.dtos.response.TaxReportResponse;
+import vn.edu.iuh.fit.entities.*;
 import vn.edu.iuh.fit.services.TaxReportService;
 
 import java.time.LocalDate;
@@ -27,14 +28,13 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.dtos.response.VATSalesItemDto;
 import vn.edu.iuh.fit.dtos.response.VATSalesListReport;
-import vn.edu.iuh.fit.entities.Order;
-import vn.edu.iuh.fit.entities.OrderItem;
 import vn.edu.iuh.fit.enums.OrderStatus;
 import vn.edu.iuh.fit.repositories.OrderRepository;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,23 +65,42 @@ public class TaxReportServiceImpl implements TaxReportService {
 
     @Override
     public TaxReportResponse getVATSalesReport(LocalDate startDate, LocalDate endDate) {
-        // Lấy đơn hàng đã giao trong khoảng thời gian
-        List<Order> deliveredOrders = orderRepository.findOrdersForReport(
-                startDate.atStartOfDay(),
-                endDate.atTime(23, 59, 59),
-                List.of(OrderStatus.DELIVERED)
-        );
+        log.info("Generating VAT sales report from {} to {}", startDate, endDate);
+
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.atTime(23, 59, 59);
+        List<OrderStatus> statuses = List.of(OrderStatus.DELIVERED);
+
+        // Step 1: Fetch orders with customer and items (avoiding MultipleBagFetchException)
+        List<Order> deliveredOrders = orderRepository.findOrdersWithItemsForTaxReport(start, end, statuses);
+
+        if (deliveredOrders.isEmpty()) {
+            log.info("No delivered orders found for the period");
+            return createEmptyReport(startDate, endDate);
+        }
+
+        log.info("Found {} delivered orders for tax report", deliveredOrders.size());
+
+        // Step 2: Eagerly fetch product variants with products and translations
+        orderRepository.fetchProductVariantsWithTranslations(deliveredOrders);
+
+        // Step 3: Eagerly fetch sizes
+        orderRepository.fetchSizesForOrders(deliveredOrders);
+
+        log.info("Completed eager loading of related entities");
 
         // Tạo danh sách VATSalesItemDto từ đơn hàng
         List<VATSalesItemDto> vatSalesItems = createVATSalesItems(deliveredOrders);
 
-        // Tính tổng
-        BigDecimal totalAmount = calculateTotalAmount(vatSalesItems);
+        // Tính tổng song song để tăng hiệu suất
+        BigDecimal totalAmount = vatSalesItems.parallelStream()
+                .map(VATSalesItemDto::totalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Tính tổng VAT
-        BigDecimal totalVAT = calculateTotalVAT(vatSalesItems);
+        BigDecimal totalVAT = vatSalesItems.parallelStream()
+                .map(VATSalesItemDto::vatAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Tổng cộng (chưa thuế + thuế)
         BigDecimal totalIncludingVAT = totalAmount.add(totalVAT);
 
         VATSalesListReport vatSalesListReport = VATSalesListReport.builder()
@@ -94,6 +113,24 @@ public class TaxReportServiceImpl implements TaxReportService {
                 .totalAmount(totalAmount)
                 .totalVATAmount(totalVAT)
                 .totalIncludingVAT(totalIncludingVAT)
+                .build();
+
+        return TaxReportResponse.builder()
+                .vatSalesListReport(vatSalesListReport)
+                .build();
+    }
+
+    private TaxReportResponse createEmptyReport(LocalDate startDate, LocalDate endDate) {
+        VATSalesListReport vatSalesListReport = VATSalesListReport.builder()
+                .reportTitle("BẢNG KÊ HÓA ĐƠN, CHỨNG TỪ HÀNG HÓA, DỊCH VỤ BÁN RA")
+                .reportPeriod(formatPeriod(startDate, endDate))
+                .fromDate(startDate)
+                .toDate(endDate)
+                .generatedDate(LocalDate.now())
+                .items(Collections.emptyList())
+                .totalAmount(BigDecimal.ZERO)
+                .totalVATAmount(BigDecimal.ZERO)
+                .totalIncludingVAT(BigDecimal.ZERO)
                 .build();
 
         return TaxReportResponse.builder()
@@ -124,37 +161,55 @@ public class TaxReportServiceImpl implements TaxReportService {
 
     // Hàm tạo danh sách VATSalesItemDto từ đơn hàng
     private List<VATSalesItemDto> createVATSalesItems(List<Order> orders) {
-        List<VATSalesItemDto> items = new ArrayList<>();
+        // Pre-calculate total size để tránh resize ArrayList
+        int estimatedSize = orders.stream()
+                .mapToInt(o -> o.getItems() != null ? o.getItems().size() : 0)
+                .sum();
+
+        List<VATSalesItemDto> items = new ArrayList<>(estimatedSize);
         AtomicInteger stt = new AtomicInteger(1);
 
         for (Order order : orders) {
+            // Cache customer info để tránh gọi lại nhiều lần
+            String buyerName = order.getCustomer() != null ?
+                    order.getCustomer().getFullName() : "";
+            String orderNumber = order.getOrderNumber();
+            LocalDate orderDate = order.getOrderDate().toLocalDate();
+
             for (OrderItem orderItem : order.getItems()) {
+                try {
+                    // Giả sử tất cả đều áp dụng VAT 10%
+                    BigDecimal vatRate = DEFAULT_VAT_RATE;
 
-                // Giả sử tất cả đều áp dụng VAT 10%
-                BigDecimal vatRate = DEFAULT_VAT_RATE;
+                    BigDecimal unitPrice = orderItem.getUnitPrice()
+                            .subtract(orderItem.getDiscount() != null ?
+                                    orderItem.getDiscount() : BigDecimal.ZERO);
 
-                BigDecimal unitPrice = orderItem.getUnitPrice()
-                        .subtract(orderItem.getDiscount() != null ? orderItem.getDiscount() : BigDecimal.ZERO);
+                    BigDecimal totalPrice = unitPrice.multiply(
+                            BigDecimal.valueOf(orderItem.getQuantity()));
+                    BigDecimal vatAmount = totalPrice.multiply(vatRate)
+                            .setScale(2, RoundingMode.HALF_UP);
 
-                BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(orderItem.getQuantity()));
-                BigDecimal vatAmount = totalPrice.multiply(vatRate).setScale(2, RoundingMode.HALF_UP);
+                    VATSalesItemDto item = VATSalesItemDto.builder()
+                            .stt(stt.getAndIncrement())
+                            .productName(getProductName(orderItem))
+                            .buyerName(buyerName)
+                            .buyerTaxCode(randomTaxCode())
+                            .unit("Cái")
+                            .quantity(orderItem.getQuantity())
+                            .unitPrice(unitPrice)
+                            .totalPrice(totalPrice)
+                            .vatRate(vatRate.multiply(BigDecimal.valueOf(100)))
+                            .vatAmount(vatAmount)
+                            .orderNumber(orderNumber)
+                            .orderDate(orderDate)
+                            .build();
 
-                VATSalesItemDto item = VATSalesItemDto.builder()
-                        .stt(stt.getAndIncrement())
-                        .productName(getProductName(orderItem))
-                        .buyerName(order.getCustomer() != null ? order.getCustomer().getFullName() : "")
-                        .buyerTaxCode(randomTaxCode())
-                        .unit("Cái") // đơn vị tính tạm
-                        .quantity(orderItem.getQuantity())
-                        .unitPrice(unitPrice)
-                        .totalPrice(totalPrice)
-                        .vatRate(vatRate.multiply(BigDecimal.valueOf(100))) // % (10, 5, 0,…)
-                        .vatAmount(vatAmount)
-                        .orderNumber(order.getOrderNumber())
-                        .orderDate(order.getOrderDate().toLocalDate())
-                        .build();
-
-                items.add(item);
+                    items.add(item);
+                } catch (Exception e) {
+                    log.error("Error processing order item for order {}: {}",
+                            orderNumber, e.getMessage());
+                }
             }
         }
 
@@ -163,14 +218,36 @@ public class TaxReportServiceImpl implements TaxReportService {
 
     // Hàm lấy tên sản phẩm từ OrderItem
     private String getProductName(OrderItem orderItem) {
-        String productName = orderItem.getProductVariant().getProduct().getTranslations()
-                .stream()
-                .findFirst()
-                .map(t -> t.getName())
-                .orElse("Unknown Product");
+        try {
+            ProductVariant variant = orderItem.getProductVariant();
+            if (variant == null) {
+                return "Unknown Product";
+            }
 
-        return productName + " (" + orderItem.getProductVariant().getColor() +
-                " - " + orderItem.getSize().getSizeName() + ")";
+            Product product = variant.getProduct();
+            if (product == null) {
+                return "Unknown Product";
+            }
+
+            // Translations đã được eager load
+            String productName = "Unknown Product";
+            if (product.getTranslations() != null && !product.getTranslations().isEmpty()) {
+                productName = product.getTranslations().get(0).getName();
+            }
+
+            String color = variant.getColor() != null ? variant.getColor() : "N/A";
+            String sizeName = "N/A";
+
+            Size size = orderItem.getSize();
+            if (size != null) {
+                sizeName = size.getSizeName();
+            }
+
+            return String.format("%s (%s - %s)", productName, color, sizeName);
+        } catch (Exception e) {
+            log.warn("Error getting product name for order item: {}", e.getMessage());
+            return "Unknown Product";
+        }
     }
 
     // Hàm tính tổng tiền hàng (chưa thuế)

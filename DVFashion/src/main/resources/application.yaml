@@ -18,10 +18,19 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
+        jdbc:
+          batch_size: 50
+          fetch_size: 100
+          order_inserts: true
+          order_updates: true
+          batch_versioned_data: true
+          query:
+            in_clause_parameter_padding: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
         show_sql: true
         format_sql: true
         jdbc.time_zone: Asia/Ho_Chi_Minh
+        default_batch_fetch_size: 100
   # OAuth2 Client Configuration
   security:
     oauth2:

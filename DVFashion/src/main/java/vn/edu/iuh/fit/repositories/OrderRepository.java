@@ -14,6 +14,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.entities.Order;
+import vn.edu.iuh.fit.entities.ProductVariant;
+import vn.edu.iuh.fit.entities.Size;
 import vn.edu.iuh.fit.enums.Language;
 import vn.edu.iuh.fit.enums.OrderStatus;
 
@@ -198,10 +200,54 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
      * @param statuses  the list of order statuses to include
      * @return a list of orders matching the criteria, ordered by order date
      */
-    @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.status IN :statuses ORDER BY o.orderDate")
+//    @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.status IN :statuses ORDER BY o.orderDate")
+    @Query("""
+    SELECT DISTINCT o FROM Order o
+    LEFT JOIN FETCH o.customer c
+    LEFT JOIN FETCH o.items oi
+    LEFT JOIN FETCH oi.productVariant pv
+    LEFT JOIN FETCH pv.product p
+    LEFT JOIN FETCH p.translations pt
+    LEFT JOIN FETCH oi.size s
+    WHERE o.orderDate BETWEEN :startDate AND :endDate
+    AND o.status IN :statuses
+    ORDER BY o.orderDate
+    """)
     List<Order> findOrdersForReport(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate,
                                     @Param("statuses") List<OrderStatus> statuses);
+
+    @Query("""
+    SELECT DISTINCT o FROM Order o
+    LEFT JOIN FETCH o.customer
+    LEFT JOIN FETCH o.items
+    WHERE o.orderDate BETWEEN :startDate AND :endDate
+    AND o.status IN :statuses
+    ORDER BY o.orderDate
+    """)
+    List<Order> findOrdersWithItemsForTaxReport(@Param("startDate") LocalDateTime startDate,
+                                                @Param("endDate") LocalDateTime endDate,
+                                                @Param("statuses") List<OrderStatus> statuses);
+
+    @Query("""
+    SELECT DISTINCT pv FROM ProductVariant pv
+    LEFT JOIN FETCH pv.product p
+    LEFT JOIN FETCH p.translations
+    WHERE pv.id IN (
+        SELECT oi.productVariant.id FROM OrderItem oi 
+        WHERE oi.order IN :orders
+    )
+    """)
+    List<ProductVariant> fetchProductVariantsWithTranslations(@Param("orders") List<Order> orders);
+
+    @Query("""
+    SELECT DISTINCT s FROM Size s
+    WHERE s.id IN (
+        SELECT oi.size.id FROM OrderItem oi 
+        WHERE oi.order IN :orders
+    )
+    """)
+    List<Size> fetchSizesForOrders(@Param("orders") List<Order> orders);
 
     /**
      * Finds orders within a specified date range and with specified statuses for comparison purposes.
