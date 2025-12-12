@@ -22,6 +22,7 @@ spring:
         show_sql: true
         format_sql: true
         jdbc.time_zone: Asia/Ho_Chi_Minh
+        default_batch_fetch_size: 100
   # OAuth2 Client Configuration
   security:
     oauth2:
@@ -116,7 +117,7 @@ recommendation:
 
 # PayPal configuration
 paypal:
-  base-url: https://api-m.sandbox.paypal.com
+  base-url: ${PAYPAL_BASE_URL}
   client-id: ${PAYPAL_CLIENT_ID}
   client-secret: ${PAYPAL_CLIENT_SECRET}
   mode: ${PAYPAL_MODE}

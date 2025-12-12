@@ -198,7 +198,14 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
      * @param statuses  the list of order statuses to include
      * @return a list of orders matching the criteria, ordered by order date
      */
-    @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.status IN :statuses ORDER BY o.orderDate")
+//    @Query("SELECT o FROM Order o WHERE o.orderDate BETWEEN :startDate AND :endDate AND o.status IN :statuses ORDER BY o.orderDate")
+    @Query("""
+    SELECT DISTINCT o FROM Order o 
+    LEFT JOIN FETCH o.items oi 
+    WHERE o.orderDate BETWEEN :startDate AND :endDate 
+    AND o.status IN :statuses 
+    ORDER BY o.orderDate
+""")
     List<Order> findOrdersForReport(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate,
                                     @Param("statuses") List<OrderStatus> statuses);
