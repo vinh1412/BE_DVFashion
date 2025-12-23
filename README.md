@@ -1,144 +1,327 @@
-# 👗 DVFashion Shop - Intelligent Clothing Store Management System
+# 👗 DVFashion – Developing An E-Commerce Website For A Fashion Store With Recommendation Models And Revenue Forecasting Using Machine Learning
 
-## 🤝 Development Team  
+An AI-powered fashion e-commerce system that integrates personalized product recommendations and revenue forecasting, designed with a **clear separation between core business logic and AI services** for modern online retail. 🚀
 
-- **Developer 1**: Tran Hien Vinh  
-- **Developer 2**: Nguyen Tan Thai Duong 
 
-## 📖 Introduction  
+## 1. Project Title & Short Description
 
-DVFashion Shop is an online clothing store management system that integrates intelligent features such as **product recommendation** and **revenue forecasting**. The project aims to provide customers with an optimized shopping experience and store owners with an efficient management tool.  
+**DVFashion – Developing An E-Commerce Website For A Fashion Store With Recommendation Models And Revenue Forecasting Using Machine Learning** is a two-backend project consisting of:
 
-## 🎯 Project Objectives  
+- A **Java Spring Boot core system** that handles all e-commerce business logic.
+- A **Python-based AI service** dedicated to product recommendation and revenue forecasting.
 
-- **Enhance customer experience**: Friendly interface, smart search, personalized product recommendations  
-- **Optimize management**: Revenue forecasting, inventory management, detailed statistics  
-- **Flexible payment**: PayPal integration for online transactions  
-- **Multilingual**: English - Vietnamese support  
+The frontend application communicates **only with the Java backend**, while the Java backend internally calls the AI service when intelligent features are required. This architecture is suitable for academic defense, capstone projects, and professional portfolios.
 
-## ✨ Key Features  
 
-### 🛍️ For Customers  
+## 2. Introduction & Problem Statement
 
-- **Sign Up / Login**: Support registration via email or phone number  
-- **Search & Filter**: Smart search with multi-criteria filters (size, color, price, gender)  
-- **Smart Recommendation**: Personalized suggestions based on user behavior and preferences  
-- **Shopping Cart Management**: Add, remove, update items easily  
-- **Checkout**: Secure PayPal integration for payments  
-- **Order Tracking**: Real-time order status updates  
-- **Product Reviews**: Rate and write reviews  
-- **Language Switch**: English - Vietnamese support  
+Many online fashion platforms struggle to simultaneously deliver personalized customer experiences and data-driven business insights. In addition, tightly coupling AI logic with core business systems often leads to poor maintainability and limited scalability.
 
-### 👨‍💼 For Admin  
+DVFashion addresses these challenges by:
 
-- **Product Management**: Full CRUD operations with detailed product info  
-- **Inventory Management**: Stock in/out, real-time stock control  
-- **Revenue Forecasting**: AI-powered future sales predictions  
-- **Reports & Analytics**: Interactive dashboard, export to PDF/Excel  
-- **User Management**: Manage customer and staff accounts  
-- **Promotion Management**: Create and control discount campaigns  
+- Centralizing all business workflows in a stable Java backend.
+- Decoupling AI-related computation into a dedicated Python service.
+- Enabling personalization and forecasting without exposing AI complexity to the frontend.
 
-### 👥 For Staff  
+This approach improves system maintainability, extensibility, and academic clarity.
 
-- **Order Processing**: Update status, confirm orders  
-- **Customer Support**: Handle inquiries and provide assistance  
 
-## 🏗️ System Architecture  
+## 3. Objectives of the Project
 
-### Frontend  
+- Provide a complete and secure fashion e-commerce system for customers and administrators.
+- Enhance product discovery through AI-based personalized recommendations.
+- Support store owners with revenue forecasting for better inventory and business planning.
+- Apply a clean, practical architecture suitable for both academic and real-world scenarios.
 
-- **Framework**: ReactJS  
-- **UI/UX**: Responsive, user-friendly design  
-- **Multilingual**: i18n for English - Vietnamese  
 
-### Backend  
+## 4. System Overview
 
-- **Framework**: Java Spring Boot  
-- **Authentication**: JWT Token  
-- **API**: RESTful API design  
+DVFashion consists of three main components:
 
-### Database  
+- **Frontend (ReactJS)**  
+  User interface for customers and administrators.  
+  Communicates exclusively with the Java backend via REST APIs.
 
-- **DBMS**: PostgreSQL  
-- **Schema**: Optimized for performance and scalability  
+- **Core Backend (Java Spring Boot)**  
+  Handles all business logic including authentication, product management, orders, payments, promotions, and reporting.  
+  Acts as a client to the AI service when recommendation or forecasting data is required.
 
-### AI & Machine Learning  
+- **AI Service (Python)**  
+  Provides REST APIs for product recommendation and revenue forecasting.  
+  Does not interact directly with the frontend.
 
-- **Engine**: Weka  
-- **Algorithms**:  
-  - Collaborative Filtering (product recommendations)  
-  - Content-based Filtering  
-  - Time Series Forecasting (revenue prediction)  
+## 5. Diagram
 
-### Cloud Services  
+### Usecase Diagram
+![Usecase_KLTN_v12](https://github.com/user-attachments/assets/bb62cfa9-26e6-4fd8-b8b9-bbc28b252cd5)
 
-- **Image Management**: Cloudinary  
-- **Payment**: PayPal Integration  
+## 6. Key Features
 
-## 📊 Use Case Diagram  
+### Customer Features
 
-The system is designed with 3 main actors:  
+- 🔍 Smart product search with multi-criteria filters (size, color, price, gender).
+- 🛒 Shopping cart and checkout flow with PayPal integration.
+- 🤖 Personalized product recommendations on home and product detail pages.
+- 📦 Order tracking with status updates.
+- 🌐 Bilingual user interface (English / Vietnamese) with responsive design.
 
-- **Customer**: Shopping, reviewing, tracking orders  
-- **Admin**: Full system management  
-- **Staff**: Order processing, customer support  
-- **PayPal System**: Payment processing  
+### Admin / Manager Features
 
-<img width="2019" height="1879" alt="usecase" src="https://github.com/user-attachments/assets/ac62f08a-5cdd-421e-8899-a7135c32f987" />  
+- 📦 Product, category, variant, and inventory management.
+- 🧾 Order management and lifecycle control (create, approve, ship, refund).
+- 🎯 Promotion and voucher management.
+- 🧑‍💼 User, role, and permission management (RBAC).
+- 📊 Revenue analytics and forecasting reports.
 
-## 🚀 Installation & Setup  
+### AI / Analytics Features
 
-### System Requirements  
+- Hybrid recommendation combining collaborative filtering and content-based methods.
+- Revenue forecasting using Prophet with configurable seasonality.
+- Decision support for inventory and marketing planning.
 
-- Java 17  
-- Node.js 22+  
-- PostgreSQL 17  
 
-## 📈 AI Features  
+## 7. System Architecture
 
-### 1. Product Recommendation System  
+### High-level Architecture
 
-- **Collaborative Filtering**: Based on similar users’ behavior  
-- **Content-based**: Based on product attributes  
-- **Hybrid Approach**: Combination of both methods  
+- Frontend → **Java Backend (single API entry point)**
+- Java Backend → **Python AI Service (internal REST calls)**
+- Python AI Service → returns prediction/recommendation results to Java
+- Java processes and delivers final responses to the frontend
 
-### 2. Revenue Forecasting  
+⚠️ The frontend **never communicates directly** with the Python service.
 
-- **Input**: Historical sales data, seasonal trends, promotions  
-- **Output**: Weekly / monthly / quarterly revenue forecast  
-- **Accuracy**: Continuously improved via feedback  
+### Component Description
 
-## 🔒 Security  
+| Component         | Responsibility                      |
+| ----------------- | ----------------------------------- |
+| Frontend (React)  | User interface                      |
+| Java Backend      | Core business logic, APIs, security |
+| Python AI Service | Recommendation & forecasting        |
+| PostgreSQL        | Primary relational database         |
 
-- **Authentication**: JWT with refresh token  
-- **Authorization**: Role-based access control  
-- **Data Protection**: Encryption of sensitive data  
-- **API Security**: Rate limiting, input validation  
 
-## 📱 Responsive Design  
+## 8. Technology Stack
 
-- **Mobile First**: Optimized for mobile devices  
-- **Cross Browser**: Works across different browsers  
-- **Performance**: Fast page load optimization   
+### Backend (Core System)
 
-## 📄 License  
+- Java 17
+- Spring Boot
+- Spring Security (JWT)
+- Spring Data JPA
+- RESTful APIs with Swagger/OpenAPI
 
-This project is developed for educational and research purposes.  
+### AI / Machine Learning
 
-## 🐛 Bug Reporting  
+- Python (FastAPI)
+- Collaborative Filtering
+- Content-based Recommendation
+- Prophet for revenue forecasting
 
-If you find a bug, please create an issue in the repository or contact the development team directly.  
+### Frontend
 
-## 🔄 Development Roadmap  
+- ReactJS
+- Tailwind CSS
+- Axios / React Query
+- i18n support (English / Vietnamese)
 
-### Version 1.1 (Current)  
+### Database
 
-- [ ] AI-based product recommendation  
-- [ ] Revenue forecasting  
-- [ ] PayPal integration  
-- [ ] Multilingual support  
-- [ ] Inventory management  
+- PostgreSQL
 
----  
+### DevOps / Deployment
 
-⭐ **If you find this project useful, don’t forget to give us a star!** ⭐  
+- Docker & Docker Compose
+- AWS EC2
+
+
+## 9. Database Design (Brief Overview)
+
+- **Core entities**: Users, Roles, Products, Categories, Variants, Inventory, Orders, OrderItems, Payments, Promotions, Reviews.
+- **Relationships**: User–Order (1:N), Order–OrderItems (1:N), Product–Variants (1:N), Product–Reviews (1:N), Promotion–Products (N:M).
+- **Optimization**: Indexing on key fields, Redis caching, soft deletes, and audit fields.
+
+
+## 10. AI / Machine Learning Models
+
+### Product Recommendation
+
+- Hybrid model combining:
+  - Collaborative filtering based on user interaction history.
+  - Content-based similarity using product attributes.
+- Models are executed in the Python service and consumed by the Java backend.
+
+### Revenue Forecasting
+
+- Time-series forecasting using Prophet.
+- Supports daily, weekly, and monthly predictions.
+- Considers seasonality and historical sales trends.
+
+
+## 11. API & Communication
+
+- **Frontend ↔ Java Backend**: REST APIs
+- **Java Backend ↔ Python AI Service**: Internal REST APIs
+- **Authentication**: JWT-based access control
+- **Authorization**: Role-based access control (Customer, Admin)
+- Architecture allows future extension with async messaging if needed.
+
+## 12. Deployment & Installation
+
+### Prerequisites
+
+- Java 17+, Node.js 18+, Docker 24+, Docker Compose, Git
+- PostgreSQL (local or managed)
+- PayPal developer credentials and AWS account for cloud deployment
+
+### Local Setup
+
+```bash
+git clone https://github.com/vinh1412/BE_DVFashion.git
+cd DVFashion
+
+# Backend (example)
+./mvnw clean install
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+### Docker / Cloud Deployment
+
+```bash
+# Build and start services locally
+docker compose up -d --build
+
+# Deploy to AWS EC2 (illustrative production file)
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Env Backend
+- For DVFashion
+```bash
+# Port Configuration
+SERVER_PORT=
+
+# Config Database
+DB_URL=
+DB_USERNAME=
+DB_PASSWORD=
+
+# Config Security
+JWT_SIGNED_KEY=
+JWT_EXPIRATION=
+JWT_REFRESH_EXPIRATION=
+JWT_SECRET_KEY=
+
+# Config Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Config Url
+FRONTEND_URL=
+BACKEND_URL=
+
+# Config Cloudinary
+CLOUDINARY_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Config Gemini
+GEMINI_KEY=
+GEMINI_MODEL=
+
+# Config Email
+GMAIL_USERNAME=
+GMAIL_APP_PASSWORD=
+
+# Config URL for forgot password
+RESET_PASSWORD_URL=
+
+# Recommendation Service
+RECOMMENDATION_SERVICE_URL=
+
+# Config PayPal
+PAYPAL_BASE_URL=
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+PAYPAL_MODE=
+PAYMENT_SUCCESS_URL=
+PAYMENT_CANCEL_URL=
+
+# Ghn Config
+GHN_BASE_URL=
+GHN_TOKEN=
+GHN_SHOP_ID=
+GHN_SHOP_NAME=
+
+# Brevo Config
+BREVO_API_KEY=
+SENDER_EMAIL=
+SENDER_NAME=
+BREVO_BASE_URL=
+
+# Application Environment
+APP_COOKIE_ENV=
+```
+
+- For recommendation-service
+```bash
+# Config server
+APP_HOST=
+APP_PORT=
+
+# Config connect DB
+DB_HOST=
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
+DB_PORT=
+
+# Key Gemini API
+GEMINI_API_KEY=
+
+MODEL_FILE_PATH=
+JAVA_API_URL=
+```
+
+## 13. Screenshots / Demo
+
+### Homepage
+<img width="1918" height="872" alt="trang chủ" src="https://github.com/user-attachments/assets/d8bfab89-694c-489d-be2a-fb5b19597e6f" />
+
+
+### Cart
+<img width="1918" height="870" alt="giỏ hàng" src="https://github.com/user-attachments/assets/1cb9b14b-740d-4c75-bd28-ed25cfd7a09b" />
+
+### Admin Dashboard
+<img width="1918" height="867" alt="trang chủ admin" src="https://github.com/user-attachments/assets/1bb916e5-e19a-4460-9397-bf9314e79334" />
+
+### Statistics
+<img width="1917" height="872" alt="trang thống kê" src="https://github.com/user-attachments/assets/0a281eaf-0781-4c6d-b408-d7b9fb62c1c0" />
+
+### Revenue Forecast
+<img width="1918" height="867" alt="dự đoán doanh thu" src="https://github.com/user-attachments/assets/fbf2a432-a26c-4052-a289-c96ae954c05d" />
+
+## 14. Future Improvements
+
+- Add A/B testing for recommendation variants.
+- Integrate image-based similarity using CNN embeddings.
+- Expand observability with distributed tracing and SLO dashboards.
+- Implement multi-tenant catalog management for marketplaces.
+- Enhance accessibility (WCAG 2.1) across all user flows.
+
+## 15. Conclusion
+
+DVFashion demonstrates a production-ready, AI-augmented fashion e-commerce platform that balances customer delight with operational intelligence. Its modular architecture, modern stack, and robust AI components provide a solid foundation for further research, commercialization, and portfolio presentation.
+
+## 16. Contributors
+
+- Tran Hien Vinh
+- Nguyen Tan Thai Duong
+
+## 17. License
+
+This project is released under the MIT License. See `LICENSE` for details.
